@@ -2,7 +2,7 @@
 
 ## 一、集成位置
 
-所有 Pod 库均在 **shared_libs** 模块集成，方便统一生成 Podfile 配置（`iosApp/Podfile`）。
+所有 Pod 库均在 **所在模块** 集成，方便统一生成 Podfile 配置（`iosApp/Podfile`）。
 
 ## 二、版本号规范
 
@@ -33,7 +33,7 @@ cat Podfile.lock
 
 **解决方法：**
 
-在 `shared_libs` 模块的以下目录找到需要的 `.h` 文件名：
+在 **所在模块** 的以下目录找到需要的 `.h` 文件名：
 
 ```
 build/cocoapods/synthetic/ios/Pods/$名称/
@@ -128,6 +128,6 @@ Pod 依赖配置问题
 
 ## 五、注意事项
 
-1. **不要在多个共享模块各自添加 Pod 依赖**，统一在 `shared_libs` 模块管理
+1. **不要在多个共享模块各自添加 Pod 依赖**，统一在 **所在模块** 管理
 2. **不要省略版本号**，必须明确指定
 3. **不要修改 `iosApp/Podfile`**，该文件由框架脚本自动生成
