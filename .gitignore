@@ -22,6 +22,7 @@ captures
 node_modules/
 /TestApk
 /iosApp/env/env_config.properties
+/iosApp/env/env_config.properties?
 /iosApp/Pods/
 */*.podspec
 /iosApp/.bundle/
