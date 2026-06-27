@@ -11,6 +11,7 @@
     - 必须使用 `rememberMainScreenModel` 绑定模型。
     - 模型必须继承 `BasicScreenModel`。
     - **禁止**在 Screen 中写复杂的业务逻辑，全部下沉到 ScreenModel。
+    - **强制询问交互状态**：在设计确认阶段（阶段二）必须明确询问是否接入 `BasicInteraction`。
 
 ### 1.2 生命周期映射
 ScreenModel 的生命周期由框架自动管理：
