@@ -1,0 +1,809 @@
+import com.frame.basic.buildsrc.ChannelConfig
+import com.frame.basic.buildsrc.ProjectBuildConfig
+import com.frame.basic.buildsrc.VmpConfig
+import com.frame.basic.utils.DingHelper
+import com.frame.basic.utils.OssHelper
+import java.nio.charset.Charset
+
+def runCommand(Closure configureClosure) {
+    def execOutput = project.providers.exec {
+        workingDir project.projectDir
+        configureClosure.delegate = delegate
+        configureClosure.resolveStrategy = Closure.DELEGATE_FIRST
+        configureClosure.call()
+    }
+    execOutput.result.get()
+}
+
+/**
+ * 发布测试包task分组名称
+ */
+def submitTestGroupName = "submit_test"
+/**
+ * 发布测试包task分组名称
+ */
+def submitDevGroupName = "submit_dev"
+/**
+ * 发布生产包包task分组名称
+ */
+def publishOnlineGroupName = "publish_online"
+/**
+ * 本地提交文件服务器task分组名称
+ */
+def submitServerGroupName = "submit_server"
+/**
+ * 测试包根目录
+ */
+def testApkRootFolder = file("${rootProject.getProjectDir().absolutePath}/TestApk")
+/**
+ * 所有apk目录
+ */
+def allApkFolder = file("${testApkRootFolder.absolutePath}/apk/").absolutePath
+
+/**
+ * 项目的根目录
+ */
+def projectFolder = file("${allApkFolder}/${ProjectBuildConfig.Build.appName}/").absolutePath
+
+/**
+ * 测试包apk目录
+ */
+def testApkFolder = file("${projectFolder}/test").absolutePath
+/**
+ * 开发包apk目录
+ */
+def devApkFolder = file("${projectFolder}/dev").absolutePath
+/**
+ * 测试包更新说明文件
+ */
+def testApkVersionDesc = file("${testApkRootFolder.absolutePath}/version_desc")
+/**
+ * 生产渠道包目录
+ */
+def channelApkFolder = file("${projectFolder}/channel/v${ProjectBuildConfig.Build.versionName}")
+/**
+ * 渠道配置文本
+ */
+def channelsFile = file("${projectFolder}/channel/channel.txt")
+/**
+ * FTP服务器工具名
+ */
+def niniserveFileName = "miniserve_0.29.0.exe"
+
+// 默认打包release_apk文件夹路径
+def mainAppPath = "${projectDir.absolutePath}/build/outputs/apk/release/"
+
+// 默认打包release_apk_mapping文件
+def mainMapping = file("${projectDir.absolutePath}/build/outputs/mapping/release/mapping.txt")
+
+//tools目录
+def toolsFolder = file("${rootProject.getProjectDir().absolutePath}/tools/")
+
+//vmp执行文件
+def vmpJarName = "vm-protect-2025-11-07-1211.jar"
+
+/**主包*/
+task assembleMain(dependsOn: 'assembleRelease') {
+    group = publishOnlineGroupName
+    description = "打主包"
+    doLast {
+        File apkFile = null
+        File apkFolder = file(mainAppPath)
+        // 获取该文件夹下的所有文件
+        File[] apkFiles = apkFolder.listFiles()
+        int i = 0
+        for (File file : apkFiles) {
+            if (file.isFile() && file.getName().endsWith(".apk")) {
+                // 获取后缀名为.apk的文件
+                apkFile = file
+                i++
+            }
+        }
+        if (i > 1) {
+            println("There are multiple folders under this folder apk：" + apkFile.absolutePath)
+            return
+        }
+        if (apkFile == null || !apkFile.exists()) {
+            println("Can't find the apk：" + apkFile.absolutePath)
+            return
+        }
+
+        println("apk location $apkFile.absolutePath")
+        def deskApkFileFolder = file("${channelApkFolder.absolutePath}/")
+        if (!deskApkFileFolder.exists() || deskApkFileFolder.isFile()) {
+            deskApkFileFolder.mkdirs()
+        }
+        for (File apk : deskApkFileFolder.listFiles()) {
+            if (apk.isFile() && apk.name.startsWith(ProjectBuildConfig.Build.buildApkNamePrefix("release")) && apk.name.endsWith(".apk")) {
+                apk.delete()
+            }
+        }
+        runCommand {
+            executable = 'java'
+            args = ['-jar', "../tools/walle-cli-all.jar",
+                    'put', '-c',
+                    ChannelConfig.default_channel,//主包渠道名称
+                    apkFile.absolutePath,
+                    "${deskApkFileFolder.absolutePath}/${apkFile.name}"
+            ]
+        }
+        def exitMapping = file("${deskApkFileFolder.absolutePath}/mapping.txt")
+        if (exitMapping.exists() && exitMapping.isFile()) {
+            exitMapping.delete()
+        }
+        //复制mapping.txt
+        project.copy {
+            from mainMapping
+            into deskApkFileFolder
+        }
+    }
+}
+/**将主包生成渠道包*/
+task assembleMainChannels() {
+    group = publishOnlineGroupName
+    description = "将主包生成渠道包"
+    doLast {
+        File apkFile = null
+        File apkFolder = file("${channelApkFolder.absolutePath}/")
+        File[] apkFiles = apkFolder.listFiles()
+        for (File file : apkFiles) {
+            if (file.isFile() && file.getName().endsWith(".apk")) {
+                // 获取后缀名为.apk的文件
+                apkFile = file
+            }
+        }
+        def deskApkFileFolder = file("${channelApkFolder.absolutePath}/market/")
+        if (!deskApkFileFolder.exists() || deskApkFileFolder.isFile()) {
+            deskApkFileFolder.mkdirs()
+        }
+        for (File apk : deskApkFileFolder.listFiles()) {
+            if (apk.isFile() && apk.name.startsWith(ProjectBuildConfig.Build.buildApkNamePrefix("release")) && apk.name.endsWith(".apk")) {
+                apk.delete()
+            }
+        }
+        createChannelsFile(channelsFile)
+        runCommand {
+            executable = 'java'
+            args = ['-jar', "${rootProject.getProjectDir()}/tools/walle-cli-all.jar",
+                    'batch', '-f',
+                    "${channelsFile.absolutePath}",
+                    apkFile.absolutePath,
+                    "${deskApkFileFolder.absolutePath}"
+            ]
+        }
+    }
+}
+
+
+/**
+ * 加固后的apk 对齐压缩
+ * @param apk 已加固apk
+ * @return 返回对齐压缩后的apk
+ */
+def zipAlignApk(File apk) {
+    if (apk == null || !apk.exists()) {
+        println "---zipalign reinforceApk throw exception and forced stop!---"
+        throw new FileNotFoundException('apk is not exists and cannot reinforce')
+    }
+    def file = new File("${apk.absolutePath.replace(".apk", "_zip.apk")}")
+    if (file.exists()) {
+        file.delete()
+    }
+    runCommand {
+        commandLine "cmd", "/c", "\"${getApkSignerAndZipAlignPath().absolutePath}/zipalign\" -v -p 4 ${apk.absolutePath} ${file.absolutePath}"
+    }
+    if (apk.exists()) {
+        apk.delete()
+    }
+    return file
+}
+/**
+ * 对apk签名
+ * @param zipApk 压缩对齐后的apk
+ * @return 签名后的apk
+ */
+def signApkV2(File apkFile) {
+    if (apkFile == null || !apkFile.exists()) {
+        println "---sign apkFile throw exception and forced stop!---"
+        throw new FileNotFoundException('apk is not exists and cannot reinforce')
+    }
+    def file = new File("${apkFile.absolutePath.replace("_zip.apk", "_sign.apk")}")
+    if (file.exists()) {
+        file.delete()
+    }
+    def releaseConfig = project.extensions.findByName("android").signingConfigs.findByName("release")
+    def storeFile = releaseConfig.storeFile
+    def keyAlias = releaseConfig.keyAlias
+    def keyPassword = releaseConfig.keyPassword
+    def storePassword = releaseConfig.storePassword
+
+    runCommand {
+        commandLine "powershell", "/c", "\"& '${getApkSignerAndZipAlignPath().absolutePath}/apksigner'\" sign --ks ${storeFile.absolutePath} --ks-key-alias ${keyAlias} --ks-pass pass:${storePassword} --key-pass pass:${keyPassword} --out ${file.absolutePath} ${apkFile.absolutePath}"
+    }
+    if (apkFile.exists()) {
+        apkFile.delete()
+    }
+    def signBeforeFile = new File("${file.absolutePath}.idsig")
+    if (signBeforeFile.exists()) {
+        signBeforeFile.delete()
+    }
+    return file
+}
+/***
+ * 获取 SDK 目录下的最新 SDK 版本路径
+ * @return
+ */
+def getApkSignerAndZipAlignPath() {
+    def sdkDirectory = new File("${parseLocalProperties()}\\build-tools")
+    def listFiles = sdkDirectory.listFiles()
+    def fileSize = listFiles.size()
+    return listFiles[fileSize - 1]
+}
+/***
+ * 获取 SDK 路径
+ * @return
+ */
+def parseLocalProperties() {
+    File file = rootProject.file("local.properties")
+    if (file.exists()) {
+        InputStream inputStream = file.newDataInputStream()
+        Properties properties = new Properties()
+        properties.load(inputStream)
+        return properties.getProperty("sdk.dir") //
+    }
+    throw new FileNotFoundException('local.properties is not exists and cannot reinforce')
+}
+/**上传所有channel文件*/
+task publishOss() {
+    group = publishOnlineGroupName
+    description = "上传channel_v${ProjectBuildConfig.Build.versionName}文件"
+    doLast {
+        File apkFolder = file("${channelApkFolder.absolutePath}/")
+        OssHelper.uploadDir(apkFolder)
+    }
+}
+/**上传所有channel文件并且钉钉通知*/
+task publishOssDing() {
+    group = publishOnlineGroupName
+    description = "上传channel_v${ProjectBuildConfig.Build.versionName}文件并且钉钉通知"
+    doLast {
+        File apkFolder = file("${channelApkFolder.absolutePath}/")
+        def result = OssHelper.uploadDir(apkFolder)
+        DingHelper.dingOnlineApk(result)
+    }
+}
+/**
+ * 启动当前项目本地Apk服务器（将自动添加开机自启任务）
+ */
+task startLocalServer() {
+    group = submitServerGroupName
+    description = "启动当前项目本地Apk服务器（将自动添加开机自启任务）"
+    doLast {
+        def miniServe = file("${testApkRootFolder.absolutePath}/${niniserveFileName}")
+        def batFolder = file("${testApkRootFolder.absolutePath}/bat/")
+        if (batFolder.exists() && batFolder.isDirectory()) {
+            batFolder.deleteDir()
+        }
+        batFolder.mkdirs()
+        // 生成miniServe.bat，用于启动本地FTP服务
+        def miniServeBat = file("${batFolder.absolutePath}/miniServe.bat")
+        if (miniServeBat.exists() && miniServeBat.isFile()) {
+            miniServeBat.delete()
+        }
+        miniServeBat.createNewFile()
+        def miniServeBatWriter = new FileWriter(miniServeBat)
+        miniServeBatWriter.write("@echo off")
+        miniServeBatWriter.write("\n")
+        miniServeBatWriter.write("start /b \"TestApkServer\" ${miniServe.absolutePath} ${allApkFolder} -p ${ProjectBuildConfig.Other.serverPort}")
+        miniServeBatWriter.flush()
+        miniServeBatWriter.close()
+        // 用于执行miniServe.bat，避免miniServe.bat执行后会有cmd窗口常驻任务栏的问题
+        def nircmd = file("${testApkRootFolder.absolutePath}/nircmd.exe")
+        def cmd = "start ${nircmd.absolutePath} exec hide \"${miniServeBat.absolutePath}\""
+        // 如果之前已经启动了Apk服务器，则先关闭
+        def pid = isProcessRunning(niniserveFileName, ProjectBuildConfig.Other.serverPort)
+        if (pid != null) {
+            killProcessByPid(pid)
+        }
+        //删除已存在的自启任务
+        def startUpTask = "${ProjectBuildConfig.Build.applicationId}_hideMiniServe"
+        runCommand {
+            commandLine "cmd", "/c", "schtasks /delete /tn \"${startUpTask}\" /f"
+            ignoreExitValue true //当任务不存在时，调用删除会抛异常，该情况可以直接忽略
+        }
+        //拷贝本地服务器工具
+        if (!nircmd.exists() || !nircmd.isFile()) {
+            project.copy {
+                from file("${toolsFolder.absolutePath}/nircmd.exe")
+                into testApkRootFolder
+            }
+        }
+        def nircmdc = file("${testApkRootFolder.absolutePath}/nircmdc.exe")
+        if (!nircmdc.exists() || !nircmdc.isFile()) {
+            project.copy {
+                from file("${toolsFolder.absolutePath}/nircmdc.exe")
+                into testApkRootFolder
+            }
+        }
+        if (!miniServe.exists() || !miniServe.isFile()) {
+            project.copy {
+                from file("${toolsFolder.absolutePath}/${niniserveFileName}")
+                into testApkRootFolder
+            }
+        }
+        // 检测指定的allApkFolder目录是否存在，如果不存在则必须创建一个，否则会导致启动失败
+        def allApkFolderDir = file("${allApkFolder}/")
+        if (!allApkFolderDir.exists() || !allApkFolderDir.isDirectory()) {
+            System.out.println("[Waring]TestApkServer detected apk folder is not exits, will automatically created it")
+            allApkFolderDir.mkdirs()
+        }
+        // 启动本地Apk服务器
+        runCommand {
+            commandLine "cmd", "/c", cmd
+        }
+        System.out.println("TestApkServer Address: ${getTestApkServerAddress()}")
+        //添加开机自启任务 taskschd.msc快速进入用户界面检查
+        runCommand {
+            commandLine "cmd", "/c", "schtasks /create /tn \"${startUpTask}\" /tr \"${nircmd.absolutePath} exec hide \'${miniServeBat.absolutePath}\'\" /sc onstart /ru SYSTEM"
+        }
+        System.out.println("add TestApkServer to windows startup success!")
+    }
+}
+/**
+ * 关闭当前项目本地Apk服务器（同时移除开机自启任务）
+ */
+task killLocalServer() {
+    group = submitServerGroupName
+    description = "关闭当前项目本地Apk服务器（同时移除开机自启任务）"
+    doLast {
+        // 如果之前已经启动了Apk服务器，则先关闭
+        def pid = isProcessRunning(niniserveFileName, ProjectBuildConfig.Other.serverPort)
+        if (pid != null) {
+            killProcessByPid(pid)
+        }
+        //删除已存在的自启任务
+        def startUpTask = "${ProjectBuildConfig.Build.applicationId}_hideMiniServe"
+        runCommand {
+            commandLine "cmd", "/c", "schtasks /delete /tn \"${startUpTask}\" /f"
+            ignoreExitValue true //当任务不存在时，调用删除会抛异常，该情况可以直接忽略
+        }
+    }
+}
+/**
+ * 获取本机IP地址
+ */
+def getTestApkServerAddress() {
+    return "http://${getLocalIp()}:${ProjectBuildConfig.Other.serverPort}"
+}
+/**
+ * 获取ip地址
+ * @return
+ */
+def getLocalIp() {
+    def process = "wmic nicconfig where IPEnabled=true get IPAddress".execute()
+    def ip = process.text.split("\n")[1].trim().replaceAll(/[{}]/, "")
+    return ip.split(",")[0].trim().replaceAll(/"/, "")
+}
+
+/**
+ * 指定进程是否正在运行
+ * @param processName
+ * @return 返回空表示没有，返回进程id
+ */
+def isProcessRunning(String processName, String processPort) {
+    String line
+    def process = Runtime.getRuntime().exec(System.getProperty("os.name").contains("Windows") ? "tasklist" : "ps -e")
+    def input = new BufferedReader(new InputStreamReader(process.getInputStream()))
+    def consumePid = null
+    while ((line = input.readLine()) != null) {
+        if (line.contains(processName)) {
+            def processId = getProcessId(line, processName)
+            if (checkProcessPort(processId, processPort)) {
+                consumePid = processId
+                break
+            }
+        }
+    }
+    input.close()
+    return consumePid
+}
+/**
+ * 获取进程id
+ * @param processLineInfo
+ * @param processName
+ */
+def getProcessId(String processLineInfo, String processName) {
+    def temp = processLineInfo.substring(processName.length(), processLineInfo.length())
+    if (temp.contains("Console")) {
+        return temp.substring(0, temp.indexOf("Console")).trim()
+    } else {
+        return temp.substring(0, temp.indexOf("Services")).trim()
+    }
+
+}
+/**
+ * 检查进程是否已占用端口
+ * @param processId
+ */
+def checkProcessPort(String processId, String processPort) {
+    String line
+    ProcessBuilder builder = new ProcessBuilder("cmd.exe", "/c", "netstat -ano | findstr ${processId}")
+    builder.redirectErrorStream(true)
+    def isConsume = false
+    try {
+        Process process = builder.start()
+        BufferedReader input = new BufferedReader(new InputStreamReader(process.getInputStream(), "GBK"))
+        while ((line = input.readLine()) != null) {
+            if (line.contains(":${processPort} ")) {//注意：必须保留空格符
+                isConsume = true
+                break
+            }
+        }
+        input.close()
+    } catch (IOException e) {
+        e.printStackTrace()
+    }
+    return isConsume
+}
+/**
+ * 杀死指定进程
+ * @param processId 进程id
+ * @return
+ */
+def killProcessByPid(String processId) {
+    String command = "taskkill /F /PID " + processId
+    Process process = Runtime.getRuntime().exec(command)
+    process.waitFor()
+}
+/**
+ * 杀死指定进程
+ * @param processName 进程名
+ * @return
+ */
+def killProcessByName(String processName) {
+    String command = "taskkill /F /IM " + processName
+    Process process = Runtime.getRuntime().exec(command)
+    process.waitFor()
+}
+/**
+ * 打Debug测试包并推送局域网url到钉钉
+ */
+task submitTestDebug(dependsOn: 'assembleDebug') {
+    group = submitTestGroupName
+    description = "打Debug测试包并推送局域网url到钉钉"
+    doLast {
+        copyTestApkDing("debug", testApkFolder, testApkVersionDesc, false)
+    }
+}
+/**
+ * 打Alpha测试包并推送局域网url到钉钉
+ */
+task submitTestAlpha(dependsOn: 'assembleAlpha') {
+    group = submitTestGroupName
+    description = "打Alpha测试包并推送局域网url到钉钉"
+    doLast {
+        copyTestApkDing("alpha", testApkFolder, testApkVersionDesc, false)
+    }
+}
+/**
+ * 打Beta测试包并推送局域网url到钉钉
+ */
+task submitTestBeta(dependsOn: 'assembleBeta') {
+    group = submitTestGroupName
+    description = "打Beta测试包并推送局域网url到钉钉"
+    doLast {
+        copyTestApkDing("beta", testApkFolder, testApkVersionDesc, false)
+    }
+}
+/**
+ * 打Release测试包并推送局域网url到钉钉
+ */
+task submitTestRelease(dependsOn: 'assembleRelease') {
+    group = submitTestGroupName
+    description = "打Release测试包并推送局域网url到钉钉"
+    doLast {
+        copyTestApkDing("release", testApkFolder, testApkVersionDesc, false)
+    }
+}
+task submitDevDebug(dependsOn: 'assembleDebug') {
+    group = submitDevGroupName
+    description = "打Debug开发包并推送局域网url到钉钉"
+    doLast {
+        copyTestApkDing("debug", devApkFolder, testApkVersionDesc, true)
+    }
+}
+/**
+ * 打Alpha测试包并推送局域网url到钉钉
+ */
+task submitDevAlpha(dependsOn: 'assembleAlpha') {
+    group = submitDevGroupName
+    description = "打Alpha开发包并推送局域网url到钉钉"
+    doLast {
+        copyTestApkDing("alpha", devApkFolder, testApkVersionDesc, true)
+    }
+}
+/**
+ * 打Beta测试包并推送局域网url到钉钉
+ */
+task submitDevBeta(dependsOn: 'assembleBeta') {
+    group = submitDevGroupName
+    description = "打Beta开发包并推送局域网url到钉钉"
+    doLast {
+        copyTestApkDing("beta", devApkFolder, testApkVersionDesc, true)
+    }
+}
+/**
+ * 打Release测试包并推送局域网url到钉钉
+ */
+task submitDevRelease(dependsOn: 'assembleRelease') {
+    group = submitDevGroupName
+    description = "打Release开发包并推送局域网url到钉钉"
+    doLast {
+        copyTestApkDing("release", devApkFolder, testApkVersionDesc, true)
+    }
+}
+/**
+ * 拷贝测试apk并发布到钉钉
+ * @param environment
+ * @return
+ */
+def copyTestApkDing(String environment, String testApkFolder, File testApkVersionDesc, boolean isDev) {
+    File apkFile = null
+    File apkFolder = file("${projectDir.absolutePath}/build/outputs/apk/${environment}/")
+    // 获取该文件夹下的所有文件
+    File[] apkFiles = apkFolder.listFiles()
+    int i = 0
+    for (File file : apkFiles) {
+        if (file.isFile() && file.getName().endsWith(".apk")) {
+            // 获取后缀名为.apk的文件
+            apkFile = file
+            i++
+        }
+    }
+    if (i > 1) {
+        println("There are multiple folders under this folder apk：" + apkFile.absolutePath)
+        return
+    }
+    if (apkFile == null || !apkFile.exists()) {
+        println("Can't find the apk：" + apkFile.absolutePath)
+        return
+    }
+    println("apk location $apkFile.absolutePath")
+    def deskApkFileFolder = file("${testApkFolder}/${environment}/")
+    if (!deskApkFileFolder.exists() || deskApkFileFolder.isFile()) {
+        deskApkFileFolder.mkdirs()
+    }
+    //删除相同版本已经存在的apk
+    def apkNamePrefix = ProjectBuildConfig.Build.buildApkNamePrefix(environment)
+    for (File file : deskApkFileFolder.listFiles()) {
+        if (file.isFile() && file.name.startsWith(apkNamePrefix) && file.name.endsWith(".apk")) {
+            file.delete()
+        }
+    }
+    //执行拷贝
+    def deskApk = file("${deskApkFileFolder.absolutePath}/${apkFile.name}")
+    project.copy {
+        from apkFile
+        into deskApkFileFolder
+    }
+    def testApkAddress = "${getTestApkServerAddress()}/${ProjectBuildConfig.Build.appName}/${if (isDev) { "dev" } else { "test" }}"
+    def apkUrl = "${testApkAddress}/${environment}/${apkFile.name}"
+    createDefaultVersionDesc(testApkVersionDesc)
+    DingHelper.dingInnerApk(deskApk, apkUrl, testApkAddress, environment, testApkVersionDesc, isDev)
+    System.out.println("")
+    System.out.println("【${environment}】TestApk Address: ${apkUrl}")
+}
+
+/**
+ * 创建渠道配置文件
+ */
+def createChannelsFile(File channelsFile) {
+    if (channelsFile.exists() && channelsFile.isFile()) {
+        channelsFile.delete()
+    }
+    def channelsFileDir = channelsFile.parentFile
+    if (!channelsFileDir.exists()) {
+        channelsFileDir.mkdirs()
+    }
+    channelsFile.createNewFile()
+    def channelsWriter = new BufferedWriter(new FileWriter(channelsFile, Charset.forName("utf-8")))
+    ChannelConfig.channels.forEach {
+        channelsWriter.writeLine(it)
+    }
+    channelsWriter.flush()
+    channelsWriter.close()
+}
+/**
+ * 创建默认的版本说明文件(仅不存在时创建)
+ * @param testApkVersionDesc
+ */
+def createDefaultVersionDesc(File versionDesc) {
+    if (!versionDesc.exists() || !versionDesc.isFile()) {
+        System.out.println("[Warning] Detected version_desc file is not exist, now create default file at ${versionDesc.absolutePath}")
+        def versionDescDir = versionDesc.parentFile
+        if (!versionDescDir.exists()) {
+            versionDescDir.mkdirs()
+        }
+        versionDesc.createNewFile()
+        def versionDescWriter = new BufferedWriter(new FileWriter(versionDesc, Charset.forName("utf-8")))
+        versionDescWriter.writeLine("无更新说明")
+        versionDescWriter.flush()
+        versionDescWriter.close()
+    }
+}
+
+/**将主包中的dex转成so*/
+task mainVmp() {
+    group = publishOnlineGroupName
+    description = "将主包中的dex转成so"
+    doLast {
+        /******************** vmp加密 *********************/
+        //vmp工具目录
+        def vmpFolder = file("${testApkRootFolder.absolutePath}/vmp/")
+        if (vmpFolder.exists() && vmpFolder.isDirectory()) {
+            vmpFolder.deleteDir()
+        }
+        vmpFolder.mkdirs()
+        //获取ANDROID_SDK_HOME
+        def sdkDirectory = file("${parseLocalProperties()}")
+        //获取ANDROID_NDK_HOME
+        def ndkDirectory = file("${parseLocalProperties()}/ndk/${ProjectBuildConfig.Build.ndkVersion}")
+        //获取CMAKE_PATH
+        def cmakeDirectory = file("${parseLocalProperties()}/cmake/").listFiles().find { it.isDirectory() }
+        //获取Android Studio的java.exe路径
+        def javaExePath = new File(System.getProperty("java.home"), "bin" + File.separator + "java.exe")
+        //拷贝vmpJar
+        def sourceVmpJar = file("${toolsFolder.absolutePath}/${vmpJarName}")
+        project.copy {
+            from sourceVmpJar
+            into vmpFolder
+        }
+        def exeVmpJar = file("${vmpFolder.absolutePath}/${vmpJarName}")
+        //生成执行文件
+        def vmpBat = file("${testApkRootFolder.absolutePath}/vmp/run_vm_protect.bat")
+        vmpBat.createNewFile()
+        def vmpBatWriter = new BufferedWriter(new FileWriter(vmpBat, Charset.forName("utf-8")))
+        vmpBatWriter.writeLine("@echo off")
+        vmpBatWriter.writeLine("set ANDROID_SDK_HOME=${sdkDirectory.absolutePath}")
+        vmpBatWriter.writeLine("set ANDROID_NDK_HOME=${ndkDirectory.absolutePath}")
+        vmpBatWriter.writeLine("set CMAKE_PATH=${cmakeDirectory.absolutePath}${File.separator}")
+        vmpBatWriter.writeLine("set NMMP_NAME=${VmpConfig.nmmpName}")
+        vmpBatWriter.writeLine("set NMMVM_NAME=${VmpConfig.nmmvmName}")
+        vmpBatWriter.writeLine("set CLASS_NAME=${VmpConfig.className}")
+        vmpBatWriter.writeLine("set USE_LEGACY_PACKAGING=${ProjectBuildConfig.Build.useJniLegacyPackaging}")
+        vmpBatWriter.writeLine("\"${javaExePath.absolutePath}\" -jar \"${exeVmpJar.absolutePath}\" %*")
+        vmpBatWriter.flush()
+        vmpBatWriter.close()
+        //生成rules.txt
+        def vmpRules = file("${testApkRootFolder.absolutePath}/vmp/rules.txt")
+        vmpBat.createNewFile()
+        def vmpRulesWriter = new BufferedWriter(new FileWriter(vmpRules, Charset.forName("utf-8")))
+        VmpConfig.protectRules.forEach {
+            vmpRulesWriter.writeLine(it)
+        }
+        vmpRulesWriter.flush()
+        vmpRulesWriter.close()
+        //获取要进行vmp加密的apk
+        File apkFile = null
+        File apkFolder = file("${channelApkFolder.absolutePath}/")
+        File[] apkFiles = apkFolder.listFiles()
+        for (File file : apkFiles) {
+            if (file.isFile() && file.getName().endsWith(".apk")) {
+                // 获取后缀名为.apk的文件
+                apkFile = file
+            }
+        }
+        //获取mapping
+        def mappingFile = file("${channelApkFolder.absolutePath}/mapping.txt")
+        //vmp编译结果目录
+        def vmpBuildDir = file("${apkFile.parentFile.absolutePath}/build/")
+        if (vmpBuildDir.exists() && vmpBuildDir.isDirectory()) {
+            vmpBuildDir.deleteDir()
+        }
+        //执行apk加密
+        runCommand {
+            commandLine "cmd", "/c", "${vmpBat.absolutePath} apk ${apkFile.absolutePath} ${vmpRules.absolutePath} ${mappingFile.absolutePath}"
+        }
+        //将加密后的apk移动到源apk目录
+        def vmpBuildFile = vmpBuildDir.listFiles().find { it.name.endsWith("-protect.apk") }
+        def vmpResultFile = file("${vmpBuildDir.absolutePath}/${vmpBuildFile.name.substring(0, vmpBuildFile.name.lastIndexOf("-protect.apk"))}_vmp.apk")
+        vmpBuildFile.renameTo(vmpResultFile)
+        project.copy {
+            from vmpResultFile
+            into apkFile.parentFile
+        }
+        //删除临时文件
+        apkFile.delete()
+        vmpBuildDir.deleteDir()
+        vmpFolder.deleteDir()
+
+        /******************** 对齐及签名 *********************/
+        signApkV2(zipAlignApk(file("${channelApkFolder.absolutePath}/").listFiles().find {it.isFile() && it.getName().endsWith(".apk")}))
+    }
+}
+/**
+ * 递归遍历子模块及其依赖的子模块拷贝libs
+ * @param project
+ * @param processedProjects
+ * @param targetDir
+ */
+def traverseSubprojectsCopy(Project project, HashSet processedProjects, File targetDir) {
+    if (processedProjects.contains(project)) {
+        return // 如果已经处理过，则跳过
+    }
+    processedProjects.add(project)
+    //app模块不处理
+    if (name != project.name) {
+        // 查找子模块的 libs 目录
+        def libsDir = file("${project.projectDir}/libs/android")
+        if (libsDir.exists()) {
+            // 查找 libs 目录下的 .aar 和 .jar 文件
+            copyFilesRecursively(libsDir, targetDir, project.name)
+        }
+    }
+    // 递归处理implementation依赖的子模块
+    project.configurations.getByName("androidMainImplementation").allDependencies.each { dependency ->
+        if (dependency instanceof org.gradle.api.artifacts.ProjectDependency) {
+            def projectPath = dependency.getPath()
+            def subProject = project.rootProject.project(projectPath)
+            traverseSubprojectsCopy(subProject, processedProjects, targetDir)
+        }
+    }
+    // 递归处理api依赖的子模块
+    project.configurations.getByName("androidMainApi").allDependencies.each { dependency ->
+        if (dependency instanceof org.gradle.api.artifacts.ProjectDependency) {
+            def projectPath = dependency.getPath()
+            def subProject = project.rootProject.project(projectPath)
+            traverseSubprojectsCopy(subProject, processedProjects, targetDir)
+        }
+    }
+}
+/**
+ * 递归复制libs文件夹中的jar、aar
+ */
+def copyFilesRecursively(File sourceDir, File targetDir, String moduleName) {
+    sourceDir.eachFile { file ->
+        if (file.isDirectory()) {
+            // 如果是子文件夹，递归处理
+            def newTargetDir = new File(targetDir, file.name)
+            if (!newTargetDir.exists()) {
+                newTargetDir.mkdirs() // 在目标目录中创建对应的子文件夹
+            }
+            copyFilesRecursively(file, newTargetDir, moduleName)
+        } else {
+            // 如果是文件，检查是否为 .aar 或 .jar 文件
+            def lowerCaseName = file.name.toLowerCase()
+            if (lowerCaseName.endsWith('.aar') || lowerCaseName.endsWith('.jar')) {
+                // 复制文件到目标目录
+                def targetFile = new File(targetDir, file.name)
+                if (!targetFile.exists()) {
+                    println "Copying ${file.name} from ${moduleName} to ${targetDir}"
+                    file.withInputStream { input ->
+                        targetFile.withOutputStream { output ->
+                            output << input
+                        }
+                    }
+                } else {
+                    println "Skipping ${file.name} (already exists in ${targetDir})"
+                }
+            }
+        }
+    }
+}
+
+// 构建前自动合并app模块引用的子模块（含嵌套模块）中的aar、jar到sharedLibs
+preBuild.dependsOn(task("copySharedLibs") {
+    doLast {
+        // 目标目录：app 模块下的 moduleLibs 目录
+        def targetDir = file("${project.projectDir}/shared_libs/android")
+        targetDir.deleteDir()
+        if (!targetDir.exists() || !targetDir.isDirectory()) {
+            targetDir.mkdirs()
+        }
+        // 用于记录已经处理过的子模块，避免重复处理
+        def processedProjects = new HashSet()
+        // 从app模块开始遍历
+        traverseSubprojectsCopy(project, processedProjects, targetDir)
+    }
+})
+

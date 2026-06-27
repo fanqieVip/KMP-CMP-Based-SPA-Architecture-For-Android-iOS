@@ -1,0 +1,23 @@
+[
+    {
+        "ignore": true,
+        "preSize": "1.74KB",
+        "md5": "4cc1bf0473f76c2192754f09424bc2e9",
+        "postSize": "1.74KB",
+        "path": "E:\\workplace\\KmpProject\\shared_common\\src\\commonMain\\composeResources\\drawable-xxhdpi\\common_loading_icon.png"
+    },
+    {
+        "ignore": false,
+        "preSize": "14.70KB",
+        "md5": "f68a5ef80d91059b08341d28e30a6d23",
+        "postSize": "10.55KB",
+        "path": "E:\\workplace\\KmpProject\\shared_common\\src\\commonMain\\composeResources\\drawable-xxhdpi\\common_fail_icon.png"
+    },
+    {
+        "ignore": true,
+        "preSize": "1.49KB",
+        "md5": "5df3708f9012429ac8756139e48e1df5",
+        "postSize": "1.49KB",
+        "path": "E:\\workplace\\KmpProject\\shared_common\\src\\commonMain\\composeResources\\drawable-xxhdpi\\common_back_black.webp"
+    }
+]

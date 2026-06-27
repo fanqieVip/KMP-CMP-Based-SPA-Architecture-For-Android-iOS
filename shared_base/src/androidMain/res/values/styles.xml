@@ -1,0 +1,47 @@
+<resources>
+    <!-- 禁止弹窗灰度透明背景 -->
+    <style name="base_dialog_dim_dis_enabled_dialog" parent="Theme.AppCompat.Dialog">
+        <!-- 关键：设置窗口为非浮动，才能实现真正的全屏 -->
+        <item name="android:windowIsFloating">false</item>
+        <!-- 设置窗口背景透明 -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <!-- 移除标题栏 -->
+        <item name="android:windowNoTitle">true</item>
+        <!-- 对于全屏显示很重要 -->
+        <item name="android:windowFullscreen">false</item> <!-- 此处设为false，我们通过代码控制 -->
+        <!-- 设置状态栏颜色为透明 -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+    <!-- 无动画 -->
+    <style name="base_dialog_no_animation" parent="android:Animation">
+        <item name="android:windowEnterAnimation">@null</item>
+        <item name="android:windowExitAnimation">@null</item>
+    </style>
+    <!-- 去掉activity动画 -->
+    <style name="base_no_activity_animation">
+        <item name="android:activityOpenEnterAnimation">@null</item>
+        <item name="android:activityOpenExitAnimation">@null</item>
+        <item name="android:activityCloseEnterAnimation">@null</item>
+        <item name="android:activityCloseExitAnimation">@null</item>
+        <item name="android:taskOpenEnterAnimation">@null</item>
+        <item name="android:taskOpenExitAnimation">@null</item>
+        <item name="android:taskCloseEnterAnimation">@null</item>
+        <item name="android:taskCloseExitAnimation">@null</item>
+        <item name="android:taskToFrontEnterAnimation">@null</item>
+        <item name="android:taskToFrontExitAnimation">@null</item>
+        <item name="android:taskToBackEnterAnimation">@null</item>
+        <item name="android:taskToBackExitAnimation">@null</item>
+    </style>
+    <!-- 全透明无动画的activity主题 -->
+    <style name="base_activity_transparent" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowAnimationStyle">@style/base_no_activity_animation</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+    </style>
+</resources>

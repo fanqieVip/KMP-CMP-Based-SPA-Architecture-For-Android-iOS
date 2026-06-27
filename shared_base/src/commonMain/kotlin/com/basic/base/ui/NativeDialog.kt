@@ -1,0 +1,174 @@
+package com.basic.base.ui
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import com.basic.base.Os
+import com.basic.base.getPlatform
+import com.basic.base.local.DefaultTraceInfoScope
+import com.basic.base.local.UIContainer
+import com.benasher44.uuid.uuid4
+import io.github.hristogochev.vortex.navigator.LocalScreenStateKey
+import io.github.hristogochev.vortex.util.multiplatformName
+
+abstract class NativeDialog(
+    private val alignment: Alignment = Alignment.Center,
+    private val cancelAble: Boolean = true,
+    internal val shadowColor: Color = Color.Black.copy(alpha = 0.5f),
+    private val enter: EnterTransition = fadeIn(animationSpec = tween(200)),
+    private val exit: ExitTransition = fadeOut(animationSpec = tween(200))
+) {
+    internal var isShow by mutableStateOf(true)
+    open val key: String = uuid4().toString()
+    internal var dialogStateHostKey: String? = null
+    /**
+     * 链路来源
+     */
+    internal var fromTraceId: String? = null
+    @Composable
+    internal fun Content(
+        onDismissCall: () -> Unit
+    ) {
+        if(dialogStateHostKey == null){
+            dialogStateHostKey = "${NativeDialog::class.multiplatformName}:${this::class.multiplatformName}:${key}"
+        }
+        CompositionLocalProvider(
+            LocalScreenStateKey provides dialogStateHostKey,
+        ) {
+            val visible = remember { MutableTransitionState(false) }
+            LaunchedEffect(visible.currentState, visible.targetState) {
+                if (visible.currentState == visible.targetState) {
+                    // 动画结束
+                    if (visible.currentState) {
+                        //进入动画结束 - 组件已完全显示
+                        onShow()
+                    } else {
+                        //退出动画结束 - 组件已完全隐藏
+                        if (!isShow) {
+                            onDismiss()
+                            onDismissCall()
+                        }
+                    }
+                } else {
+                    // 动画进行中
+                }
+            }
+            LaunchedEffect(isShow) {
+                visible.targetState = !visible.targetState
+            }
+            val keyboardController = LocalSoftwareKeyboardController.current
+            val focusManager = LocalFocusManager.current
+            val backgroundColor by animateColorAsState(
+                targetValue = if (isShow) shadowColor else Color.Transparent,
+                animationSpec = tween(200)
+            )
+            Box(
+                modifier = Modifier.run {
+                    when (getPlatform().os) {
+                        Os.ANDROID -> navigationBarsPadding()
+                        Os.IOS -> windowInsetsPadding(WindowInsets(0.dp))
+                    }
+                }.fillMaxSize().background(backgroundColor).pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                        }
+                    )
+                }
+            ) {
+                val isIos = getPlatform().os == Os.IOS
+                if (!isIos) {
+                    Popup(
+                        alignment = alignment,
+                        onDismissRequest = {
+                            dismiss()
+                        },
+                        properties = PopupProperties(
+                            focusable = true,
+                            dismissOnBackPress = cancelAble,
+                            dismissOnClickOutside = cancelAble,
+                            clippingEnabled = false
+                        )
+                    ) {
+                        CreateUIContent(visible)
+                    }
+                } else {
+                    Box(modifier = Modifier.fillMaxSize().clickable {
+                        if (cancelAble) {
+                            dismiss()
+                        }
+                    })
+                    Box(modifier = Modifier.align(alignment)) {
+                        CreateUIContent(visible)
+                    }
+                }
+
+            }
+        }
+    }
+    @Composable
+    private fun CreateUIContent(visibleState: MutableTransitionState<Boolean>) {
+        AnimatedVisibility(
+            enter = enter,
+            exit = exit,
+            visibleState = visibleState
+        ) {
+            DefaultTraceInfoScope(fromTraceId, null) {
+                CreateUI()
+            }
+        }
+    }
+    @Composable
+    abstract fun CreateUI()
+    fun dismiss() {
+        if (isShow) {
+            isShow = false
+        }
+    }
+
+    open fun onShow() {}
+
+    open fun onDismiss() {}
+
+    /**
+     * 弹出原生弹窗
+     * @param traceId 链路来源
+     */
+    fun show(uiContainer: UIContainer, traceId: String? = null) {
+        this.fromTraceId = traceId
+        uiContainer.showNativeDialog(this)
+    }
+}
+
+
+internal expect fun UIContainer.showNativeDialog(dialog: NativeDialog)

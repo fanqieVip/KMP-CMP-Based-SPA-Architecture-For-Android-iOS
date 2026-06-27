@@ -1,0 +1,14 @@
+<resources>
+    <style name="Theme.App.Splash.Screen" parent="Theme.SplashScreen">
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <!-- 背景色 -->
+        <item name="windowSplashScreenBackground">#000000</item>
+        <!-- 中间图标 -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/app_splash_icon</item>
+        <!-- 动画时长 -->
+        <item name="windowSplashScreenAnimationDuration">0</item>
+        <!-- 启屏结束后，切换到正常主题 -->
+        <item name="postSplashScreenTheme">@style/app_application_theme</item>
+    </style>
+</resources>

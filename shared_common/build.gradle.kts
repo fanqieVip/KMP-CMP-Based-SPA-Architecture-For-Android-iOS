@@ -1,0 +1,115 @@
+import com.codingfeline.buildkonfig.compiler.FieldSpec
+import com.frame.basic.buildsrc.HttpUrlConfig
+import com.frame.basic.buildsrc.ProjectBuildConfig
+import com.frame.basic.ktx.toBuildConfigClassName
+import com.frame.basic.ktx.toResourceClassName
+import com.frame.basic.utils.getBuildEnvName
+import com.frame.basic.utils.isReleaseEnv
+
+plugins {
+    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.androidKotlinMultiplatformLibrary)
+    alias(libs.plugins.androidLint)
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.serialization)
+    alias(libs.plugins.ktorfit)
+    alias(libs.plugins.buildkonfig)
+    alias(libs.plugins.koinCompiler)
+}
+val androidNameSpace = "com.basic.common"
+kotlin {
+    androidLibrary {
+        namespace = androidNameSpace
+        compileSdk = ProjectBuildConfig.Build.compileSdkVersion
+        minSdk = ProjectBuildConfig.Build.minSdkVersion
+        androidResources.enable = true
+        withJava()
+        withSourcesJar(true)
+        optimization {
+            consumerKeepRules.publish = true
+            consumerKeepRules.files.add(project.file("proguard-rules.pro"))
+        }
+    }
+
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    )
+
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(libs.compose.multiplatform.components)
+                if (project.isReleaseEnv()) {
+                    implementation(libs.ktor.monitor.no.op)
+                } else {
+                    implementation(libs.ktor.monitor)
+                }
+                implementation(libs.koin.core)
+                implementation(libs.koin.annotations)
+                implementation(libs.koin.compose)
+                api(project(":shared_base"))
+                api(project(":shared_native"))
+            }
+        }
+
+        androidMain {
+            dependencies {
+                compileOnly(
+                    fileTree(
+                        mapOf(
+                            "dir" to "libs/android",
+                            "include" to listOf("**/*.jar", "**/*.aar")
+                        )
+                    )
+                )
+                implementation(libs.koin.android)
+                api(project(":shared_base"))
+                api(project(":shared_native"))
+            }
+        }
+
+        iosMain {
+            dependencies {
+                api(project(":shared_base"))
+                api(project(":shared_native"))
+            }
+        }
+    }
+}
+dependencies {
+}
+compose.resources {
+    publicResClass = true
+    generateResClass = auto
+    nameOfResClass = androidNameSpace.toResourceClassName()
+    packageOfResClass = androidNameSpace
+}
+buildkonfig {
+    packageName = "buildkonfig"
+    exposeObjectWithName = androidNameSpace.toBuildConfigClassName()
+    defaultConfigs {
+        val envName = project.getBuildEnvName()
+        when(envName){
+            ProjectBuildConfig.Version.DEVELOP -> {
+                buildConfigField(FieldSpec.Type.STRING, "HTTP_URL", HttpUrlConfig.Api.DEVELOP)
+                buildConfigField(FieldSpec.Type.STRING, "H5_URL", HttpUrlConfig.H5.DEVELOP)
+            }
+            ProjectBuildConfig.Version.BETA -> {
+                buildConfigField(FieldSpec.Type.STRING, "HTTP_URL", HttpUrlConfig.Api.BETA)
+                buildConfigField(FieldSpec.Type.STRING, "H5_URL", HttpUrlConfig.H5.BETA)
+            }
+            ProjectBuildConfig.Version.ALPHA -> {
+                buildConfigField(FieldSpec.Type.STRING, "HTTP_URL", HttpUrlConfig.Api.ALPHA)
+                buildConfigField(FieldSpec.Type.STRING, "H5_URL", HttpUrlConfig.H5.ALPHA)
+            }
+            ProjectBuildConfig.Version.RELEASE -> {
+                buildConfigField(FieldSpec.Type.STRING, "HTTP_URL", HttpUrlConfig.Api.RELEASE)
+                buildConfigField(FieldSpec.Type.STRING, "H5_URL", HttpUrlConfig.H5.RELEASE)
+            }
+        }
+    }
+}

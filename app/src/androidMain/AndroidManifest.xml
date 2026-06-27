@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="true"
+        android:name=".Application"
+        android:icon="@drawable/app_launcher_icon"
+        android:label="${APP_NAME}"
+        android:roundIcon="@drawable/app_launcher_icon"
+        android:supportsRtl="true"
+        tools:replace="android:allowBackup,android:label"
+        android:networkSecurityConfig="@xml/network_security_config">
+        <activity
+            android:exported="true"
+            android:name=".MainActivity"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.App.Splash.Screen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="${DEEP_LINK_HOST}"
+                    android:scheme="${DEEP_LINK_SCHEME}" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

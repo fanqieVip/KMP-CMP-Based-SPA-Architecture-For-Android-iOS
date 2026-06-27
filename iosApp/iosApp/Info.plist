@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>CADisableMinimumFrameDurationOnPhone</key>
+        <true/>
+        <key>UIViewControllerBasedStatusBarAppearance</key>
+        <false/>
+        <key>NSMicrophoneUsageDescription</key>
+        <string>需要使用麦克风录制音频</string>
+        <key>NSCameraUsageDescription</key>
+        <string>需要使用相机拍照</string>
+        <key>NSPhotoLibraryUsageDescription</key>
+        <string>需要使用相册选图片</string>
+        <key>NSLocalNetworkUsageDescription</key>
+        <string>应用需要访问网络以获取数据</string>
+        <!-- 允许HTTP访问（如果使用非HTTPS） -->
+        <key>NSAppTransportSecurity</key>
+        <dict>
+            <key>NSAllowsArbitraryLoads</key>
+            <true/>
+        </dict>
+        <!-- 允许请求广告IDFA -->
+        <key>NSUserTrackingUsageDescription</key>
+        <string>该标识符将用于向您投放个性化广告</string>
+    </dict>
+</plist>

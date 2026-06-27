@@ -1,0 +1,129 @@
+[versions]
+agp = "9.2.1"                                                   # https://developer.android.google.cn/reference/tools/gradle-api
+coreKtx = "1.18.0"                                              # 1.19.0要求编译版本37以后，暂不升级
+androidx-activity = "1.13.0"
+androidx-lifecycle = "2.10.0"
+androidx-splashscreen = "1.2.0"
+constraintLayout = "2.2.1"
+haze = "2.0.0-alpha03"                                          # https://chrisbanes.github.io/haze/latest/
+material = "1.14.0"
+composeMaterial3 = "1.9.0"
+composeHotReload = "1.1.1"
+composeMultiplatform = "1.11.1"
+kotlin = "2.4.0"                                                # https://github.com/JetBrains/kotlin
+kotlinxDatetime = "0.8.0"                                       # https://klibs.io/project/Kotlin/kotlinx-datetime
+ksp = "2.3.9"                                                   # https://github.com/google/ksp
+serialization = "1.11.0"                                        # https://klibs.io/project/Kotlin/kotlinx.serialization
+napier = "2.7.1"                                                # https://klibs.io/project/aakira/Napier
+vortex = "0.3.0"                                                # https://hristogochev.github.io/vortex/setup/
+koin = "4.2.2"                                                  # https://klibs.io/project/InsertKoinIO/koin
+koinPlugin = "1.0.1"                                            # https://github.com/InsertKoinIO/koin-compiler-plugin
+ktorfitVersion = "2.7.5"                                        # https://klibs.io/project/Foso/Ktorfit
+ktorVersion = "3.5.0"                                           # https://klibs.io/project/ktorio/ktor
+ktorMonitor = "1.14.1"                                          # https://github.com/CosminMihuMDC/KtorMonitor
+lifecycleProcess = "2.10.0"                                     # 2.11.0要求编译版本37以后，暂不升级
+utilcodex = "1.31.1"
+multiplatform-settings = "1.3.0"                                # https://klibs.io/project/russhwolf/multiplatform-settings
+filekit = "0.14.2"                                              # https://klibs.io/project/vinceglb/FileKit
+imagepicker = "1.0.42"                                          # https://github.com/ismoy/ImagePickerKMP
+moko-permissions = "0.20.1"                                     # https://klibs.io/project/icerockdev/moko-permissions
+pullrefresh = "1.4.0-beta03"                                    # https://klibs.io/project/MateriiApps/pullrefresh
+uuid = "0.8.4"                                                  # https://klibs.io/project/benasher44/uuid
+buildkonfig = "0.21.2"                                          # https://github.com/yshrsmz/BuildKonfig
+walle = "1.0.5"                                                 # https://github.com/Petterpx/walle
+multiDex = "2.0.1"
+cnOaid = "4.2.17"                                               # https://github.com/gzu-liyujiang/Android_CN_OAID
+coil = "3.5.0"                                                  # https://coil-kt.github.io/coil/network/#ktor-network-engines
+immersionbar = "2.0.2"                                          # https://github.com/yuzhiqiang1993/immersionbar
+compottie = "2.2.3"                                             # https://github.com/alexzhirkevich/compottie
+kni = "2.0.4-rc02"                                              # https://klibs.io/project/dshatz/Kotlin-JNI
+konnectivity = "0.1-alpha01"                                    # https://klibs.io/project/plusmobileapps/konnectivity
+
+[libraries]
+compose-multiplatform-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
+compose-multiplatform-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+compose-multiplatform-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
+compose-multiplatform-components = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
+compose-multiplatform-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
+compose-multiplatform-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeMultiplatform" }
+compose-multiplatform-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
+github-blankJ-utilcodex = { group = "com.blankj", name = "utilcodex", version.ref = "utilcodex" }
+androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "androidx-splashscreen" }
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
+androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+androidx-constraintLayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintLayout" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+agp = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
+android-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version.ref = "haze" }
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
+napier = { module = "io.github.aakira:napier", version.ref = "napier" }
+vortex = { module = "io.github.hristogochev:vortex", version.ref = "vortex" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin" }
+ktor-monitor = { module = "ro.cosminmihu.ktor:ktor-monitor-logging", version.ref = "ktorMonitor" }
+ktor-monitor-no-op = { module = "ro.cosminmihu.ktor:ktor-monitor-logging-no-op", version.ref = "ktorMonitor" }
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+ktorfit-lib = { module = "de.jensklingenberg.ktorfit:ktorfit-lib", version.ref = "ktorfitVersion" }
+ktor-serialization = { module = "io.ktor:ktor-client-serialization", version.ref = "ktorVersion" }
+ktor-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorVersion" }
+ktor-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorVersion" }
+ktor-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktorVersion" }
+ktor-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktorVersion" }
+kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatform-settings" }
+filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit" }
+filekit-dialogs = { module = "io.github.vinceglb:filekit-dialogs", version.ref = "filekit" }
+filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
+filekit-coil = { module = "io.github.vinceglb:filekit-coil", version.ref = "filekit" }
+imagepicker = { module = "io.github.ismoy:imagepickerkmp", version.ref = "imagepicker" }
+permissions = { module = "dev.icerock.moko:permissions", version.ref = "moko-permissions" }
+permissions-compose = { module = "dev.icerock.moko:permissions-compose", version.ref = "moko-permissions" }
+permissions-bluetooth = { module = "dev.icerock.moko:permissions-bluetooth", version.ref = "moko-permissions" }
+permissions-camera = { module = "dev.icerock.moko:permissions-camera", version.ref = "moko-permissions" }
+permissions-contacts = { module = "dev.icerock.moko:permissions-contacts", version.ref = "moko-permissions" }
+permissions-gallery = { module = "dev.icerock.moko:permissions-gallery", version.ref = "moko-permissions" }
+permissions-location = { module = "dev.icerock.moko:permissions-location", version.ref = "moko-permissions" }
+permissions-microphone = { module = "dev.icerock.moko:permissions-microphone", version.ref = "moko-permissions" }
+permissions-motion = { module = "dev.icerock.moko:permissions-motion", version.ref = "moko-permissions" }
+permissions-notifications = { module = "dev.icerock.moko:permissions-notifications", version.ref = "moko-permissions" }
+permissions-storage = { module = "dev.icerock.moko:permissions-storage", version.ref = "moko-permissions" }
+pullrefresh = { module = "dev.materii.pullrefresh:pullrefresh", version.ref = "pullrefresh" }
+uuid = { module = "com.benasher44:uuid", version.ref = "uuid" }
+github-walle = { group = "com.github.Petterpx.walle", name = "library", version.ref = "walle" }
+androidx-multiDex = { group = "androidx.multidex", name = "multidex", version.ref = "multiDex" }
+github-cnOaid = { group = "com.github.gzu-liyujiang", name = "Android_CN_OAID", version.ref = "cnOaid" }
+coil-ktor-network = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+coil-ktor-ios = { module = "io.ktor:ktor-client-darwin", version.ref = "ktorVersion" }
+coil-ktor-android = { module = "io.ktor:ktor-client-android", version.ref = "ktorVersion" }
+android-immersionbar = { module = "com.xeonyu:immersion", version.ref = "immersionbar" }
+compottie = { module = "io.github.alexzhirkevich:compottie", version.ref = "compottie" }
+compottie-lite = { module = "io.github.alexzhirkevich:compottie-lite", version.ref = "compottie" }
+compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
+compottie-network = { module = "io.github.alexzhirkevich:compottie-network", version.ref = "compottie" }
+compottie-resources = { module = "io.github.alexzhirkevich:compottie-resources", version.ref = "compottie" }
+kni = { module = "com.dshatz.kni:jni", version.ref = "kni" }
+kni-processor = { module = "com.dshatz.kni:ksp", version.ref = "kni" }
+kni-annotations = { module = "com.dshatz.kni:annotations", version.ref = "kni" }
+konnectivity = { module = "com.plusmobileapps:konnectivity", version.ref = "konnectivity" }
+
+[plugins]
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ktorfit = { id = "de.jensklingenberg.ktorfit", version.ref = "ktorfitVersion" }
+composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+androidLint = { id = "com.android.lint", version.ref = "agp" }
+buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }
+koinCompiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koinPlugin" }
+kotlinCocoapods = { id = "org.jetbrains.kotlin.native.cocoapods", version.ref = "kotlin" }
