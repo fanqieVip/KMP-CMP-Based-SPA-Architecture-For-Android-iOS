@@ -10,6 +10,7 @@
 - **状态管理**：
     - 必须使用 `rememberMainScreenModel` 绑定模型。
     - 模型必须继承 `BasicScreenModel`。
+    - **分页规范**：支持分页的页面，其 `onLoad` 方法必须直接调用 `pagingFirst()`，严禁编写重复的初始化加载逻辑（胶水代码）。
     - **禁止**在 Screen 中写复杂的业务逻辑，全部下沉到 ScreenModel。
     - **强制询问交互状态**：在设计确认阶段（阶段二）必须明确询问是否接入 `BasicInteraction`。
 
