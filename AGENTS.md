@@ -28,6 +28,7 @@
 | **图片/切图处理** | [资源与切图规范.md](./skills/资源与切图规范.md) | WebP 强制要求、**R类双行 Import 规则** |
 | **接口/API 查询** | [架构api文档.md](./skills/架构api文档.md) | 路由、网络、SPI、弹窗栈等核心 API |
 | **iOS 依赖管理** | [cocoapods使用说明.md](./skills/cocoapods使用说明.md) | iOS Pod 库配置与故障排查 |
+| **IDE环境同步** | [IDE环境同步指南.md](./skills/IDE环境同步指南.md) | AS/Xcode 构建环境核对与修复 |
 | **知识库维护** | [知识库维护指南.md](./skills/知识库维护指南.md) | **(仅限负责人)** 自动归档、合并与清理 patches |
 
 ---
