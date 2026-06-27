@@ -30,6 +30,7 @@
 | **iOS 依赖管理** | [cocoapods使用说明.md](./skills/cocoapods使用说明.md) | iOS Pod 库配置与故障排查 |
 | **IDE环境同步** | [IDE环境同步指南.md](./skills/IDE环境同步指南.md) | AS/Xcode 构建环境核对与修复 |
 | **启屏页同步** | [启屏页同步规范.md](./skills/启屏页同步规范.md) | 三端视觉对齐、Android 12+/iOS 适配 |
+| **Lib模块创建** | [Lib模版生成指南.md](./skills/Lib模版生成指南.md) | 三方 SDK 适配模块一键自动化生成 |
 | **知识库维护** | [知识库维护指南.md](./skills/知识库维护指南.md) | **(仅限负责人)** 自动归档、合并与清理 patches |
 
 ---
