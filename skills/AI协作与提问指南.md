@@ -66,13 +66,16 @@ AI 必须具备“语义间隙感知”能力，主动维护项目知识库的�
 ### 5.1 触发矩阵 (Trigger Matrix)
 AI 应在满足以下“三维感知”条件之一时，主动申请更新补丁：
 
-1.  **架构/模式校准 (Pattern Calibration)**：
+1.  **基础规约锚定 (Base Convention Anchor - 零容忍)**：
+    *   一旦用户针对文件头注释（Author/Date/Meta）、命名风格、Import 顺序等“工程美学/元数据”提出纠正。
+    *   此类属于低级错误，**首次**触发即必须补丁化，以维护协作信任感。
+2.  **架构/模式校准 (Pattern Calibration)**：
     *   AI 提出的实现路径被用户以“不符合本项目架构习惯”为由否定。
     *   发现代码库中存在 ≥3 处的统一写法，但现有 Skill 文档未记录。
-2.  **高频修正固化 (High-Freq Correction)**：
+3.  **高频修正固化 (High-Freq Correction)**：
     *   同一细节规则（如：Text 必须带 lineHeight）被用户纠正 2 次以上。
     *   用户明确给出“这是我们项目的强制规范”的指令时。
-3.  **跨端差异补丁 (CPAP - Cross-Platform Anomaly Patch)**：
+4.  **跨端差异补丁 (CPAP - Cross-Platform Anomaly Patch)**：
     *   解决了一个隐晦的、由于 Android/iOS 平台渲染（如 Haze 毛玻璃抖动）或导航栈生命周期不一致引起的 Bug，且该解法具有通用价值。
 
 ### 5.2 补丁生命周期与命名规范
@@ -81,6 +84,7 @@ AI 应在满足以下“三维感知”条件之一时，主动申请更新补�
 - **强制命名格式**：`patch_{AgentName}_{YYYYMMDD_HHMMSS_SSS}_{ShortDesc}.md`
     - *示例*：`patch_Claude_20241027_172035_512_InteractionMandatory.md`
 - **内容要求**：包含“触发背景”、“修正后的标准模式”、“受影响的 API/组件”。
+- **⚠️ 非硬编码准则 (Non-Hardcoding Principle)**：所有 Patch 或 Skill 文档更新必须定义“方法论”与“动态提取路径”，**严禁**将当前环境值（如特定用户名、时间、路径）硬编码进文档。
 
 **申请更新的动作范式：**
 > “感知到 [类别] 知识缺位。我建议在 `skills/patches/` 下新建毫秒级隔离补丁 `patch_{Name}_{Timestamp}_{Desc}.md` 以固化该模式，是否同意？”
