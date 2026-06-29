@@ -181,6 +181,7 @@ ScreenModel 的生命周期由框架自动管理：
 ### 5.2 分栏组件 (Pager) 高级用法
 - **生命周期同步**：Pager 内每个 Tab 的 `ScreenModel` **必须**在 Tab 内容 Composable 内部创建。
 - **嵌套滑动协调**：当 `BasicHazeScaffold` 嵌套 Pager 再嵌套列表时，使用状态提升。父页面定义 `canConsumeScrollUp` 状态并监听内页 `refreshState.progress`。
+- **递归开发协议 (Recursive Development)**：针对多层 Pager 嵌套，AI 必须遵循“分层闭环”原则。每一层嵌套需独立执行“确认-计划-编码”，外层实现后方可申请启动子层的工作流。
 
 ### 5.3 CoordinatorLayout 悬停方案
 - **方案 A (固定高度悬停)**：设置 `minHeaderHeight` 为悬停区高度。
