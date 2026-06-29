@@ -7,6 +7,7 @@
 ### 1.1 基础要求
 - **继承基类**：所有业务页面必须继承 `BasicScreen`。
 - **注册路由**：必须使用 `@Router(path)` 注解注册路径。
+- **组件对齐**：标准页面必须使用 `BasicTitleBar`，严禁手动通过 `statusBarsPadding` 和硬编码高度拼接标题栏。
 - **状态管理**：
     - 必须使用 `rememberMainScreenModel` 绑定模型。
     - 模型必须继承 `BasicScreenModel`。
@@ -51,3 +52,5 @@ ScreenModel 的生命周期由框架自动管理：
 - ❌ 禁止硬编码 `HazeScaffold` 内容间距（用 `LocalHazeScaffoldContentPadding`）。
 - ❌ 禁止使用 `Icon` 和 `IconButton` 组件。
 - ❌ 禁止在 `onLoad` 中手动处理分页错误（由分页组件自动处理）。
+- ❌ 严禁在 `HazeScaffold` 的 `top` / `bottom` 插槽内设置不透明背景（会导致毛玻璃失效）。
+- ❌ 严禁在任何布局中使用 `44.dp` / `statusBar` 等硬编码数字作为安全边距。
