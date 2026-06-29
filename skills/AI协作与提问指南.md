@@ -69,7 +69,7 @@ AI 应在满足以下“三维感知”条件之一时，主动申请更新补�
 1.  **基础规约锚定 (Base Convention Anchor - 零容忍)**：
     *   一旦用户针对文件头注释（Author/Date/Meta）、命名风格、Import 顺序等“工程美学/元数据”提出纠正。
     *   此类属于低级错误，**首次**触发即必须补丁化，以维护协作信任感。
-2.  **架构/模式校准 (Pattern Calibration)**：
+2.  **架构/模式校准 (Pattern Calibration - 逻辑红线)**：
     *   AI 提出的实现路径被用户以“不符合本项目架构习惯”为由否定。
     *   发现代码库中存在 ≥3 处的统一写法，但现有 Skill 文档未记录。
 3.  **高频修正固化 (High-Freq Correction)**：
@@ -85,6 +85,23 @@ AI 应在满足以下“三维感知”条件之一时，主动申请更新补�
     - *示例*：`patch_Claude_20241027_172035_512_InteractionMandatory.md`
 - **内容要求**：包含“触发背景”、“修正后的标准模式”、“受影响的 API/组件”。
 - **⚠️ 非硬编码准则 (Non-Hardcoding Principle)**：所有 Patch 或 Skill 文档更新必须定义“方法论”与“动态提取路径”，**严禁**将当前环境值（如特定用户名、时间、路径）硬编码进文档。
+
+### 5.3 语义间隙感知 (Semantic Gap Awareness)
+AI 必须对特定 UI 模式保持“业务敏感度”，禁止无脑复制工具生成的 CSS：
+
+1. **符号敏感 (Symbol Sensitivity)**：
+   - 识别到 `《 》`、`()内文字`、`下划线` 等符号时，强制开启富文本审计，必须对比原图核对是否存在颜色分层。
+2. **场景敏感 (Scenario Sensitivity)**：
+   - 登录/注册/注销/关于等页面的“协议/政策”描述，默认视为 `AnnotatedString` 处理，禁止使用单色 `Text`。
+3. **工具降级补偿 (Tool Fallback Compensation)**：
+   - 一旦蓝湖工具提示“标注模式”或“Schema 失败”（代表数据已扁平化），AI 必须在阶段二中原子化确认富文本颜色与点击跳转路由。
+
+## 6. 布局几何校验 (Geometry Validation)
+
+为杜绝“绝对坐标直接当间距”的低级逻辑错误，AI 在实施布局前必须遵循：
+
+1. **偏移量计算 (Offset Calculation)**：涉及垂直布局间距时，AI 必须在脑内或 Todo 中执行公式：`Gap = Current.y - (Previous.y + Previous.height)`。
+2. **嵌套语义感知**：识别具有相同水平或垂直轴线特征（如 Left 坐标相近）的组件，必须优先采用 `Row/Column` 嵌套结构，禁止打散为平铺式布局。
 
 **申请更新的动作范式：**
 > “感知到 [类别] 知识缺位。我建议在 `skills/patches/` 下新建毫秒级隔离补丁 `patch_{Name}_{Timestamp}_{Desc}.md` 以固化该模式，是否同意？”
