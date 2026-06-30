@@ -30,6 +30,7 @@
 | **图片/切图处理** | [资源与切图规范.md](./skills/资源与切图规范.md) | WebP 强制要求、**R类双行 Import 规则** |
 | **接口/API 查询** | [架构api文档.md](./skills/架构api文档.md) | 路由、网络、SPI、弹窗栈等核心 API |
 | **iOS 依赖管理** | [Pod依赖使用指南与规范.md](./skills/Pod依赖使用指南与规范.md) | iOS Pod 库配置与故障排查 |
+| **SDK集成工作流** | [SDK集成工作流规范.md](./skills/SDK集成工作流规范.md) | 侵入分析、双端协议审计、生命周期自动化挂载 |
 | **IDE环境同步** | [IDE环境同步指南.md](./skills/IDE环境同步指南.md) | AS/Xcode 构建环境核对与修复 |
 | **启屏页生成** | [启屏页生成指南.md](./skills/启屏页生成指南.md) | 三端视觉对齐、Android 12+/iOS 适配 |
 | **Lib模块创建** | [Lib模版生成指南.md](./skills/Lib模版生成指南.md) | 三方 SDK 适配模块一键自动化生成 |
