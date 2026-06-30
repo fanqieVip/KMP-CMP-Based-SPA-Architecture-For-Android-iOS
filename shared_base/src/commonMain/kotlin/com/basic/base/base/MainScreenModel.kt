@@ -118,7 +118,7 @@ abstract class MainScreenModel : ScreenModel {
         }
     }
 
-    suspend fun uiError(code: Int, error: String?) {
+    suspend fun uiError(code: Int?, error: String?) {
         withContext(Dispatchers.Main) {
             _screenUIStatus.value = ScreenUIStatus.ErrorUI(code, error)
         }
@@ -233,7 +233,7 @@ sealed class ScreenUIStatus(
 
     class SuccessUI : ScreenUIStatus(UIStatus.SUCCESS, null, null)
     class EmptyUI : ScreenUIStatus(UIStatus.EMPTY, null, null)
-    class ErrorUI(code: Int, error: String?) : ScreenUIStatus(UIStatus.ERROR, code, error)
+    class ErrorUI(code: Int?, error: String?) : ScreenUIStatus(UIStatus.ERROR, code, error)
     class LoadingUI(info: String?) : ScreenUIStatus(UIStatus.LOADING, null, info)
 }
 

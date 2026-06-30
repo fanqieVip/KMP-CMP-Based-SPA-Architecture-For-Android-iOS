@@ -27,7 +27,7 @@ class CoroutineJob(
     private val context: CoroutineContext,
     private val execute: suspend CoroutineScope.() -> Unit
 ) {
-    private var onError: (suspend (code: Int, error: String?, e: Throwable) -> Unit)? = null
+    private var onError: (suspend (code: Int?, error: String?, e: Throwable) -> Unit)? = null
     private var onErrorDispatcher: CoroutineContext? = null
     private var onFinal: (suspend () -> Unit)? = null
     private var onFinalDispatcher: CoroutineContext? = null
@@ -63,7 +63,7 @@ class CoroutineJob(
      * @param context 执行线程
      * @param onError 错误时回调，默认在ui线程
      */
-    fun catch(context: CoroutineContext = Dispatchers.Main, onError: suspend (code: Int, error: String?, e: Throwable) -> Unit): CoroutineJob {
+    fun catch(context: CoroutineContext = Dispatchers.Main, onError: suspend (code: Int?, error: String?, e: Throwable) -> Unit): CoroutineJob {
         this.onError = onError
         this.onErrorDispatcher = context
         return this
@@ -135,7 +135,7 @@ open class ApiException(val code: Int = -1, error: String?) : Exception(error)
  */
 internal const val OTHER_ERROR_CODE = 999999
 
-private fun exceptionHandler(e: Throwable): Pair<Int, String?> {
+fun exceptionHandler(e: Throwable): Pair<Int, String?> {
     return when (e) {
         is ResponseException -> Pair(e.response.status.value, e.message)
         is ApiException -> Pair(e.code, "${e.message}")
