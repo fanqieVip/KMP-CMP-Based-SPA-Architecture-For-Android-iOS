@@ -19,7 +19,7 @@ vortex = "0.3.0"                                                # https://hristo
 koin = "4.2.2"                                                  # https://klibs.io/project/InsertKoinIO/koin
 koinPlugin = "1.0.1"                                            # https://github.com/InsertKoinIO/koin-compiler-plugin
 ktorfitVersion = "2.7.5"                                        # https://klibs.io/project/Foso/Ktorfit
-ktorVersion = "3.5.0"                                           # https://klibs.io/project/ktorio/ktor
+ktorVersion = "3.5.1"                                           # https://klibs.io/project/ktorio/ktor
 ktorMonitor = "1.14.1"                                          # https://github.com/CosminMihuMDC/KtorMonitor
 lifecycleProcess = "2.10.0"                                     # 2.11.0要求编译版本37以后，暂不升级
 utilcodex = "1.31.1"
@@ -29,14 +29,14 @@ imagepicker = "1.0.43"                                          # https://github
 moko-permissions = "0.20.1"                                     # https://klibs.io/project/icerockdev/moko-permissions
 pullrefresh = "1.4.0-beta03"                                    # https://klibs.io/project/MateriiApps/pullrefresh
 uuid = "0.8.4"                                                  # https://klibs.io/project/benasher44/uuid
-buildkonfig = "0.21.2"                                          # https://github.com/yshrsmz/BuildKonfig
+buildkonfig = "0.22.0"                                          # https://github.com/yshrsmz/BuildKonfig
 walle = "1.0.5"                                                 # https://github.com/Petterpx/walle
 multiDex = "2.0.1"
 cnOaid = "4.2.17"                                               # https://github.com/gzu-liyujiang/Android_CN_OAID
 coil = "3.5.0"                                                  # https://coil-kt.github.io/coil/network/#ktor-network-engines
 immersionbar = "2.0.2"                                          # https://github.com/yuzhiqiang1993/immersionbar
-compottie = "2.2.3"                                             # https://github.com/alexzhirkevich/compottie
-kni = "2.0.4-rc02"                                              # https://klibs.io/project/dshatz/Kotlin-JNI
+compottie = "2.2.4"                                             # https://github.com/alexzhirkevich/compottie
+kni = "2.0.4-rc02"                                              # https://klibs.io/project/dshatz/Kotlin-JNI 保持该版本，新版本限制过多，不方便做llvm混淆
 konnectivity = "0.1-alpha01"                                    # https://klibs.io/project/plusmobileapps/konnectivity
 
 [libraries]
