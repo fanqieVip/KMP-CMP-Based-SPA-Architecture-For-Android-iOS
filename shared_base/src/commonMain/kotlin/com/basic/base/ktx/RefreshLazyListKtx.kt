@@ -103,7 +103,7 @@ fun RefreshLazyList(
                     overscrollEffect = refreshOverscrollEffect) {
                     content()
                     if (state.enablePullUp && hasData) {
-                        stickyHeader { refreshFooter(state) }
+                        item { refreshFooter(state) }
                     }
                 }
             }

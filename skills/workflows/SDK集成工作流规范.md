@@ -23,7 +23,7 @@ AI 在执行三方 SDK 集成任务时，**必须**严格遵循以下五个阶�
     *   AI 必须针对识别出的风险，主动匹配本项目已有的标准应对方案。
     *   **示例**：
         - *风险*：SDK 污染 `MainActivity`。➜ *方案*：物理收紧至 `lib_xxx`，通过 `ApplicationService` 代理生命周期。
-        - *风险*：iOS Pod 版本冲突。➜ *方案*：遵循 `Pod依赖使用指南` 锁定版本并配置 headers。
+        - *风险*：iOS Pod 版本冲突。➜ *方案*：遵循 `standards/Pod依赖使用指南与规范.md` 锁定版本并配置 headers。
         - *风险*：配置不透明。➜ *方案*：在 Plist/XML 补丁中强制添加 `// SDK: [Name]` 注释。
 3.  **方案补充与收集 (Knowledge Collection)**：
     *   AI 必须询问用户：“**针对上述风险，是否有新的应对方案或特殊项目规范需要补充？**”

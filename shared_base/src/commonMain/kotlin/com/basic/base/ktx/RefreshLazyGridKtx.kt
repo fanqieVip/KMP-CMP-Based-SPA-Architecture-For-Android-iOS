@@ -95,7 +95,7 @@ fun RefreshLazyGrid(
                     state = childScrollState) {
                     content()
                     if (state.enablePullUp && hasData) {
-                        stickyHeader { refreshFooter(state) }
+                        item { refreshFooter(state) }
                     }
                 }
             }
