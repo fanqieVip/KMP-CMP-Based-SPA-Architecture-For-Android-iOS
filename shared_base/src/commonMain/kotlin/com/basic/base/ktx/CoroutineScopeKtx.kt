@@ -128,14 +128,14 @@ internal class CoroutineScopeScreenModel: ScreenModel
 /**
  * 业务异常
  */
-open class ApiException(val code: Int = -1, error: String?) : Exception(error)
+open class ApiException(val code: Int? = -1, error: String?) : Exception(error)
 
 /**
  * 未知错误码
  */
 internal const val OTHER_ERROR_CODE = 999999
 
-fun exceptionHandler(e: Throwable): Pair<Int, String?> {
+fun exceptionHandler(e: Throwable): Pair<Int?, String?> {
     return when (e) {
         is ResponseException -> Pair(e.response.status.value, e.message)
         is ApiException -> Pair(e.code, "${e.message}")
@@ -146,7 +146,7 @@ fun exceptionHandler(e: Throwable): Pair<Int, String?> {
 /**
  * 处理异常
  */
-suspend fun handlerException(block: suspend () -> Unit): Pair<Int, String?>? {
+suspend fun handlerException(block: suspend () -> Unit): Pair<Int?, String?>? {
     try {
         block()
         return null
