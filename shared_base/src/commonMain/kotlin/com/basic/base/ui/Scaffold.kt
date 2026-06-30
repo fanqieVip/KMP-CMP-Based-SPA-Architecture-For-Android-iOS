@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -24,30 +22,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
-import androidx.compose.ui.unit.round
 import com.basic.base.Os
 import com.basic.base.getPlatform
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.blurEffect
 import kotlin.math.roundToInt
 
 /**
@@ -85,8 +79,8 @@ fun HazeScaffold(
     val platform = getPlatform()
     val useLegacyAndroidSurfaceModifiers = remember(preferLegacyAndroidSurfaceModifiers, platform.os, platform.systemVersion) {
         preferLegacyAndroidSurfaceModifiers &&
-            platform.os == Os.ANDROID &&
-            (platform.systemVersion.toIntOrNull() ?: Int.MAX_VALUE) <= 30
+                platform.os == Os.ANDROID &&
+                (platform.systemVersion.toIntOrNull() ?: Int.MAX_VALUE) <= 30
     }
     val resolvedTopSurfaceModifier = if (useLegacyAndroidSurfaceModifiers) {
         legacyAndroidTopSurfaceModifier
@@ -188,15 +182,15 @@ fun HazeScaffold(
                 hazeState = hazeState,
                 surfaceModifier = resolvedTopSurfaceModifier,
                 content = {
-                        val resolvedTopAlignment = if (topAlignment == Alignment.Top) Alignment.Top else Alignment.Bottom
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight(unbounded = true, align = resolvedTopAlignment)
-                                .onSizeChanged { state.updateTopHeight(it.height.toFloat()) }
-                        ) {
-                            state.top()
-                        }
+                    val resolvedTopAlignment = if (topAlignment == Alignment.Top) Alignment.Top else Alignment.Bottom
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight(unbounded = true, align = resolvedTopAlignment)
+                            .onSizeChanged { state.updateTopHeight(it.height.toFloat()) }
+                    ) {
+                        state.top()
+                    }
                 }
             )
 
@@ -252,23 +246,7 @@ fun legacyAndroidTopSurfaceModifier(
     hazeState: HazeState,
     baseColor: Color = Color(0xFFF7F4EC),
 ): Modifier {
-    return modifier
-        .background(baseColor.copy(alpha = 0.80f))
-        .drawBehind {
-            val borderWidth = 1.dp.toPx()
-            drawLine(
-                color = Color.White.copy(alpha = 0.60f),
-                start = Offset(0f, size.height - borderWidth),
-                end = Offset(size.width, size.height - borderWidth),
-                strokeWidth = borderWidth
-            )
-            drawLine(
-                color = Color(0x10000000),
-                start = Offset(0f, size.height),
-                end = Offset(size.width, size.height),
-                strokeWidth = borderWidth
-            )
-        }
+    return modifier.background(baseColor)
 }
 
 fun legacyAndroidBottomSurfaceModifier(
@@ -276,23 +254,7 @@ fun legacyAndroidBottomSurfaceModifier(
     hazeState: HazeState,
     baseColor: Color = Color(0xFFFBF8F1),
 ): Modifier {
-    return modifier
-        .background(baseColor.copy(alpha = 0.82f))
-        .drawBehind {
-            val borderWidth = 1.dp.toPx()
-            drawLine(
-                color = Color.White.copy(alpha = 0.55f),
-                start = Offset(0f, 0f),
-                end = Offset(size.width, 0f),
-                strokeWidth = borderWidth
-            )
-            drawLine(
-                color = Color(0x08000000),
-                start = Offset(0f, borderWidth),
-                end = Offset(size.width, borderWidth),
-                strokeWidth = borderWidth
-            )
-        }
+    return modifier.background(baseColor)
 }
 
 @Composable
