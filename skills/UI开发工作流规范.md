@@ -71,9 +71,16 @@ AI 在接收到新页面/功能的编写指令时，**必须**严格遵循以下
     - **沉浸式/自定义骨架 (Zero Scaffold)**：不使用 `BasicHazeScaffold`，手动适配状态栏。
 2. 是否使用项目标准的 `BasicTitleBar`？（禁止手写标题栏）
 3. 是否需要毛玻璃效果？（顶部/底部/都需要）
-4. 状态栏文字颜色：深色还是浅色？
-5. 是否有标题栏？若有，左侧是否需要返回键，右侧是否有操作项？
-6. **(追加询问 - 若使用 Scaffold)** 是否有特殊的交互效果（如标题栏随滚动折叠、吸顶等）需要说明？
+4. **(追加询问 - 若使用 `BasicHazeScaffold`)** surfaceModifier 配置方式：
+    - **推荐：传 Color 方法**：使用 `topSurfaceColor` / `bottomSurfaceColor`，默认值必须以公共组件当前源码声明为准，询问前先读取 `BasicHazeScaffold` 默认参数，禁止在文档或提问中写死过期默认值
+    - 原始方法：直接传 `topSurfaceModifier` / `bottomSurfaceModifier`
+    - 不使用毛玻璃 surface 自定义，保持默认
+5. **(追加询问 - 若使用传 Color 方法)** 使用默认配置还是自定义颜色？
+    - 默认配置：使用公共组件当前源码中的 `topSurfaceColor` / `bottomSurfaceColor` 默认值
+    - 自定义配置：明确 top/bottom 各自颜色
+6. 状态栏文字颜色：深色还是浅色？
+7. 是否有标题栏？若有，左侧是否需要返回键，右侧是否有操作项？
+8. **(追加询问 - 若使用 Scaffold)** 是否有特殊的交互效果（如标题栏随滚动折叠、吸顶等）需要说明？
     - *架构提示*：简单的标题栏划出或局部吸顶应优先使用 `BasicHazeScaffold` 的 `minTopHeight` 配置，而非 `CoordinatorLayout`。
 
 ### 3.3 主交互组件

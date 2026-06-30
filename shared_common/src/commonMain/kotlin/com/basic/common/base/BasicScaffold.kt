@@ -2,6 +2,7 @@ package com.basic.common.base
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import com.basic.base.ui.HazeScaffold
 import com.basic.base.ui.HazeScaffoldState
@@ -17,8 +18,10 @@ import com.basic.base.ui.HazeScaffoldScope
 fun BasicHazeScaffold(
     modifier: Modifier = Modifier,
     state: HazeScaffoldState = rememberHazeScaffoldState(),
-    topSurfaceModifier: (Modifier, HazeState) -> Modifier = { m, h -> defaultHazeScaffoldSurfaceModifier(m, h) },
-    bottomSurfaceModifier: (Modifier, HazeState) -> Modifier = { m, h -> defaultHazeScaffoldSurfaceModifier(m, h) },
+    topSurfaceColor: Color = Color.White,
+    bottomSurfaceColor: Color = Color.White,
+    topSurfaceModifier: (Modifier, HazeState) -> Modifier = { m, h -> defaultHazeScaffoldSurfaceModifier(m, h, topSurfaceColor) },
+    bottomSurfaceModifier: (Modifier, HazeState) -> Modifier = { m, h -> defaultHazeScaffoldSurfaceModifier(m, h, bottomSurfaceColor) },
     preferLegacyAndroidSurfaceModifiers: Boolean = true,
     legacyAndroidTopSurfaceModifier: (Modifier, HazeState) -> Modifier = { m, h -> com.basic.base.ui.legacyAndroidTopSurfaceModifier(m, h) },
     legacyAndroidBottomSurfaceModifier: (Modifier, HazeState) -> Modifier = { m, h -> com.basic.base.ui.legacyAndroidBottomSurfaceModifier(m, h) },
