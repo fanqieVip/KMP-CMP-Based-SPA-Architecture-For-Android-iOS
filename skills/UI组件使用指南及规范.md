@@ -183,12 +183,25 @@ ScreenModel 的生命周期由框架自动管理：
 - **嵌套滑动协调**：当 `BasicHazeScaffold` 嵌套 Pager 再嵌套列表时，使用状态提升。父页面定义 `canConsumeScrollUp` 状态并监听内页 `refreshState.progress`。
 - **递归开发协议 (Recursive Development)**：针对多层 Pager 嵌套，AI 必须遵循“分层闭环”原则。每一层嵌套需独立执行“确认-计划-编码”，外层实现后方可申请启动子层的工作流。
 
-### 5.3 CoordinatorLayout 悬停方案
+### 5.3 BasicHazeScaffold 滚动联动实战
+
+#### 1. 联动能力认知
+明确 `BasicHazeScaffold` 通过 `NestedScrollConnection` 实现了顶部区域的压缩与重叠控制：
+- **`minTopHeight`**：定义折叠后的最小保留高度（适用于搜索栏吸顶等场景）。
+- **`maxTopOverlap`**：定义允许的最大重叠高度。
+- **滑动消费逻辑**：向上滑动时外层（Scaffold）优先消费直至达到 `minTopHeight`，向下滑动时内部优先消费直至内部不消费后 Scaffold 恢复高度。
+
+#### 2. 架构决策优先级
+针对“标题栏折叠/划出”场景：
+- **优先方案**：使用 `BasicHazeScaffold` 并配置 `minTopHeight`。
+- **降级方案**：仅在涉及更复杂的“随滚动改变 Alpha”、“多级联动”或“特定组件组件间距变化”时才考虑 `CoordinatorLayout`。
+
+### 5.4 CoordinatorLayout 悬停方案
 - **方案 A (固定高度悬停)**：设置 `minHeaderHeight` 为悬停区高度。
 - **方案 B (随内容吸顶)**：`minHeaderHeight = 0dp`，在 content 中使用 `Column` 包裹 `[吸顶组件, 列表]`。
 - **滚动源标记**：必须给列表组件加上 `Modifier.coordinatorMainScroll`，头部如需响应滑动需加 `Modifier.coordinatorDragProxy`。
 
-### 5.4 常见布局适配
+### 5.5 常见布局适配
 - **处理 Bottom 遮挡**：在 `center` 闭包内通过 `LocalHazeScaffoldContentPadding.current` 获取边距，并应用到列表的 `contentPadding` 上。
 - **WebView 资源释放**：`WebViewState` 必须放在 `ScreenModel` 中。**强制要求**在 `ScreenModel.onDestroyed()` 中调用 `webviewState.destroyed()`。
 
