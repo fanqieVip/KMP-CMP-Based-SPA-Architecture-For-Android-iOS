@@ -92,6 +92,7 @@ buildkonfig {
     packageName = "buildkonfig"
     exposeObjectWithName = androidNameSpace.toBuildConfigClassName()
     defaultConfigs {
+        buildConfigField(FieldSpec.Type.STRING, "APP_NAME", ProjectBuildConfig.Build.appName)
         val envName = project.getBuildEnvName()
         when(envName){
             ProjectBuildConfig.Version.DEVELOP -> {
