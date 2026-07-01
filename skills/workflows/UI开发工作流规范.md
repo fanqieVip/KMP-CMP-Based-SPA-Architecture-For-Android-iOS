@@ -73,9 +73,9 @@ AI 在接收到新页面/功能的编写指令时，**必须**严格遵循以下
 2. 是否使用项目标准的 `BasicTitleBar`？（禁止手写标题栏）
 3. 是否需要毛玻璃效果？（顶部/底部/都需要）
 4. **(追加询问 - 若使用 `BasicHazeScaffold`)** surfaceModifier 配置方式：
-    - **推荐：传 Color 方法**：使用 `topSurfaceColor` / `bottomSurfaceColor`，默认值必须以公共组件当前源码声明为准，询问前先读取 `BasicHazeScaffold` 默认参数，禁止在文档或提问中写死过期默认值
-    - 原始方法：直接传 `topSurfaceModifier` / `bottomSurfaceModifier`
-    - 不使用毛玻璃 surface 自定义，保持默认
+    - **推荐：传 Color 方法**：使用 `topSurfaceColor` / `bottomSurfaceColor`，默认值以公共组件源码声明为准。
+    - 原始方法：通过 `topSurfaceModifier` / `bottomSurfaceModifier` 自定义毛玻璃效果。
+    - **低版本兼容**：通过 `legacyAndroidTopModifier` / `legacyAndroidBottomModifier` 提供旧版安卓修饰器（`(Modifier) -> Modifier`）。
 5. **(追加询问 - 若使用传 Color 方法)** 使用默认配置还是自定义颜色？
     - 默认配置：使用公共组件当前源码中的 `topSurfaceColor` / `bottomSurfaceColor` 默认值
     - 自定义配置：明确 top/bottom 各自颜色
