@@ -75,7 +75,8 @@ AI 在接收到新页面/功能的编写指令时，**必须**严格遵循以下
 4. **(追加询问 - 若使用 `BasicHazeScaffold`)** surfaceModifier 配置方式：
     - **推荐：传 Color 方法**：使用 `topSurfaceColor` / `bottomSurfaceColor`，默认值以公共组件源码声明为准。
     - 原始方法：通过 `topSurfaceModifier` / `bottomSurfaceModifier` 自定义毛玻璃效果。
-    - **低版本兼容**：通过 `legacyAndroidTopModifier` / `legacyAndroidBottomModifier` 提供旧版安卓修饰器（`(Modifier) -> Modifier`）。
+    - **低版本兼容**：通过 `legacyTopModifier` / `legacyBottomModifier` 提供不支持或禁止毛玻璃效果的兜底修饰器（`(Modifier) -> Modifier`）。
+    - **启用规则**：通过 `hazeRule` 配置启用规则（ALL, NONE, ANDROID_ONLY, IOS_ONLY）。
 5. **(追加询问 - 若使用传 Color 方法)** 使用默认配置还是自定义颜色？
     - 默认配置：使用公共组件当前源码中的 `topSurfaceColor` / `bottomSurfaceColor` 默认值
     - 自定义配置：明确 top/bottom 各自颜色

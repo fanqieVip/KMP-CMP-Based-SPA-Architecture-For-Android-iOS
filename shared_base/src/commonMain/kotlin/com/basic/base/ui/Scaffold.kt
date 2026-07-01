@@ -45,11 +45,26 @@ import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
 
 /**
+ * 毛玻璃启用规则
+ */
+enum class HazeRule {
+    /** 全部启用 */
+    ALL,
+    /** 全部禁用 */
+    NONE,
+    /** 仅安卓启用 */
+    ANDROID_ONLY,
+    /** 仅 iOS 启用 */
+    IOS_ONLY
+}
+
+/**
  * 脚手架组件
  * @param topSurfaceModifier top区毛玻璃效果
  * @param bottomSurfaceModifier bottom 区毛玻璃效果
- * @param legacyAndroidTopModifier 旧版安卓 top区的修饰器
- * @param legacyAndroidBottomModifier 旧版安卓 bottom区的修饰器
+ * @param legacyTopModifier top 不支持或禁止毛玻璃效果的兜底修饰器
+ * @param legacyBottomModifier bottom 不支持或禁止毛玻璃效果的兜底修饰器
+ * @param hazeRule 毛玻璃效果启用规则
  * @param canConsumeScrollUp 是否允许向上滑动
  * @param canConsumeScrollDown 是否允许向下滑动
  * @param maxTopOverlap 最大允许的顶部重叠高度(Dp.Unspecified时为全重叠)
@@ -62,8 +77,9 @@ fun HazeScaffold(
     state: HazeScaffoldState = rememberHazeScaffoldState(),
     topSurfaceModifier: (Modifier, HazeState) -> Modifier = { m, h -> defaultHazeScaffoldSurfaceModifier(m, h) },
     bottomSurfaceModifier: (Modifier, HazeState) -> Modifier = { m, h -> defaultHazeScaffoldSurfaceModifier(m, h) },
-    legacyAndroidTopModifier: (Modifier) -> Modifier = { m -> com.basic.base.ui.legacyAndroidTopModifier(m) },
-    legacyAndroidBottomModifier: (Modifier) -> Modifier = { m -> com.basic.base.ui.legacyAndroidBottomModifier(m) },
+    legacyTopModifier: (Modifier) -> Modifier = { m -> defaultLegacyTopModifier(m) },
+    legacyBottomModifier: (Modifier) -> Modifier = { m -> defaultLegacyBottomModifier(m) },
+    hazeRule: HazeRule = HazeRule.ALL,
     canConsumeScrollUp: () -> Boolean = { true },
     canConsumeScrollDown: () -> Boolean = { true },
     maxTopOverlap: Dp = Dp.Unspecified,
@@ -75,16 +91,22 @@ fun HazeScaffold(
 ) {
     val hazeState = rememberHazeState()
     val platform = getPlatform()
-    val useLegacyAndroidSurfaceModifiers = remember(platform.os, platform.systemVersion) {
-        platform.os == Os.ANDROID && (platform.systemVersion.toIntOrNull() ?: 0) <= 30
+    val useLegacySurfaceModifiers = remember(hazeRule, platform.os, platform.systemVersion) {
+        val isLowVersionAndroid = platform.os == Os.ANDROID && (platform.systemVersion.toIntOrNull() ?: 0) <= 30
+        when (hazeRule) {
+            HazeRule.ALL -> isLowVersionAndroid
+            HazeRule.NONE -> true
+            HazeRule.ANDROID_ONLY -> platform.os != Os.ANDROID || isLowVersionAndroid
+            HazeRule.IOS_ONLY -> platform.os != Os.IOS
+        }
     }
-    val resolvedTopSurfaceModifier = if (useLegacyAndroidSurfaceModifiers) {
-        { m: Modifier, _: HazeState -> legacyAndroidTopModifier(m) }
+    val resolvedTopSurfaceModifier = if (useLegacySurfaceModifiers) {
+        { m: Modifier, _: HazeState -> legacyTopModifier(m) }
     } else {
         topSurfaceModifier
     }
-    val resolvedBottomSurfaceModifier = if (useLegacyAndroidSurfaceModifiers) {
-        { m: Modifier, _: HazeState -> legacyAndroidBottomModifier(m) }
+    val resolvedBottomSurfaceModifier = if (useLegacySurfaceModifiers) {
+        { m: Modifier, _: HazeState -> legacyBottomModifier(m) }
     } else {
         bottomSurfaceModifier
     }
@@ -135,7 +157,7 @@ fun HazeScaffold(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(if (useLegacyAndroidSurfaceModifiers) Modifier else Modifier.hazeSource(hazeState))
+                    .then(if (useLegacySurfaceModifiers) Modifier else Modifier.hazeSource(hazeState))
                     .nestedScroll(nestedScrollConnection)
             ) {
                 Box(
@@ -237,14 +259,14 @@ fun defaultHazeScaffoldSurfaceModifier(
         }
 }
 
-fun legacyAndroidTopModifier(
+fun defaultLegacyTopModifier(
     modifier: Modifier,
     baseColor: Color = Color(0xFFF7F4EC),
 ): Modifier {
     return modifier.background(baseColor)
 }
 
-fun legacyAndroidBottomModifier(
+fun defaultLegacyBottomModifier(
     modifier: Modifier,
     baseColor: Color = Color(0xFFFBF8F1),
 ): Modifier {
