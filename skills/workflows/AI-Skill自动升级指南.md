@@ -52,7 +52,8 @@ AI 必须对特定 UI 模式保持“业务敏感度”，禁止无脑复制工�
 1.  **全量读取**：读取 `skills/patches/` 目录下除 `.gitkeep` 以外的所有 `.md` 文件。
 2.  **内容画像**：识别补丁核心内容。
 3.  **映射目标**：
-    - **UI 展现/基础组件/实战** -> `knowledge/UI组件使用指南及规范.md`
+    - **UI 展现/组件实战/模板** -> `knowledge/UI组件手册.md`
+    - **UI 规范/原子规约/质量红线** -> `standards/UI开发规范.md`
     - **协作流程/提问模板/页面结构** -> `workflows/UI开发工作流规范.md`
     - **图片资源/切图/Import 规范** -> `standards/资源与切图规范.md`
     - **架构设计/模块职责/依赖关系** -> `knowledge/架构设计文档.md`
@@ -60,6 +61,7 @@ AI 必须对特定 UI 模式保持“业务敏感度”，禁止无脑复制工�
     - **通用代码风格/文件头/Git 规范** -> `standards/通用代码规范.md`
     - **进化机制/补丁规约/自维护** -> `workflows/AI-Skill自动升级指南.md`
     - **环境同步/IDE/构建/CocoaPods** -> `workflows/IDE环境同步指南.md` 或 `standards/Pod依赖使用指南与规范.md`
+    - **SDK 集成流程/适配模块** -> `workflows/SDK集成工作流规范.md` 或 `workflows/Lib模版生成指南.md`
     - **无法归类的新领域** -> 提议创建新的 `skills/Xxx.md`
 
 ### 4.2 拟定合并计划
