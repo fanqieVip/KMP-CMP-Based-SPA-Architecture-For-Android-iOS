@@ -26,6 +26,7 @@
 1. **build.gradle.kts**: 必须使用 [内置 Gradle 模板](#51-buildgradlekts-模板)。
 2. **settings.gradle.kts**: 自动添加 `include(":lib_xxx")`。
 3. **shared_common/build.gradle.kts**: 在 `commonMain`、`androidMain`、`iosMain` 依赖块中自动添加 `api(project(":lib_xxx"))`。
+4. **Android 本地 SDK**: AAR/JAR 必须放在 `lib_xxx/libs/android/`，并使用模板中的 `compileOnly(fileTree(...))`。这是本项目框架规范，框架会处理最终依赖打包，AI 不得擅自改成 `implementation(files(...))`、`api(files(...))` 或复制到 app 模块。
 
 ### 2.3 代码模板生成 (DI & SPI)
 1. **ApplicationService 模板**: 必须使用 [内置 SPI 模板](#52-spi-生命周期模板)。

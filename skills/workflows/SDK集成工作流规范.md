@@ -107,6 +107,12 @@ AI 必须输出 `[SDK 文档/物理签名获取报告]`：
 
 若用户补充了可复用规范，AI 只能按 `AI-Skill自动升级指南.md` 提议创建 `skills/patches/` 补丁；不得在同一轮擅自合并正式文档。
 
+确认方式：
+- 待确认事项必须拆成单一决策点逐项询问、逐项记录，严禁一次性堆叠多个互斥问题。
+- 每个问题必须包含 AI 推荐选项与简短理由；当前问题未确认前，不得继续追问下一项，也不得进入编码。
+- 若负责人主动补充多个结论，AI 可以汇总记录，但下一轮仍只处理尚未确认的一个阻塞决策。
+- 决策排序优先级：模块结构/依赖来源 > 初始化参数来源 > Manifest/Info.plist > 授权页 UI/隐私策略 > 其他体验配置。
+
 ### 1.4 阶段四：双端协议审计与接口对齐
 
 AI 必须输出 `[双端功能差异对齐报告]`：
@@ -128,6 +134,7 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 接口设计红线：
 - `commonMain` 严禁暴露 `Intent`、`Bundle`、`Activity`、`UIViewController`、`NSDictionary`、`NSData` 等平台类型。
 - 平台模型必须在 `androidMain`/`iosMain` 转换为 common data class、sealed class 或 JSON 字符串。
+- 一键登录类 SDK 的授权页 UI 配置不得抽象成跨项目通用 DSL 或大而全配置对象；`commonMain` 只暴露初始化、预取号、一键登录、关闭授权页、清缓存、版本查询、状态结果等稳定能力，授权页 UI 在 lib 模块的平台实现内按项目直接修改。
 - 双端能力不一致时，必须明确：
   - 是否隐藏该能力。
   - 是否在缺失平台抛 `UnsupportedOperationException`。
@@ -213,6 +220,11 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 ### 2.4 Android 回调 Activity 与别名
 - 微信、支付宝等要求固定路径的回调 Activity，应放在 `lib_xxx/src/androidMain/kotlin/...`。
 - 若平台要求 `${applicationId}.wxapi.*` 等宿主路径，优先使用 `activity-alias` 指向 lib 内 Activity。
+- openinstall、DeepLink 等外部唤起入口若希望复用当前壳 Activity，可使用 `activity-alias` 承载 `intent-filter`，并把 `targetActivity` 指向壳入口，以降低 lib 与壳工程耦合。
+- 项目侧手写 Manifest 配置必须以官方集成文档为准；AAR 内部 Manifest 只用于物理审计、冲突排查和理解 SDK 内部声明，不得直接复制进项目 Manifest。
+- 若 AAR Manifest 与官方文档不一致，集成报告必须标明差异，并优先采用官方文档配置；只有运行时或 manifest merge 明确证明缺失时，才做最小补充。
+- 对已有 `activity-alias` 做文档对齐时，不得机械删除；必须先分析其是否承担宿主路径、外部入口、壳 Activity 或 SDK 固定回调路径的解耦职责。
+- 修改 Android Manifest 后，必须通过 manifest 合并或 Android 编译任务验证。
 - Activity 只做 SDK 回调分发，不写业务逻辑。
 
 ### 2.5 回调归一化
