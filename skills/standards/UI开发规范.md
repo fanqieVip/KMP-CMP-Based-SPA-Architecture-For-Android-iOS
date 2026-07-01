@@ -34,6 +34,10 @@
 - **唯一 Key**：每个 item 必须指定唯一的 `key`。
 - **布局约束**：禁止在 item 内部增加 Spacer 做容器间距，必须使用 `verticalArrangement` 或 `contentPadding`。
 
+### 2.5 输入框 (Input Field)
+- **组件标准**：业务场景下的文本输入框**必须默认使用** `ComposeEditText`，严禁直接使用原生 `BasicTextField` 或 `TextField`。
+- **状态管理**：输入内容变更回调 `textChange` 必须映射到 `ScreenModel` 中的状态。
+
 ## 3. 性能与资源安全
 
 - **WebView 释放**：`WebViewState` 必须持有在 `ScreenModel` 中，且必须在 `onDestroyed()` 中调用 `destroyed()`。
@@ -43,5 +47,6 @@
 
 - ❌ **禁止** 直接使用原生 `HorizontalPager` / `VerticalPager`（必须使用其 `Lifecycle` 后缀版本）。
 - ❌ **禁止** 直接使用 `Icon` 和 `IconButton` 组件。
+- ❌ **禁止** 直接使用原生 `BasicTextField` 或 `TextField`（必须使用 `ComposeEditText`）。
 - ❌ **禁止** 严禁在任何布局中硬编码 `44.dp` / `statusBar` 等数值作为安全边距。
 - ❌ **禁止** 在 `onLoad` 中手动 catch 并处理分页错误（必须委托给 `PagingControl` 自动处理）。

@@ -54,3 +54,24 @@ class XxxScreen : BasicScreen() {
 
 ## 4. 常见布局适配
 - **处理 Bottom 遮挡**：通过 `LocalHazeScaffoldContentPadding.current` 获取并应用到内层列表。
+
+## 5. 基础 UI 组件 (shared_base)
+
+### 5.1 CenterTitleLayout (居中布局)
+- **职责**：确保中间部分绝对居中，且不与左右插槽重叠。
+- **参数**：
+    - `left`: 左侧插槽 `(Modifier) -> Unit`
+    - `right`: 右侧插槽 `(Modifier) -> Unit`
+    - `center`: 中间插槽 `(Modifier) -> Unit`
+
+### 5.2 常用小工具
+- **留白**：使用 `WidthSpacer(value: Dp)` 或 `HeightSpacer(value: Dp)`。
+- **富文本链接**：`AnnotatedString.Builder.appendLinkText(text, style, click)` 快速添加可点击链接。
+
+### 5.3 文字与输入
+- **ComposeEditText**：统一封装的输入框，支持：
+    - 自动数字/手机号过滤 (`isDigitsOnly`)。
+    - `maxLength` 限制。
+    - `startIcon` 装饰位。
+    - `enable` 状态切换（禁用时自动降级为 `Text` 展示）。
+    - 支持 `String`、`AnnotatedString` 或 `TextFieldValue` 作为数据源。

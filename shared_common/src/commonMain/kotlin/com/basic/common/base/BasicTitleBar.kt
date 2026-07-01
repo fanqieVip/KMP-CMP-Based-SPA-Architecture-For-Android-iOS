@@ -4,7 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basic.base.local.LocalUIContainer
 import com.basic.base.local.pop
+import com.basic.base.ktx.CenterTitleLayout
 import com.basic.common.R_com_basic_common
 import com.basic.common.common_back_black
 import io.github.hristogochev.vortex.navigator.LocalNavigator
@@ -51,11 +52,14 @@ fun BasicTitleBar(
     right: @Composable ((Modifier) -> Unit)?
 ) {
     Column(modifier) {
-        Row(modifier = Modifier.statusBarsPadding().fillMaxWidth().height(50.dp), verticalAlignment = Alignment.CenterVertically) {
-            left?.invoke(Modifier)
-            center?.invoke(Modifier.padding(horizontal = 10.dp).weight(1f))
-            right?.invoke(Modifier)
-        }
+        // 将状态栏边距与内容区域分离，确保内容区域（50.dp）内部的垂直居中计算不再受状态栏高度干扰
+        Spacer(Modifier.statusBarsPadding())
+        CenterTitleLayout(
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            left = left,
+            right = right,
+            center = center
+        )
     }
 }
 
