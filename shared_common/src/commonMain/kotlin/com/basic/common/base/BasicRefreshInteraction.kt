@@ -37,6 +37,10 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridScope
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Text
@@ -58,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basic.base.ktx.RefreshLazyGrid
 import com.basic.base.ktx.RefreshLazyList
+import com.basic.base.ktx.RefreshLazyStaggeredGrid
 import com.basic.base.ktx.RefreshState
 import com.basic.common.R_com_basic_common
 import com.basic.common.common_usr_classic_arrow
@@ -110,6 +115,53 @@ fun BasicRefreshLazyListInteraction(
         refreshThreshold = refreshThreshold,
         refreshingOffset = refreshingOffset,
         backdropColor = backdropColor,
+        stickyHeader = stickyHeader,
+        content = content
+    )
+}
+
+@Composable
+fun BasicRefreshStaggeredGridInteraction(
+    modifier: Modifier,
+    columns: StaggeredGridCells,
+    dataSize: () -> Int,
+    state: RefreshState,
+    childScrollState: LazyStaggeredGridState = rememberLazyStaggeredGridState(),
+    canPullDownRefresh: () -> Boolean = { true },
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    verticalItemSpacing: Dp = 0.dp,
+    flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
+    overscrollEffect: OverscrollEffect? = rememberOverscrollEffect(),
+    refreshThreshold: Dp = PullRefreshDefaults.RefreshThreshold,
+    refreshingOffset: Dp = PullRefreshDefaults.RefreshingOffset,
+    backdropColor: Color = Color.Transparent,
+    refreshHeader: @Composable (state: RefreshState) -> Unit = { state ->
+        RefreshHeader(state)
+    },
+    refreshFooter: @Composable (state: RefreshState) -> Unit = { state ->
+        RefreshFooter(state)
+    },
+    stickyHeader: @Composable ColumnScope.() -> Unit = {},
+    content: LazyStaggeredGridScope.() -> Unit,
+) {
+    RefreshLazyStaggeredGrid(
+        modifier = modifier,
+        columns = columns,
+        dataSize = dataSize,
+        state = state,
+        childScrollState = childScrollState,
+        canPullDownRefresh = canPullDownRefresh,
+        contentPadding = contentPadding,
+        horizontalArrangement = horizontalArrangement,
+        verticalItemSpacing = verticalItemSpacing,
+        flingBehavior = flingBehavior,
+        overscrollEffect = overscrollEffect,
+        refreshThreshold = refreshThreshold,
+        refreshingOffset = refreshingOffset,
+        backdropColor = backdropColor,
+        refreshHeader = refreshHeader,
+        refreshFooter = refreshFooter,
         stickyHeader = stickyHeader,
         content = content
     )

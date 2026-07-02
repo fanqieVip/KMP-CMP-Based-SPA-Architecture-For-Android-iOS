@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -109,18 +110,27 @@ abstract class NativeDialog(
                 val isIos = getPlatform().os == Os.IOS
                 if (!isIos) {
                     Popup(
-                        alignment = alignment,
                         onDismissRequest = {
                             dismiss()
                         },
                         properties = PopupProperties(
                             focusable = true,
                             dismissOnBackPress = cancelAble,
-                            dismissOnClickOutside = cancelAble,
+                            dismissOnClickOutside = false,
                             clippingEnabled = false
                         )
                     ) {
-                        CreateUIContent(visible)
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = alignment) {
+                            Box(modifier = Modifier.fillMaxSize().clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                if (cancelAble) {
+                                    dismiss()
+                                }
+                            })
+                            CreateUIContent(visible)
+                        }
                     }
                 } else {
                     Box(modifier = Modifier.fillMaxSize().clickable {

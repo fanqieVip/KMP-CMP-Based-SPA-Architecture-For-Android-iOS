@@ -4,14 +4,28 @@
 
 所有 Pod 库均在 **所在模块** 集成，方便统一生成 Podfile 配置（`iosApp/Podfile`）。
 
+### 1.1 Podfile 生成规则
+
+`iosApp/Podfile` 由根目录 `build.gradle.kts` 自动扫描所有子模块的 `cocoapods { pod(...) }` 生成，**禁止手动修改**。
+
+生成特征：
+- Pod 顺序来自各子模块 `build.gradle.kts` 中 `pod()` 的声明顺序。
+- 同名 Pod 只会写入一次。
+- 版本号来自 `pod.version`，生成到 Podfile 时使用 `~>` 约束。
+- 修改 Pod 依赖后，应通过 Gradle 配置同步生成 Podfile，再到 `iosApp` 下执行 `pod install`。
+
 ## 二、版本号规范
 
 所有 Pod 库都必须带上版本号，避免意外升级造成不可预知的风险：
 
 ```kotlin
 cocoapods {
-    pod("AFNetworking", version = "4.0.1")
-    pod("Alamofire", version = "5.6.4")
+    pod("AFNetworking") {
+        version = "4.0.1"
+    }
+    pod("Alamofire") {
+        version = "5.6.4"
+    }
 }
 ```
 
@@ -42,10 +56,13 @@ build/cocoapods/synthetic/ios/Pods/$名称/
 然后配置在 `build.gradle.kts` 的 pod 依赖中：
 
 ```kotlin
-pod("SomeStaticLib", version = "1.0.0") {
+pod("SomeStaticLib") {
+    version = "1.0.0"
     headers = "SomeStaticLib.h"
 }
 ```
+
+项目案例：`lib_openInstall` 使用 `libOpenInstallSDK` 时配置 `headers = "OpenInstallSDK.h"`。
 
 ### 3.2 文件夹名与 framework 名不一致
 
@@ -62,10 +79,16 @@ build/cocoapods/synthetic/ios/Pods/$名称/
 把 `.` 号前面的名字配置在 `build.gradle.kts` 的 pod 依赖中：
 
 ```kotlin
-pod("SomeFramework", version = "1.0.0") {
+pod("SomeFramework") {
+    version = "1.0.0"
     moduleName = ".号前面的名字"
 }
 ```
+
+项目案例：
+- `lib_topon` 的 `AnyThinkiOS` 配置 `moduleName = "AnyThinkSDK"`。
+- `lib_pay` 的 `WechatOpenSDK-XCFramework` 配置 `moduleName = "WechatOpenSDK"`。
+- `lib_pay` 的 `AlipaySDK-iOS` 配置 `moduleName = "AlipaySDK"`。
 
 ### 3.3 CInterop 阶段失败
 
@@ -76,10 +99,13 @@ pod("SomeFramework", version = "1.0.0") {
 绝大部分问题就是找不到 `.h` 文件，直接引入 headers 即可。如果是在 `.framework/.../Headers/` 下的 `.h` 文件：
 
 ```kotlin
-pod("SomeFramework", version = "1.0.0") {
+pod("SomeFramework") {
+    version = "1.0.0"
     headers = "pod名字/xxx.h"
 }
 ```
+
+项目案例：`lib_umeng` 的 `UMDevice` 配置 `headers = "UMDevice/UMZid.h"`。
 
 ### 3.4 多个 .h 文件需要导入
 
@@ -101,10 +127,25 @@ pod("SomeFramework", version = "1.0.0") {
 3. 在 pod 作用域中配置：
 
 ```kotlin
-pod("SomeFramework", version = "1.0.0") {
+pod("SomeFramework") {
+    version = "1.0.0"
     headers = project.file("src/nativeInterop/cinterop/xxxx.h").absolutePath
 }
 ```
+
+项目案例：`lib_umeng/src/nativeInterop/cinterop/UMAPM_umbrella.h` 聚合多个 `UMAPM` 头文件，并在 `UMAPM` Pod 中通过 `headers = project.file(...).absolutePath` 指定。
+
+### 3.5 Pod 名、模块名、头文件三件套核对
+
+每新增一个 Pod，AI 必须形成以下核对结果：
+
+| 项 | 核对方式 | 处理 |
+| :--- | :--- | :--- |
+| Pod 名 | 官方文档、Podfile.lock、Pods 目录 | 写入 `pod("Name")` |
+| 版本 | 官方文档或 Podfile.lock | 必须写 `version = "x.y.z"` |
+| moduleName | synthetic headers 或 `.framework/.xcframework` 名称 | 名称不一致时配置 |
+| headers | synthetic headers、SDK `.h` 文件 | CInterop 找不到头文件时配置 |
+| 多头文件 | 官方头文件列表 | 创建 umbrella header |
 
 ## 四、常见问题排查流程
 
@@ -131,3 +172,5 @@ Pod 依赖配置问题
 1. **不要在多个共享模块各自添加 Pod 依赖**，统一在 **所在模块** 管理
 2. **不要省略版本号**，必须明确指定
 3. **不要修改 `iosApp/Podfile`**，该文件由框架脚本自动生成
+4. **不要把 Pod 依赖写到宿主 iOS 工程**，除非 SDK 明确只能由宿主工程配置，并且必须先在侵入分析报告中说明
+5. **不要只看 README 判断 CInterop 配置**，必须尽量复核 `build/cocoapods/synthetic/...` 或 Pods 中真实头文件与 framework 名称
