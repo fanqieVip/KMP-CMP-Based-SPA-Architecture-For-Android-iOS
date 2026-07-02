@@ -23,6 +23,7 @@ import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicNativeDialog
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
+import com.basic.common.base.DialogAnimation
 
 /**
  * @Description:
@@ -53,7 +54,7 @@ class NativeDialogScreen : BasicScreen() {
     }
 }
 
-class DemoNativeDialog(private val onDismiss: () -> Unit) : BasicNativeDialog(alignment = Alignment.BottomCenter) {
+class DemoNativeDialog(private val onDismiss: () -> Unit) : BasicNativeDialog(alignment = Alignment.BottomCenter, animation = DialogAnimation.Bottom) {
     @Composable
     override fun CreateUI() {
         Column(modifier = Modifier.fillMaxWidth().height(400.dp).background(Color.White), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
