@@ -1,4 +1,5 @@
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+import java.io.OutputStream
 
 plugins {
     alias(libs.plugins.androidApplication) apply false
@@ -12,12 +13,44 @@ plugins {
     alias(libs.plugins.kotlinCocoapods) apply false
 
 }
+fun commandSucceeds(vararg command: String): Boolean =
+    runCatching {
+        val process = ProcessBuilder(*command)
+            .redirectErrorStream(true)
+            .start()
+        process.inputStream.use { it.copyTo(OutputStream.nullOutputStream()) }
+        process.waitFor() == 0
+    }.getOrDefault(false)
+
+val isMac = DefaultNativePlatform.getCurrentOperatingSystem().isMacOsX
+val canBuildAppleTargets = isMac && commandSucceeds("xcrun", "--find", "xcodebuild")
+
+fun isAppleRelatedTask(taskName: String): Boolean {
+    val name = taskName.lowercase()
+    return name.contains("ios") ||
+        name.contains("cocoapods") ||
+        name.contains("pod") ||
+        name.contains("xcode") ||
+        name.contains("cinterop") ||
+        name.contains("apple")
+}
+
 subprojects {
-    //在非macOs环境下，禁止执行ios相关编译任务，避免导致windows，linux上无法正常编译安卓应用
-    tasks.matching { task ->
-        task.name.contains("ios", ignoreCase = true) || task.name.contains("cocoapods", ignoreCase = true)
-    }.configureEach {
-        enabled = DefaultNativePlatform.getCurrentOperatingSystem().isMacOsX
+    // 未安装完整 Xcode 时禁止执行 Apple 相关任务，避免 Android 同步/编译被 xcodeVersion 阻断。
+    tasks.configureEach {
+        if (!canBuildAppleTargets && isAppleRelatedTask(name)) {
+            enabled = false
+        }
+    }
+}
+
+gradle.projectsEvaluated {
+    subprojects {
+        tasks.forEach { task ->
+            if (!canBuildAppleTargets && isAppleRelatedTask(task.name)) {
+                task.enabled = false
+            }
+        }
     }
 }
 //buildscript {
@@ -29,8 +62,7 @@ subprojects {
 /************* 自动汇总所有子模块的 Pods 并同步到 iosApp/Podfile **************/
 // 1.如果编译后遇到缺少系统库的情况可到Xcode中Build Phases中手动添加即可修复（目前大部分已添加好，一般不会遇到）
 // 2.同步完成后，切换到iosApp下执行pod install命令进行安装
-val isMac = DefaultNativePlatform.getCurrentOperatingSystem().isMacOsX
-if (isMac){
+if (canBuildAppleTargets){
     gradle.projectsEvaluated {
         val podfile = file("iosApp/Podfile")
         if (!podfile.exists()) return@projectsEvaluated
