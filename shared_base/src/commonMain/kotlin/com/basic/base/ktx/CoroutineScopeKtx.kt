@@ -1,6 +1,7 @@
 package com.basic.base.ktx
 
 import androidx.compose.runtime.Composable
+import com.basic.base.utils.logDebug
 import io.github.hristogochev.vortex.model.ScreenModel
 import io.github.hristogochev.vortex.model.rememberScreenModel
 import io.github.hristogochev.vortex.model.screenModelScope
@@ -40,6 +41,7 @@ class CoroutineJob(
             run {
                 // 这里统一处理错误
                 exceptionHandler(throwable).also {
+                    logDebug("jobError", "code: ${it.first} error: ${it.second}")
                     withContext(onErrorDispatcher ?: Dispatchers.Main) {
                         onError?.invoke(it.first, it.second, throwable)
                     }
