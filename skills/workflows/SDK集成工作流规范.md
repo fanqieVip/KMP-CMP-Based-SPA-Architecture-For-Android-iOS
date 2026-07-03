@@ -98,9 +98,9 @@ AI 必须输出 `[SDK 文档/物理签名获取报告]`：
 风险匹配规则：
 - SDK 需要 App 生命周期、前后台、Intent、URL、Universal Link 时，必须在 `lib_xxx` 内实现 `ApplicationService`。
 - Android 回调 Activity、`activity-alias`、`queries`、权限必须放在 `lib_xxx/src/androidMain/AndroidManifest.xml`。
-- iOS URL Scheme、Universal Link、`LSApplicationQueriesSchemes` 若必须修改 `Info.plist`，必须在报告中逐项说明业务原因。
+- iOS URL Scheme、Universal Link、`LSApplicationQueriesSchemes` 若必须修改 `Info.plist`，必须在报告中逐项说明业务原因；AppKey/AppId 等变量值必须通过 `com.basic.plist` 从 `SDKKeyConfig` 注入，不得直接硬编码到 `Info.plist`。
 - `iosApp/Podfile` 由根 Gradle 自动汇总生成，禁止手动修改。
-- 任何 AppKey/AppId 硬编码都必须列为风险。优先运行时 `init(config)` 传入；无法运行时传入时，必须说明平台约束。
+- 任何 AppKey/AppId 硬编码都必须列为风险。能运行时传入的参数优先运行时 `init(config)` 传入；必须配置的核心 key 通过 `SDKKeyConfig` 区分 Android/iOS，再由所在 lib 模块注入和读取。
 
 报告后必须询问开发者：
 > 针对上述风险，是否有新的应对方案或特殊项目规范需要补充？
@@ -238,6 +238,42 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 - 统计/归因/广告 SDK 若支持 `preInit`，必须区分隐私授权前 `preInit` 与授权后 `init`。
 - 不读取剪贴板、不采集设备标识等隐私选项必须显式记录在实现或报告中。
 
+### 2.7 SDK 参数来源与平台 key
+- 必须先根据官方文档和物理签名判断参数来源能力，区分“运行时可传参数”和“必须配置参数”。
+- SDK 文档中同时支持运行时传入和 Manifest/Info.plist 配置的参数，优先作为初始化参数运行时传入，不优先走平台配置文件。
+- 非必须参数可作为 `init(...)` 参数传入，例如渠道 `channel`、隐私授权状态、授权页行为开关、设备隐私参数等。
+- 必须传入的核心参数一般是 `appId`、`appKey`、`secret`、iOS `universalLink` 等，统一写入 `SDKKeyConfig`，并必须区分 Android 与 iOS。
+- common 层 `expect` API 不应暴露必须核心 key；平台 `actual` 实现应在各自平台模块中读取 `BuildKonfig` 注入字段。
+- 只有 SDK 官方文档或物理 SDK 强制要求 Manifest meta-data 的参数，才允许进入 Android Manifest placeholder；真实值仍必须来自 `SDKKeyConfig`。
+- iOS SDK 强制要求 `Info.plist` 配置时，必须通过 `com.basic.plist` 声明字段并从 `SDKKeyConfig` 生成到 `SDKKeyConfig.xcconfig`，再由 `Info.plist` 使用 `$(KEY)` 引用。
+- 无平台 API 消费路径的配置禁止定义。例如 iOS SDK 没有 channel API 时，不得定义 `IOS.channel`。
+- 遇到上游 AAR 自带多余 Manifest 占位符时，必须先向开发者确认处理策略，不得擅自使用 `tools:node="remove"` 或 app placeholder 兜底。
+
+推荐配置结构：
+
+```kotlin
+object SomeSdk {
+    object Android {
+        const val appId = ""
+        const val appKey = ""
+    }
+
+    object IOS {
+        const val appId = ""
+        const val appKey = ""
+        const val universalLink = ""
+    }
+}
+```
+
+平台读取示例：
+
+```kotlin
+actual fun init(runtimeParam: String?) {
+    NativeSdk.init(SomeSdkBuildConfig.ANDROID_APP_ID, runtimeParam)
+}
+```
+
 ## 3. 禁令
 
 - 禁止在 `app/src/androidMain/.../MainActivity.kt` 添加 SDK 业务逻辑。
@@ -245,5 +281,8 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 - 禁止手动修改 `iosApp/Podfile`。
 - 禁止在 `shared_common` 的 `ApplicationServiceImpl.kt` 堆叠多模块 SDK 逻辑。
 - 禁止 `commonMain` 暴露平台原生类型。
+- 禁止 `commonMain` 初始化 API 暴露必须核心 key，例如 `appId`、`appKey`、`secret`。
+- 禁止把 Android key 复用为 iOS key，或反向复用。
+- 禁止直接手工把 `SDKKeyConfig` 的值复制进 `Manifest` 或 `Info.plist`。
 - 禁止省略 Pod 版本号。
 - 禁止未经确认采用 no-op、模拟数据、占位 AppKey、跳过物理签名复核等降级方案。

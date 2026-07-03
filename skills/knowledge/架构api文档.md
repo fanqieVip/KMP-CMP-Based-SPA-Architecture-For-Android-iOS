@@ -1260,6 +1260,94 @@ framework {
 | ALPHA | `https://xxxx.com` | `https://xxxx.com` |
 | RELEASE | `https://xxxx.com` | `https://xxxx.com` |
 
+### `SDKKeyConfig`
+
+| 项 | 内容 |
+| --- | --- |
+| 位置 | `buildSrc/src/main/kotlin/com/frame/basic/buildsrc/SDKKeyConfig.kt` |
+| 作用 | 统一保存本地 SDK key、AppId、AppKey、secret、iOS universalLink 等敏感配置入口。 |
+| 平台拆分 | 三方 SDK 配置必须按 `Android` / `IOS` 子对象区分，禁止默认复用双端 key。 |
+
+推荐结构：
+
+```kotlin
+object SomeSdk {
+    object Android {
+        const val appId = ""
+        const val appKey = ""
+    }
+
+    object IOS {
+        const val appId = ""
+        const val appKey = ""
+        const val universalLink = ""
+    }
+}
+```
+
+使用约束：
+
+- 必须核心 key 由对应 `lib_xxx` 通过 `BuildKonfig` 注入，并在 Android/iOS actual 实现中分别读取。
+- common 初始化 API 不暴露 `appId`、`appKey`、`secret` 等必须核心 key。
+- 可运行时决定的非必须参数，例如 channel、授权状态、设备隐私参数，可保留在 common API 中作为初始化参数。
+- Android Manifest placeholder 与 iOS `com.basic.plist` 字段值都必须来自 `SDKKeyConfig`。
+
+### `com.basic.plist`
+
+| 项 | 内容 |
+| --- | --- |
+| 位置 | `buildSrc/src/main/kotlin/com/frame/basic/plugin/IosSdkKeyConfigPlugin.kt` |
+| 插件 ID | `com.basic.plist` |
+| 作用 | 聚合各 SDK lib 模块声明的 iOS plist 参数，生成 `iosApp/Configuration/SDKKeyConfig.xcconfig`。 |
+| 适用场景 | 三方 SDK 要求在 iOS `Info.plist` 配置 AppKey、AppId、URL Scheme、Universal Link 等参数。 |
+
+模块接入：
+
+```kotlin
+import com.frame.basic.buildsrc.SDKKeyConfig
+
+plugins {
+    id("com.basic.plist")
+}
+
+iosSdkKeyConfig {
+    field("SOME_SDK_IOS_APP_ID", SDKKeyConfig.SomeSdk.IOS.appId)
+}
+```
+
+`Info.plist` 引用：
+
+```xml
+<key>SomeSdkAppId</key>
+<string>$(SOME_SDK_IOS_APP_ID)</string>
+```
+
+生成文件：
+
+```text
+iosApp/Configuration/SDKKeyConfig.xcconfig
+```
+
+`Config.xcconfig` 固定 include：
+
+```xcconfig
+#include "SDKKeyConfig.xcconfig"
+```
+
+任务：
+
+| 类型 | Gradle task |
+| --- | --- |
+| 根任务 | `./gradlew generateIosSdkKeyConfig` |
+| 模块代理任务 | `./gradlew :lib_xxx:generateIosSdkKeyConfig` |
+
+约束：
+
+- 字段值必须来自 `SDKKeyConfig`，禁止把真实 key 直接写在 `build.gradle.kts` 或 `Info.plist`。
+- 删除 `field(...)` 后，macOS Gradle Sync 会自动重写生成文件并清理旧字段。
+- 非 macOS 上任务默认禁用，不写 `SDKKeyConfig.xcconfig`。
+- 多模块声明同名 key 且值不一致时构建失败。
+
 ## 17. AI 快速任务指南
 
 ### 新增页面
