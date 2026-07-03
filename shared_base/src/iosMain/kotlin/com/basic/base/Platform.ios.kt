@@ -34,8 +34,6 @@ class IOSPlatform : Platform {
             ?: "unknown.bundle.identifier"
     override val userAgent: String
         get() = NSUserDefaults.standardUserDefaults.stringForKey("UserAgent") ?: ""
-    override val appChannel: String
-        get() = BuildConfig_com_basic_base.DEFAULT_CHANNEL
     override val brand: String
         get() = "apple"
     override val model: String
@@ -70,3 +68,5 @@ actual fun PlatformViewGroup.removeAllView() {
 }
 
 actual typealias Bitmap = UIImage
+
+actual fun getAppChannel(): String = BuildConfig_com_basic_base.DEFAULT_CHANNEL

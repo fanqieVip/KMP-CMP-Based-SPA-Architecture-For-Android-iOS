@@ -27,8 +27,6 @@ class AndroidPlatform : Platform {
         get() = AppUtils.getAppPackageName()
     override val userAgent: String
         get() = WebSettings.getDefaultUserAgent(Utils.getApp())
-    override val appChannel: String
-        get() = WalleChannelReader.getChannel(Utils.getApp(), BuildConfig_com_basic_base.DEFAULT_CHANNEL)?: BuildConfig_com_basic_base.DEFAULT_CHANNEL
     override val brand: String
         get() = Build.BRAND
     override val model: String
@@ -50,3 +48,6 @@ actual fun PlatformViewGroup.removeAllView() {
 }
 
 actual typealias Bitmap = Bitmap
+
+private val appChannel by lazy { WalleChannelReader.getChannel(Utils.getApp(), BuildConfig_com_basic_base.DEFAULT_CHANNEL)?: BuildConfig_com_basic_base.DEFAULT_CHANNEL }
+actual fun getAppChannel(): String = appChannel

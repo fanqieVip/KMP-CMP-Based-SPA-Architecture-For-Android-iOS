@@ -11,7 +11,6 @@ interface Platform {
     val appVersionCode: String
     val appPackageName: String
     val userAgent: String
-    val appChannel: String
     val brand: String
     val model: String
 }
@@ -21,6 +20,7 @@ enum class Os {
 }
 
 expect fun getPlatform(): Platform
+expect fun getAppChannel(): String
 
 expect class PlatformApp
 expect fun getPlatformApp(): PlatformApp
