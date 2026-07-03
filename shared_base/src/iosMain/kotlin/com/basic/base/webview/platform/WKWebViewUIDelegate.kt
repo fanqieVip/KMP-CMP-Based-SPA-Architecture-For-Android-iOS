@@ -15,7 +15,6 @@ class WKWebViewUIDelegate(): NSObject(), WKUIDelegateProtocol {
         initiatedByFrame: WKFrameInfo,
         completionHandler: () -> Unit
     ) {
-        println("h5 alert: $runJavaScriptAlertPanelWithMessage")
         completionHandler()
     }
 

@@ -38,6 +38,7 @@ immersionbar = "2.0.2"                                          # https://github
 compottie = "2.2.4"                                             # https://github.com/alexzhirkevich/compottie
 kni = "2.0.4-rc02"                                              # https://klibs.io/project/dshatz/Kotlin-JNI 保持该版本，新版本限制过多，不方便做llvm混淆
 konnectivity = "0.1-alpha01"                                    # https://klibs.io/project/plusmobileapps/konnectivity
+xxPermission = "28.3"                                           # https://github.com/getActivity/XXPermissions
 
 [libraries]
 compose-multiplatform-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
@@ -111,6 +112,7 @@ kni = { module = "com.dshatz.kni:jni", version.ref = "kni" }
 kni-processor = { module = "com.dshatz.kni:ksp", version.ref = "kni" }
 kni-annotations = { module = "com.dshatz.kni:annotations", version.ref = "kni" }
 konnectivity = { module = "com.plusmobileapps:konnectivity", version.ref = "konnectivity" }
+xxPermission = { group = "com.github.getActivity", name = "XXPermissions", version.ref = "xxPermission" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

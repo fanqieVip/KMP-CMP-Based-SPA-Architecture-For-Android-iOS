@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Message
 import android.view.ViewGroup
 import com.basic.base.utils.logDebug
+import com.tencent.smtt.export.external.interfaces.GeolocationPermissionsCallback
 import com.tencent.smtt.export.external.interfaces.JsResult
 import com.tencent.smtt.export.external.interfaces.SslError
 import com.tencent.smtt.export.external.interfaces.SslErrorHandler
@@ -31,6 +32,7 @@ import java.net.URL
  * @param onReceivedDownload 请求下载文件回调
  * @param onInterceptRequest 资源请求回调。如果不传则不拦截
  * @param onOverrideUrlLoading url请求拦截，返回true拦截，返回false不拦截
+ * @param onGeolocationPermissionsShowPrompt H5定位权限申请回调
  */
 fun WebView.register(
     downloadType: Array<String>? = null,
@@ -43,7 +45,8 @@ fun WebView.register(
     onReceivedError: ((errorCode: Int, errorInfo: String?) -> Unit)? = null,
     onReceivedDownload: ((url: String) -> Unit)? = null,
     onInterceptRequest: ((request: WebResourceRequest?, webResourceResponse: WebResourceResponse?) -> WebResourceResponse?)? = null,
-    onOverrideUrlLoading: ((url: String) -> Boolean) = { false }
+    onOverrideUrlLoading: ((url: String) -> Boolean) = { false },
+    onGeolocationPermissionsShowPrompt: ((origin: String?, callback: GeolocationPermissionsCallback?) -> Unit)? = { origin, callback -> callback?.invoke(origin, true, false) }
 ) {
     var isRedirect = true
     var isLoading = false
@@ -84,6 +87,17 @@ fun WebView.register(
         override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
             logDebug("webview", "$message")
             return super.onJsAlert(view, url, message, result)
+        }
+
+        override fun onGeolocationPermissionsShowPrompt(
+            origin: String?,
+            callback: GeolocationPermissionsCallback?
+        ) {
+            if (onGeolocationPermissionsShowPrompt == null) {
+                super.onGeolocationPermissionsShowPrompt(origin, callback)
+            } else {
+                onGeolocationPermissionsShowPrompt.invoke(origin, callback)
+            }
         }
 
     }

@@ -85,6 +85,7 @@ kotlin {
             api(libs.androidx.constraintLayout)
             api(libs.android.material)
             api(libs.github.walle)
+            api(libs.xxPermission)
             implementation(libs.coil.ktor.android)
             api(libs.android.immersionbar)
             val oaidLib = libs.github.cnOaid.get().let { "${it.group}:${it.name}:${it.version}" }
