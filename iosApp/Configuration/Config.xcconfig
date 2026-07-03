@@ -1,3 +1,5 @@
+#include "SDKKeyConfig.xcconfig"
+
 TEAM_ID=
 
 PRODUCT_NAME=KmpProject
