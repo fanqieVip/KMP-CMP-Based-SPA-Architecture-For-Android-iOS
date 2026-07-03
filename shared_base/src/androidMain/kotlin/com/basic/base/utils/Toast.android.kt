@@ -1,5 +1,6 @@
 package com.basic.base.utils
 
+import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentActivity
 import com.basic.base.ktx.applicationScope
@@ -32,20 +33,28 @@ actual fun nativeToast(
 ) {
     applicationScope.launchScope {
         text?.let { msg ->
-            val hasDialogFragment = (uiContainer as? FragmentActivity)?.findTopDialogFragmentByWindow()
-            withContext(Dispatchers.Main) {
-                val length = if (duration == Toast_Duration_Long) {
-                    Snackbar.LENGTH_LONG
+            val length = if (duration == Toast_Duration_Long) {
+                Snackbar.LENGTH_LONG
+            } else {
+                Snackbar.LENGTH_SHORT
+            }
+            ActivityStackManager.getCurrentActivity()?.let {
+                if (it is FragmentActivity) {
+                    val hasDialogFragment = (uiContainer as? FragmentActivity)?.findTopDialogFragmentByWindow()
+                    withContext(Dispatchers.Main) {
+                        if (hasDialogFragment == null) {
+                            Snackbar.make(
+                                uiContainer.findViewById(android.R.id.content), msg, length
+                            ).show()
+                        } else {
+                            hasDialogFragment.dialog?.window?.decorView?.let {
+                                Snackbar.make(it, msg, length).show()
+                            }
+                        }
+                    }
                 } else {
-                    Snackbar.LENGTH_SHORT
-                }
-                if (hasDialogFragment == null) {
-                    Snackbar.make(
-                        uiContainer.findViewById(android.R.id.content), msg, length
-                    ).show()
-                } else {
-                    hasDialogFragment.dialog?.window?.decorView?.let {
-                        Snackbar.make(it, msg, length).show()
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(it, text, length).show()
                     }
                 }
             }
