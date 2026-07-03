@@ -125,7 +125,8 @@ fun CoroutineScope.launchScope(
 fun rememberSupervisorCoroutineScope(): CoroutineScope {
     return rememberScreenModel { CoroutineScopeScreenModel() }.screenModelScope
 }
-internal class CoroutineScopeScreenModel: ScreenModel
+
+internal class CoroutineScopeScreenModel : ScreenModel
 
 /**
  * 业务异常
@@ -139,9 +140,9 @@ internal const val OTHER_ERROR_CODE = 999999
 
 fun exceptionHandler(e: Throwable): Pair<Int?, String?> {
     return when (e) {
-        is ResponseException -> Pair(e.response.status.value, e.message)
+        is ResponseException -> Pair(e.response.status.value, e.message?:e.cause?.toString() )
         is ApiException -> Pair(e.code, "${e.message}")
-        else -> Pair(OTHER_ERROR_CODE, "${e.message}")
+        else -> Pair(OTHER_ERROR_CODE, "${e.message?:e.cause?.toString()}")
     }
 }
 
