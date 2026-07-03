@@ -49,5 +49,5 @@ actual fun PlatformViewGroup.removeAllView() {
 
 actual typealias Bitmap = Bitmap
 
-private val appChannel by lazy { WalleChannelReader.getChannel(Utils.getApp(), BuildConfig_com_basic_base.DEFAULT_CHANNEL)?: BuildConfig_com_basic_base.DEFAULT_CHANNEL }
-actual fun getAppChannel(): String = appChannel
+private val channel by lazy { WalleChannelReader.getChannel(Utils.getApp(), BuildConfig_com_basic_base.DEFAULT_CHANNEL)?: BuildConfig_com_basic_base.DEFAULT_CHANNEL }
+actual fun getAppChannel(): String = channel
