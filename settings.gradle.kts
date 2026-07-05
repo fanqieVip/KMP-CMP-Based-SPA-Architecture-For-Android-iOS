@@ -29,6 +29,7 @@ dependencyResolutionManagement {
             }
             filter {
                 includeGroup("com.github.gzu-liyujiang")
+                includeGroup("com.github.getActivity")
             }
         }
         exclusiveContent {
