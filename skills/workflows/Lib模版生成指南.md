@@ -27,7 +27,7 @@
 2. **settings.gradle.kts**: 自动添加 `include(":lib_xxx")`。
 3. **shared_common/build.gradle.kts**: 在 `commonMain`、`androidMain`、`iosMain` 依赖块中自动添加 `api(project(":lib_xxx"))`。
 4. **Android 本地 SDK**: AAR/JAR 必须放在 `lib_xxx/libs/android/`，并使用模板中的 `compileOnly(fileTree(...))`。这是本项目框架规范，框架会处理最终依赖打包，AI 不得擅自改成 `implementation(files(...))`、`api(files(...))` 或复制到 app 模块。
-5. **iOS Info.plist 参数**: 模板默认引入 `com.basic.plist`。若 SDK 需要在 iOS `Info.plist` 添加 AppKey、AppId、URL Scheme 等参数，必须在当前 `lib_xxx/build.gradle.kts` 通过 `iosSdkKeyConfig { field(...) }` 声明，字段值统一从 `SDKKeyConfig` 读取，禁止直接硬编码到 `Info.plist`。
+5. **iOS Info.plist 参数**: 模板默认引入 `com.basic.plist`。若 SDK 需要在 iOS `Info.plist` 添加 AppKey、AppId、URL Scheme 等参数，必须在当前 `lib_xxx/build.gradle.kts` 通过 `plistConfig { field(...) }` 声明，字段值统一从 `SDKKeyConfig` 读取，禁止直接硬编码到 `Info.plist`。
 
 ### 2.3 代码模板生成 (DI & SPI)
 1. **ApplicationService 模板**: 必须使用 [内置 SPI 模板](#52-spi-生命周期模板)。
@@ -70,7 +70,7 @@ val androidNameSpace = "com.basic.<suffix>"
 
 // SDK 需要写入 iOS Info.plist 参数时启用，字段值必须来自 SDKKeyConfig。
 // import com.frame.basic.buildsrc.SDKKeyConfig
-// iosSdkKeyConfig {
+// plistConfig {
 //     field("<SDK_IOS_KEY>", SDKKeyConfig.<Sdk>.IOS.<key>)
 // }
 

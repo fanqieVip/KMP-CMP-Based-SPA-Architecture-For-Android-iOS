@@ -1296,7 +1296,7 @@ object SomeSdk {
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `buildSrc/src/main/kotlin/com/frame/basic/plugin/IosSdkKeyConfigPlugin.kt` |
+| 位置 | `buildSrc/src/main/kotlin/com/frame/basic/plugin/PlistConfigPlugin.kt` |
 | 插件 ID | `com.basic.plist` |
 | 作用 | 聚合各 SDK lib 模块声明的 iOS plist 参数，生成 `iosApp/Configuration/SDKKeyConfig.xcconfig`。 |
 | 适用场景 | 三方 SDK 要求在 iOS `Info.plist` 配置 AppKey、AppId、URL Scheme、Universal Link 等参数。 |
@@ -1310,7 +1310,7 @@ plugins {
     id("com.basic.plist")
 }
 
-iosSdkKeyConfig {
+plistConfig {
     field("SOME_SDK_IOS_APP_ID", SDKKeyConfig.SomeSdk.IOS.appId)
 }
 ```
@@ -1338,8 +1338,8 @@ iosApp/Configuration/SDKKeyConfig.xcconfig
 
 | 类型 | Gradle task |
 | --- | --- |
-| 根任务 | `./gradlew generateIosSdkKeyConfig` |
-| 模块代理任务 | `./gradlew :lib_xxx:generateIosSdkKeyConfig` |
+| 根任务 | `./gradlew generatePlistConfig` |
+| 模块代理任务 | `./gradlew :lib_xxx:generatePlistConfig` |
 
 约束：
 

@@ -9,22 +9,22 @@ import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
  * @Author:         范俊
  * @CreateDate:     2026/07/03 11:56
  */
-class IosSdkKeyConfigPlugin : Plugin<Project> {
+class PlistConfigPlugin : Plugin<Project> {
     override fun apply(target: Project) {
-        val extension = target.extensions.create("iosSdkKeyConfig", IosSdkKeyConfigExtension::class.java)
-        val registry = target.rootProject.iosSdkKeyConfigRegistry()
+        val extension = target.extensions.create("plistConfig", PlistConfigExtension::class.java)
+        val registry = target.rootProject.plistConfigRegistry()
         registry.add(target.path, extension)
-        target.rootProject.configureIosSdkKeyConfigTask(registry)
+        target.rootProject.configurePlistConfigTask(registry)
 
-        target.tasks.register("generateIosSdkKeyConfig") {
+        target.tasks.register("generatePlistConfig") {
             group = "ios"
-            description = "Generates SDKKeyConfig.xcconfig from all module iosSdkKeyConfig declarations."
-            dependsOn(target.rootProject.tasks.named(IOS_SDK_KEY_CONFIG_TASK_NAME))
+            description = "Generates SDKKeyConfig.xcconfig from all module plistConfig declarations."
+            dependsOn(target.rootProject.tasks.named(PLIST_CONFIG_TASK_NAME))
         }
     }
 }
 
-open class IosSdkKeyConfigExtension {
+open class PlistConfigExtension {
     private val fields = linkedMapOf<String, String>()
 
     fun field(name: String, value: String) {
@@ -34,14 +34,14 @@ open class IosSdkKeyConfigExtension {
     internal fun entries(): Map<String, String> = fields.toMap()
 }
 
-private const val IOS_SDK_KEY_CONFIG_TASK_NAME = "generateIosSdkKeyConfig"
-private const val IOS_SDK_KEY_CONFIG_EXTENSION_NAME = "iosSdkKeyConfigRegistry"
+private const val PLIST_CONFIG_TASK_NAME = "generatePlistConfig"
+private const val PLIST_CONFIG_EXTENSION_NAME = "plistConfigRegistry"
 private val isMac = DefaultNativePlatform.getCurrentOperatingSystem().isMacOsX
 
-private open class IosSdkKeyConfigRegistry {
-    private val extensions = linkedMapOf<String, IosSdkKeyConfigExtension>()
+private open class PlistConfigRegistry {
+    private val extensions = linkedMapOf<String, PlistConfigExtension>()
 
-    fun add(modulePath: String, extension: IosSdkKeyConfigExtension) {
+    fun add(modulePath: String, extension: PlistConfigExtension) {
         extensions[modulePath] = extension
     }
 
@@ -65,14 +65,14 @@ private open class IosSdkKeyConfigRegistry {
     }
 }
 
-private fun Project.iosSdkKeyConfigRegistry(): IosSdkKeyConfigRegistry {
-    val existing = extensions.findByName(IOS_SDK_KEY_CONFIG_EXTENSION_NAME) as? IosSdkKeyConfigRegistry
+private fun Project.plistConfigRegistry(): PlistConfigRegistry {
+    val existing = extensions.findByName(PLIST_CONFIG_EXTENSION_NAME) as? PlistConfigRegistry
     if (existing != null) return existing
-    return extensions.create(IOS_SDK_KEY_CONFIG_EXTENSION_NAME, IosSdkKeyConfigRegistry::class.java)
+    return extensions.create(PLIST_CONFIG_EXTENSION_NAME, PlistConfigRegistry::class.java)
 }
 
-private fun Project.configureIosSdkKeyConfigTask(registry: IosSdkKeyConfigRegistry) {
-    if (tasks.findByName(IOS_SDK_KEY_CONFIG_TASK_NAME) != null) return
+private fun Project.configurePlistConfigTask(registry: PlistConfigRegistry) {
+    if (tasks.findByName(PLIST_CONFIG_TASK_NAME) != null) return
 
     val outputFile = file("iosApp/Configuration/SDKKeyConfig.xcconfig")
     fun syncConfig() {
@@ -80,7 +80,7 @@ private fun Project.configureIosSdkKeyConfigTask(registry: IosSdkKeyConfigRegist
         if (!outputFile.exists() || outputFile.readText() != newContent) {
             outputFile.parentFile.mkdirs()
             outputFile.writeText(newContent)
-            logger.lifecycle("${outputFile.name} updated successfully from iosSdkKeyConfig declarations")
+            logger.lifecycle("${outputFile.name} updated successfully from plistConfig declarations")
         }
     }
 
@@ -90,7 +90,7 @@ private fun Project.configureIosSdkKeyConfigTask(registry: IosSdkKeyConfigRegist
         }
     }
 
-    tasks.register(IOS_SDK_KEY_CONFIG_TASK_NAME) {
+    tasks.register(PLIST_CONFIG_TASK_NAME) {
         group = "ios"
         description = "Generates iosApp/Configuration/SDKKeyConfig.xcconfig from module plist declarations."
         enabled = isMac
