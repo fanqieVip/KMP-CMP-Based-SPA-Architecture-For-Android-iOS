@@ -98,7 +98,7 @@ AI 必须输出 `[SDK 文档/物理签名获取报告]`：
 风险匹配规则：
 - SDK 需要 App 生命周期、前后台、Intent、URL、Universal Link 时，必须在 `lib_xxx` 内实现 `ApplicationService`。
 - Android 回调 Activity、`activity-alias`、`queries`、权限必须放在 `lib_xxx/src/androidMain/AndroidManifest.xml`。
-- iOS URL Scheme、Universal Link、`LSApplicationQueriesSchemes` 若必须修改 `Info.plist`，必须在报告中逐项说明业务原因；AppKey/AppId 等变量值必须通过 `com.basic.plist` 从 `SDKKeyConfig` 注入，不得直接硬编码到 `Info.plist`。
+- iOS URL Scheme、Universal Link、`LSApplicationQueriesSchemes` 若必须修改 `Info.plist`，必须在报告中逐项说明业务原因；AppKey/AppId 等变量值必须通过 `com.basic.ios` 从 `SDKKeyConfig` 注入，不得直接硬编码到 `Info.plist`。
 - `iosApp/Podfile` 由根 Gradle 自动汇总生成，禁止手动修改。
 - 任何 AppKey/AppId 硬编码都必须列为风险。能运行时传入的参数优先运行时 `init(config)` 传入；必须配置的核心 key 通过 `SDKKeyConfig` 区分 Android/iOS，再由所在 lib 模块注入和读取。
 
@@ -245,7 +245,7 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 - 必须传入的核心参数一般是 `appId`、`appKey`、`secret`、iOS `universalLink` 等，统一写入 `SDKKeyConfig`，并必须区分 Android 与 iOS。
 - common 层 `expect` API 不应暴露必须核心 key；平台 `actual` 实现应在各自平台模块中读取 `BuildKonfig` 注入字段。
 - 只有 SDK 官方文档或物理 SDK 强制要求 Manifest meta-data 的参数，才允许进入 Android Manifest placeholder；真实值仍必须来自 `SDKKeyConfig`。
-- iOS SDK 强制要求 `Info.plist` 配置时，必须通过 `com.basic.plist` 声明字段并从 `SDKKeyConfig` 生成到 `SDKKeyConfig.xcconfig`，再由 `Info.plist` 使用 `$(KEY)` 引用。
+- iOS SDK 强制要求 `Info.plist` 配置时，必须通过 `com.basic.ios` 声明字段并从 `SDKKeyConfig` 生成到 `iosConfig.xcconfig`，再由 `Info.plist` 使用 `$(KEY)` 引用。
 - 无平台 API 消费路径的配置禁止定义。例如 iOS SDK 没有 channel API 时，不得定义 `IOS.channel`。
 - 遇到上游 AAR 自带多余 Manifest 占位符时，必须先向开发者确认处理策略，不得擅自使用 `tools:node="remove"` 或 app placeholder 兜底。
 
