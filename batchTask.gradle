@@ -60,7 +60,7 @@ def testApkVersionDesc = file("${testApkRootFolder.absolutePath}/version_desc")
 /**
  * 生产渠道包目录
  */
-def channelApkFolder = file("${projectFolder}/channel/v${ProjectBuildConfig.Build.versionName}")
+def channelApkFolder = file("${projectFolder}/channel/v${ProjectBuildConfig.Build.Android.versionName}")
 /**
  * 渠道配置文本
  */
@@ -114,7 +114,7 @@ task assembleMain(dependsOn: 'assembleRelease') {
             deskApkFileFolder.mkdirs()
         }
         for (File apk : deskApkFileFolder.listFiles()) {
-            if (apk.isFile() && apk.name.startsWith(ProjectBuildConfig.Build.buildApkNamePrefix("release")) && apk.name.endsWith(".apk")) {
+            if (apk.isFile() && apk.name.startsWith(ProjectBuildConfig.Build.Android.buildApkNamePrefix("release")) && apk.name.endsWith(".apk")) {
                 apk.delete()
             }
         }
@@ -157,7 +157,7 @@ task assembleMainChannels() {
             deskApkFileFolder.mkdirs()
         }
         for (File apk : deskApkFileFolder.listFiles()) {
-            if (apk.isFile() && apk.name.startsWith(ProjectBuildConfig.Build.buildApkNamePrefix("release")) && apk.name.endsWith(".apk")) {
+            if (apk.isFile() && apk.name.startsWith(ProjectBuildConfig.Build.Android.buildApkNamePrefix("release")) && apk.name.endsWith(".apk")) {
                 apk.delete()
             }
         }
@@ -256,7 +256,7 @@ def parseLocalProperties() {
 /**上传所有channel文件*/
 task publishOss() {
     group = publishOnlineGroupName
-    description = "上传channel_v${ProjectBuildConfig.Build.versionName}文件"
+    description = "上传channel_v${ProjectBuildConfig.Build.Android.versionName}文件"
     doLast {
         File apkFolder = file("${channelApkFolder.absolutePath}/")
         OssHelper.uploadDir(apkFolder)
@@ -265,7 +265,7 @@ task publishOss() {
 /**上传所有channel文件并且钉钉通知*/
 task publishOssDing() {
     group = publishOnlineGroupName
-    description = "上传channel_v${ProjectBuildConfig.Build.versionName}文件并且钉钉通知"
+    description = "上传channel_v${ProjectBuildConfig.Build.Android.versionName}文件并且钉钉通知"
     doLast {
         File apkFolder = file("${channelApkFolder.absolutePath}/")
         def result = OssHelper.uploadDir(apkFolder)
@@ -574,7 +574,7 @@ def copyTestApkDing(String environment, String testApkFolder, File testApkVersio
         deskApkFileFolder.mkdirs()
     }
     //删除相同版本已经存在的apk
-    def apkNamePrefix = ProjectBuildConfig.Build.buildApkNamePrefix(environment)
+    def apkNamePrefix = ProjectBuildConfig.Build.Android.buildApkNamePrefix(environment)
     for (File file : deskApkFileFolder.listFiles()) {
         if (file.isFile() && file.name.startsWith(apkNamePrefix) && file.name.endsWith(".apk")) {
             file.delete()
@@ -647,7 +647,7 @@ task mainVmp() {
         //获取ANDROID_SDK_HOME
         def sdkDirectory = file("${parseLocalProperties()}")
         //获取ANDROID_NDK_HOME
-        def ndkDirectory = file("${parseLocalProperties()}/ndk/${ProjectBuildConfig.Build.ndkVersion}")
+        def ndkDirectory = file("${parseLocalProperties()}/ndk/${ProjectBuildConfig.Build.Android.ndkVersion}")
         //获取CMAKE_PATH
         def cmakeDirectory = file("${parseLocalProperties()}/cmake/").listFiles().find { it.isDirectory() }
         //获取Android Studio的java.exe路径
@@ -670,7 +670,7 @@ task mainVmp() {
         vmpBatWriter.writeLine("set NMMP_NAME=${VmpConfig.nmmpName}")
         vmpBatWriter.writeLine("set NMMVM_NAME=${VmpConfig.nmmvmName}")
         vmpBatWriter.writeLine("set CLASS_NAME=${VmpConfig.className}")
-        vmpBatWriter.writeLine("set USE_LEGACY_PACKAGING=${ProjectBuildConfig.Build.useJniLegacyPackaging}")
+        vmpBatWriter.writeLine("set USE_LEGACY_PACKAGING=${ProjectBuildConfig.Build.Android.useJniLegacyPackaging}")
         vmpBatWriter.writeLine("\"${javaExePath.absolutePath}\" -jar \"${exeVmpJar.absolutePath}\" %*")
         vmpBatWriter.flush()
         vmpBatWriter.close()

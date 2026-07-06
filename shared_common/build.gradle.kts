@@ -23,8 +23,8 @@ val androidNameSpace = "com.basic.common"
 kotlin {
     androidLibrary {
         namespace = androidNameSpace
-        compileSdk = ProjectBuildConfig.Build.compileSdkVersion
-        minSdk = ProjectBuildConfig.Build.minSdkVersion
+        compileSdk = ProjectBuildConfig.Build.Android.compileSdkVersion
+        minSdk = ProjectBuildConfig.Build.Android.minSdkVersion
         androidResources.enable = true
         withJava()
         withSourcesJar(true)

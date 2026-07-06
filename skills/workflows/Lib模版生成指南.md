@@ -77,8 +77,8 @@ val androidNameSpace = "com.basic.<suffix>"
 kotlin {
     androidLibrary {
         namespace = androidNameSpace
-        compileSdk = ProjectBuildConfig.Build.compileSdkVersion
-        minSdk = ProjectBuildConfig.Build.minSdkVersion
+        compileSdk = ProjectBuildConfig.Build.Android.compileSdkVersion
+        minSdk = ProjectBuildConfig.Build.Android.minSdkVersion
         androidResources.enable = true
         optimization {
             consumerKeepRules.publish = true
@@ -90,7 +90,7 @@ kotlin {
         summary = androidNameSpace
         homepage = "https://www.example.com"
         version = "1.0"
-        ios.deploymentTarget = "15.0"
+        ios.deploymentTarget = ProjectBuildConfig.Build.Ios.deploymentTarget
     }
     sourceSets {
         commonMain {

@@ -15,11 +15,11 @@ val androidLibsName = "shared_nativeLibs"
 val isWindows = org.gradle.internal.os.OperatingSystem.current().isWindows
 android {
     namespace = androidNameSpace
-    ndkVersion = ProjectBuildConfig.Build.ndkVersion
+    ndkVersion = ProjectBuildConfig.Build.Android.ndkVersion
     defaultConfig {
-        buildToolsVersion = ProjectBuildConfig.Build.buildToolsVersion
-        compileSdk = ProjectBuildConfig.Build.compileSdkVersion
-        minSdk = ProjectBuildConfig.Build.minSdkVersion
+        buildToolsVersion = ProjectBuildConfig.Build.Android.buildToolsVersion
+        compileSdk = ProjectBuildConfig.Build.Android.compileSdkVersion
+        minSdk = ProjectBuildConfig.Build.Android.minSdkVersion
         consumerProguardFiles += project.file("proguard-rules.pro")
         ndk {
             abiFilters += "arm64-v8a"
@@ -40,7 +40,7 @@ android {
     externalNativeBuild {
         cmake {
             path(file("src/androidMain/cpp/CMakeLists.txt"))
-            version = ProjectBuildConfig.Build.cmakeVersion
+            version = ProjectBuildConfig.Build.Android.cmakeVersion
         }
     }
     buildTypes {

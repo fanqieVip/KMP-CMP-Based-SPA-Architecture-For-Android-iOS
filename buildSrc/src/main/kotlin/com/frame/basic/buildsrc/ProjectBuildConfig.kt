@@ -10,44 +10,61 @@ import java.util.TimeZone
 object ProjectBuildConfig {
 
     /**
-     * apk打包参数
+     * 打包参数
      */
     object Build {
-        const val compileSdkVersion = 36
-        const val buildToolsVersion = "36.0.0"
+        //app应用包名
         const val applicationId = "com.basic.app"
-        //vmp加密要求24以上，多个依赖库要求最低26起
-        const val minSdkVersion = 26
-        const val targetSdkVersion = 36
-        const val versionCode = 1
-        const val versionName = "1.0.0"
+        //app名称
         const val appName = "KmpProject"
-        //ndk官方版 https://github.com/android/ndk（存放android-sdk/ndk/）
-        //ndk23.2.8568313 ollvm windows整合包 https://github.com/Ant-tree/ObfuscatorNDK
-        const val ndkVersion = "23.2.8568313"
-        const val cmakeVersion = "3.22.1"
-
-        //min >= 28后，打包apk不会压缩dex，加上这个是开启dex压缩
-        const val useDexLegacyPackaging = true
-        //minSdk > 23后，打包apk不会压缩so，加上这个是开启so压缩(注意：vmp加密同样依赖这个配置，需共同约束)
-        const val useJniLegacyPackaging = true
-
         //设计图尺寸
         const val designSize: Int = 375
 
-        //生成打包APK名称的前缀
-        @JvmStatic
-        fun buildApkNamePrefix(environment: String): String = "${appName}_v${versionName}_"
+        /**
+         * 安卓特定配置
+         */
+        object Android {
+            const val compileSdkVersion = 36
+            const val buildToolsVersion = "36.0.0"
+            //vmp加密要求24以上，多个依赖库要求最低26起
+            const val minSdkVersion = 26
+            const val targetSdkVersion = 36
+            const val versionCode = 1
+            const val versionName = "1.0.0"
 
-        //生成打包APK的名称
-        @JvmStatic
-        @Suppress("SimpleDateFormat")
-        fun buildApkName(environment: String): String {
-            val sdf = SimpleDateFormat("MMddHHmm").apply {
-                timeZone = TimeZone.getDefault()
+            //ndk官方版 https://github.com/android/ndk（存放android-sdk/ndk/）
+            //ndk23.2.8568313 ollvm windows整合包 https://github.com/Ant-tree/ObfuscatorNDK
+            const val ndkVersion = "23.2.8568313"
+            const val cmakeVersion = "3.22.1"
+
+            //min >= 28后，打包apk不会压缩dex，加上这个是开启dex压缩
+            const val useDexLegacyPackaging = true
+            //minSdk > 23后，打包apk不会压缩so，加上这个是开启so压缩(注意：vmp加密同样依赖这个配置，需共同约束)
+            const val useJniLegacyPackaging = true
+
+            //生成打包APK名称的前缀
+            @JvmStatic
+            fun buildApkNamePrefix(environment: String): String = "${appName}_v${versionName}_"
+
+            //生成打包APK的名称
+            @JvmStatic
+            @Suppress("SimpleDateFormat")
+            fun buildApkName(environment: String): String {
+                val sdf = SimpleDateFormat("MMddHHmm").apply {
+                    timeZone = TimeZone.getDefault()
+                }
+                val time = sdf.format(Date())
+                return "${buildApkNamePrefix(environment)}${time}.apk"
             }
-            val time = sdf.format(Date())
-            return "${buildApkNamePrefix(environment)}${time}.apk"
+        }
+
+        /**
+         * iOS特定配置
+         */
+        object Ios {
+            const val versionName = "1.0.0"
+            const val versionCode = 1
+            const val deploymentTarget = "15.0"
         }
     }
 

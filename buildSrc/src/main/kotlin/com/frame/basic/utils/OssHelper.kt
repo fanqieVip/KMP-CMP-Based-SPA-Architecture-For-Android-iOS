@@ -66,7 +66,7 @@ object OssHelper {
             return null
         }
         // 填写Object完整路径，完整路径中不能包含Bucket名称，例如exampledir/exampleobject.txt。
-        val objectName = "${ProjectBuildConfig.Build.applicationId.replace(".", "_")}/release/${ProjectBuildConfig.Build.versionName}/${ProjectBuildConfig.Build.appName}/${apkFile.name}"
+        val objectName = "${ProjectBuildConfig.Build.applicationId.replace(".", "_")}/release/${ProjectBuildConfig.Build.Android.versionName}/${ProjectBuildConfig.Build.appName}/${apkFile.name}"
         // 创建OSSClient实例。
         val ossClient = OSSClientBuilder().build(
             SDKKeyConfig.AliOss.endpoint,
@@ -122,7 +122,7 @@ object OssHelper {
             return null
         }
         // 填写Object完整路径，完整路径中不能包含Bucket名称，例如exampledir/exampleobject.txt。
-        val objectName = "${ProjectBuildConfig.Build.applicationId.replace(".", "_")}/release/${ProjectBuildConfig.Build.versionName}/${ProjectBuildConfig.Build.appName}/${qrImage.name}"
+        val objectName = "${ProjectBuildConfig.Build.applicationId.replace(".", "_")}/release/${ProjectBuildConfig.Build.Android.versionName}/${ProjectBuildConfig.Build.appName}/${qrImage.name}"
         // 创建OSSClient实例。
         val ossClient = OSSClientBuilder().build(
             SDKKeyConfig.AliOss.endpoint,

@@ -20,9 +20,19 @@ plugins {
     alias(libs.plugins.buildkonfig)
     alias(libs.plugins.koinCompiler)
     id("com.waynell.tinypng")
+    id("com.basic.plist")
 }
 apply(from = "../batchTask.gradle")
 val androidNameSpace = "com.basic.app"
+
+plistConfig {
+    field("APP_NAME", ProjectBuildConfig.Build.appName)
+    field("VERSION_NAME", ProjectBuildConfig.Build.Ios.versionName)
+    field("VERSION_CODE", "${ProjectBuildConfig.Build.Ios.versionCode}")
+    field("APPLICATION_ID", ProjectBuildConfig.Build.applicationId)
+    field("SDK_DEPLOY_TARGET", ProjectBuildConfig.Build.Ios.deploymentTarget)
+}
+
 kotlin {
     androidTarget {
         withSourcesJar(true)
@@ -85,15 +95,15 @@ kotlin {
 
 android {
     namespace = androidNameSpace
-    ndkVersion = ProjectBuildConfig.Build.ndkVersion
+    ndkVersion = ProjectBuildConfig.Build.Android.ndkVersion
     defaultConfig {
         applicationId = ProjectBuildConfig.Build.applicationId
-        buildToolsVersion = ProjectBuildConfig.Build.buildToolsVersion
-        targetSdk = ProjectBuildConfig.Build.targetSdkVersion
-        compileSdk = ProjectBuildConfig.Build.compileSdkVersion
-        minSdk = ProjectBuildConfig.Build.minSdkVersion
-        versionCode = ProjectBuildConfig.Build.versionCode
-        versionName = ProjectBuildConfig.Build.versionName
+        buildToolsVersion = ProjectBuildConfig.Build.Android.buildToolsVersion
+        targetSdk = ProjectBuildConfig.Build.Android.targetSdkVersion
+        compileSdk = ProjectBuildConfig.Build.Android.compileSdkVersion
+        minSdk = ProjectBuildConfig.Build.Android.minSdkVersion
+        versionCode = ProjectBuildConfig.Build.Android.versionCode
+        versionName = ProjectBuildConfig.Build.Android.versionName
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -104,8 +114,8 @@ android {
         }
     }
     packaging {
-        dex.useLegacyPackaging = ProjectBuildConfig.Build.useDexLegacyPackaging
-        jniLibs.useLegacyPackaging = ProjectBuildConfig.Build.useJniLegacyPackaging
+        dex.useLegacyPackaging = ProjectBuildConfig.Build.Android.useDexLegacyPackaging
+        jniLibs.useLegacyPackaging = ProjectBuildConfig.Build.Android.useJniLegacyPackaging
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
@@ -168,7 +178,7 @@ android {
         variant.outputs
             .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
             .forEach { output ->
-                output.outputFileName = ProjectBuildConfig.Build.buildApkName(variant.buildType.name)
+                output.outputFileName = ProjectBuildConfig.Build.Android.buildApkName(variant.buildType.name)
             }
     }
 }

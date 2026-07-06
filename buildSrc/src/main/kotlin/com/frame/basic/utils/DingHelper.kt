@@ -97,7 +97,7 @@ object DingHelper {
         }
         //删除同版本多余的二维码图片
         qrImageDir.listFiles()?.forEach {
-            if (it.isFile && it.name.startsWith(ProjectBuildConfig.Build.buildApkNamePrefix(environment)) && it.name.endsWith("_${environment}.png")) {
+            if (it.isFile && it.name.startsWith(ProjectBuildConfig.Build.Android.buildApkNamePrefix(environment)) && it.name.endsWith("_${environment}.png")) {
                 it.delete()
             }
         }
