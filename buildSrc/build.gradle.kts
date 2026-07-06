@@ -15,4 +15,5 @@ dependencies {
     implementation("com.squareup:javapoet:1.13.0")
     implementation("org.ow2.asm:asm:9.5")
     implementation("org.ow2.asm:asm-commons:9.5")
+    implementation("com.google.devtools.ksp:symbol-processing-api:2.3.9")
 }

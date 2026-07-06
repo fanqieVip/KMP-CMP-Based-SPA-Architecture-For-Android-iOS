@@ -78,7 +78,6 @@ plugins {
 }
 
 include(":app")
-include(":router_processor")
 include(":shared_base")
 include(":shared_common")
 include(":shared_project")

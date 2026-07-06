@@ -11,9 +11,10 @@ class RouterPlugin : Plugin<Project> {
         }
         target.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
             configureBuildRouterTask(target)
+            val buildSrcJar = target.rootProject.layout.projectDirectory.file("buildSrc/build/libs/buildSrc.jar")
             target.dependencies.add(
                 "kspCommonMainMetadata",
-                target.dependencies.project(mapOf("path" to ":router_processor"))
+                target.files(buildSrcJar)
             )
         }
     }

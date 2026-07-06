@@ -81,6 +81,58 @@ AI 必须输出 `[SDK 文档/物理签名获取报告]`：
 - iOS 不能只看 Pod README，必须尽量复核 `build/cocoapods/synthetic/...` 或 SDK `.h`。
 - 若物理签名暂不可得，必须把缺口列入报告，不得伪造签名。
 
+#### 1.2.1 SDK 文档资料归档
+
+接入 SDK 时，所有用于判断实现方案的资料都必须归档到对应 SDK lib 目录，不能只留在对话、浏览器、命令输出或临时上下文中。
+
+归档范围：
+- 用户提供的文档、文档链接、截图、示例返回、账号配置说明、集成注意事项等关键信息。
+- AI 自行检索、打开、下载或用于实现判断的官方文档、SDK 下载页、API 说明、示例代码、FAQ、Issue。
+- 本地物理 SDK 资料，例如 `.h`、`.aar`、`.jar`、`.framework`、XCFramework、Pod synthetic headers 的路径与关键结论。
+
+归档要求：
+- 归档位置优先为当前 SDK 模块内的 `lib_xxx/docs/`；若模块尚未创建，应在创建模块时同步创建 `docs/`。
+- 文档链接必须写入模块内 Markdown 索引文件，例如 `docs/README.md` 或 `docs/集成资料.md`。
+- 若只能获得链接或文本摘要，必须记录链接、获取时间、来源、用途和关键字段说明。
+- AI 自行采信的资料必须记录检索来源、访问时间、资料标题或文件名、URL 或本地路径、用于支撑的实现结论；只作为排除项时，也应简要记录排除原因。
+- 涉及数据模型、初始化参数、回调字段、错误码、平台差异的内容，必须保留可检索关键词，便于后续通过 `rg` 定位。
+- 敏感信息，例如密钥、账号、token、手机号或内部地址，归档前必须脱敏；确需保留原文时必须先向用户确认。
+- 后续维护同一 SDK 时，必须先检查对应 lib 的 `docs/` 目录，再回溯对话或外部链接。
+- 后续如果发现官方文档、下载页、API 说明、示例 payload、错误码、平台差异或物理 SDK 声明发生变化，必须主动更新对应 lib 的 `docs/` 归档，并记录变更时间、变更来源、影响范围和是否需要同步调整代码。
+
+推荐目录结构：
+
+```text
+lib_xxx/
+  docs/
+    README.md
+    sdk-document-links.md
+    payload-samples.md
+```
+
+完成 SDK 接入时，交付说明中必须明确资料已归档到哪个 lib 目录。
+
+#### 1.2.2 回调数据模型审计
+
+接入或修改 SDK 回调解析逻辑前，必须先审计文档、头文件、AAR/JAR/Framework 暴露的真实数据模型，不得仅凭字段名、平台经验或另一端实现推断结构。
+
+对每个回调结果必须建立字段路径矩阵，至少包含：
+
+| 字段类别 | 字段路径 | 字段类型 | Android | iOS | 说明 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 成功码 | `code` | String/Int | 例如 `30000` | 例如 `30000` | 成功值必须明确 |
+| 错误信息 | `msg`/`message` | String | 字段名 | 字段名 | 保留原始错误原因 |
+| 业务关键字段 | `token`/`data.token` | String | 完整路径 | 完整路径 | 必须记录嵌套层级 |
+| 流水字段 | `processID`/`process_id` | String | 完整路径 | 完整路径 | 必须记录命名差异 |
+| 原始返回 | root/data/raw | Object/JSON String | 结构 | 结构 | 说明是否需要二次解析 |
+
+强制规则：
+- 禁止按字段名臆测映射。若文档未明确字段路径，必须优先从物理 SDK、示例 payload、运行日志或反编译信息确认。
+- 若字段在不同平台存在命名或层级差异，解析实现必须显式兼容，并在代码附近保持最小必要说明。
+- 对 token、手机号、授权码、订单号、流水号、错误码等关键字段，必须记录完整路径，不能只记录字段名。
+- 若仍无法确认字段模型，必须在报告中标记风险并向用户确认，不得静默落地猜测实现。
+- 字段映射完成后，如可行，应增加 focused test 或至少通过编译与人工对照完成验证。
+
 ### 1.3 阶段三：侵入分析与风险对冲
 
 编码前必须输出 `[集成侵入性分析报告]`：
@@ -130,6 +182,7 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 | `Bundle`/`Map`/`NSDictionary` | 原生容器 | data class/String JSON | `toCommon()`/`anyToJsonString` | 不泄露原生类型 |
 | 错误码 | Int/String/NSError | sealed status/error model | `convert()` | 双端含义对齐 |
 | 时间/尺寸/金额 | 秒/毫秒/px/dp/分/元 | 明确单位 | 显式换算 | 不确定则询问 |
+| 嵌套业务字段 | `token`/`data.token`/`process_id` | String/data class | `toCommon()`/专用 helper | 字段路径必须来自文档或物理签名 |
 
 接口设计红线：
 - `commonMain` 严禁暴露 `Intent`、`Bundle`、`Activity`、`UIViewController`、`NSDictionary`、`NSData` 等平台类型。
@@ -140,6 +193,11 @@ AI 必须输出 `[双端功能差异对齐报告]`：
   - 是否在缺失平台抛 `UnsupportedOperationException`。
   - 是否用 no-op，并说明业务后果。
 - 回调型 SDK 优先转换为 suspend、Flow 或状态回调；需要页面生命周期兜底时，参考支付模块的 `ScreenLifecycle` 超时策略。
+- 初始化 API 若存在异步回调结果，common 层初始化入口必须优先设计为 `suspend init(...): ResultModel`，不得只返回 `Unit`。
+- 初始化结果模型必须至少表达成功/失败，并尽量保留 `code`、`message`、`raw` 等排障字段。
+- Android/iOS 平台初始化回调必须在 `actual` 实现内转换为 common 结果模型，不得向 common 层泄露平台类型。
+- 初始化回调可能不触达时，应设置合理超时并返回明确失败结果，例如 `INIT_TIMEOUT`。
+- 只有 SDK 初始化确实没有异步结果，或业务/官方文档明确要求 fire-and-forget 初始化时，才允许返回 `Unit`，并需在集成报告中说明原因。
 
 接口公示要求：
 - 在阶段四末尾输出拟定的 `expect object` / `expect class` 签名。
@@ -156,8 +214,9 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 6. `iosMain` actual 实现、`@file:OptIn(ExperimentalForeignApi::class)`、delegate 保活策略。
 7. `ApplicationService` 生命周期和外部唤起接入。
 8. `DI.kt` 注册与 `app/src/commonMain/.../App.kt` 模块挂载。
-9. 业务调用示例或最小验证入口。
-10. 编译/静态检查/人工验证步骤。
+9. `lib_xxx/docs/` 资料归档与字段路径矩阵记录。
+10. 业务调用示例或最小验证入口。
+11. 编译/静态检查/人工验证步骤。
 
 ### 1.6 阶段六：编码实施与验收
 
@@ -180,6 +239,9 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 | Koin 模块已挂载 | 通过/失败 | `App.kt` |
 | 宿主无 SDK 业务污染 | 通过/失败 | MainActivity/AppDelegate |
 | Debug 日志/集成检测不进 release | 通过/失败 | 版本判断 |
+| SDK 资料已归档 | 通过/失败 | `lib_xxx/docs/` |
+| 回调字段路径已审计 | 通过/失败 | 字段路径矩阵/示例 payload |
+| 异步初始化结果已协程化 | 通过/失败/不适用 | `suspend init(...): ResultModel` 或说明 |
 | 编译或替代验证完成 | 通过/失败 | 命令与结果 |
 
 ## 2. 项目核心桥接模式
@@ -232,6 +294,8 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 - 无法保证回调必达的 SDK，必须设计超时兜底或查单提示。
 - 需要业务页面生命周期参与的能力，接口可要求传入 `CoroutineScope` 与 `StateFlow<ScreenLifecycle>`。
 - 平台错误码必须保留 code/message，不能只返回 `Boolean`。
+- 回调数据模型必须以文档、示例 payload 或物理 SDK 声明为准，字段路径必须显式记录并按平台差异转换。
+- 若 SDK 初始化存在异步回调结果，必须转换为协程范式返回初始化结果，集中初始化或业务调用方应根据返回结果决定是否继续预取号、登录预热或状态上报。
 
 ### 2.6 Debug 与隐私
 - Debug 日志、集成检测只能在非 release 环境开启。
@@ -286,3 +350,6 @@ actual fun init(runtimeParam: String?) {
 - 禁止直接手工把 `SDKKeyConfig` 的值复制进 `Manifest` 或 `Info.plist`。
 - 禁止省略 Pod 版本号。
 - 禁止未经确认采用 no-op、模拟数据、占位 AppKey、跳过物理签名复核等降级方案。
+- 禁止 SDK 回调字段按字段名猜测映射，尤其是 token、授权码、流水号、错误码等关键字段。
+- 禁止将已使用的 SDK 文档、链接、示例 payload 或物理 SDK 结论只保存在对话上下文中。
+- 禁止 SDK 初始化存在异步结果时仍只暴露 `Unit`，除非文档或业务明确要求 fire-and-forget 并已在报告中说明。
