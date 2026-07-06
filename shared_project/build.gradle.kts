@@ -15,7 +15,6 @@ plugins {
     alias(libs.plugins.buildkonfig)
     alias(libs.plugins.koinCompiler)
     id("com.basic.router")
-    id("com.basic.plist")
 }
 val androidNameSpace = "com.basic.project"
 kotlin {
@@ -78,10 +77,6 @@ compose.resources {
     generateResClass = auto
     nameOfResClass = androidNameSpace.toResourceClassName()
     packageOfResClass = androidNameSpace
-}
-//ios模块中的plist可以$(SOME_SDK_IOS_APP_ID)这样进行引用
-plistConfig {
-    field("SOME_SDK_IOS_APP_ID", "")
 }
 buildkonfig {
     packageName = "buildkonfig"

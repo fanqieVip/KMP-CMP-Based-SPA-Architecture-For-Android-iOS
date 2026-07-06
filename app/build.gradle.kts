@@ -25,12 +25,12 @@ plugins {
 apply(from = "../batchTask.gradle")
 val androidNameSpace = "com.basic.app"
 
+//ios模块中可以$(fieldName)这样进行引用, 如：$(APPLICATION_ID)
 plistConfig {
     field("APP_NAME", ProjectBuildConfig.Build.appName)
     field("VERSION_NAME", ProjectBuildConfig.Build.Ios.versionName)
     field("VERSION_CODE", "${ProjectBuildConfig.Build.Ios.versionCode}")
     field("APPLICATION_ID", ProjectBuildConfig.Build.applicationId)
-    field("SDK_DEPLOY_TARGET", ProjectBuildConfig.Build.Ios.deploymentTarget)
 }
 
 kotlin {

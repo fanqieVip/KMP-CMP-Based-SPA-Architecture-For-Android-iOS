@@ -14,7 +14,7 @@ object ProjectBuildConfig {
      */
     object Build {
         //app应用包名
-        const val applicationId = "com.basic.app"
+        const val applicationId = "com.basic.kmpdemo"
         //app名称
         const val appName = "KmpProject"
         //设计图尺寸
@@ -64,6 +64,7 @@ object ProjectBuildConfig {
         object Ios {
             const val versionName = "1.0.0"
             const val versionCode = 1
+            //cocoapods无法读取动态值，所以项目的最低支持版本还是在xcode中配置
             const val deploymentTarget = "15.0"
         }
     }
