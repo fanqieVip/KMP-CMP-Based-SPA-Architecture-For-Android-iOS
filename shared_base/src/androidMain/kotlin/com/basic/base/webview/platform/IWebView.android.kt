@@ -49,9 +49,9 @@ actual fun createWebView(uiContainer: UIContainer, state: WebViewState): IWebVie
                 XXPermissions.with(uiContainer)
                     .permission(PermissionLists.getAccessFineLocationPermission())
                     .permission(PermissionLists.getAccessCoarseLocationPermission())
-                    .request { _, deniedList ->
-                        val allGranted = deniedList.isEmpty()
-                        if (!allGranted) {
+                    .request { grantedList, _ ->
+                        val allDenied = grantedList.isEmpty()
+                        if (allDenied) {
                             callback?.invoke(origin, false, false)
                             return@request
                         }
