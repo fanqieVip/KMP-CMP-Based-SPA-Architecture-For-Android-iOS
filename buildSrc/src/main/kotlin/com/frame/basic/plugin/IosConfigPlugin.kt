@@ -9,22 +9,22 @@ import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
  * @Author:         范俊
  * @CreateDate:     2026/07/03 11:56
  */
-class PlistConfigPlugin : Plugin<Project> {
+class IosConfigPlugin : Plugin<Project> {
     override fun apply(target: Project) {
-        val extension = target.extensions.create("plistConfig", PlistConfigExtension::class.java)
-        val registry = target.rootProject.plistConfigRegistry()
+        val extension = target.extensions.create("iosConfig", IosConfigExtension::class.java)
+        val registry = target.rootProject.iosConfigRegistry()
         registry.add(target.path, extension)
-        target.rootProject.configurePlistConfigTask(registry)
+        target.rootProject.configureIosConfigTask(registry)
 
-        target.tasks.register("generatePlistConfig") {
+        target.tasks.register("generateIosConfig") {
             group = "ios"
-            description = "Generates SDKKeyConfig.xcconfig from all module plistConfig declarations."
-            dependsOn(target.rootProject.tasks.named(PLIST_CONFIG_TASK_NAME))
+            description = "Generates iosConfig.xcconfig from all module iosConfig declarations."
+            dependsOn(target.rootProject.tasks.named(IOS_CONFIG_TASK_NAME))
         }
     }
 }
 
-open class PlistConfigExtension {
+open class IosConfigExtension {
     private val fields = linkedMapOf<String, String>()
 
     fun field(name: String, value: String) {
@@ -34,14 +34,14 @@ open class PlistConfigExtension {
     internal fun entries(): Map<String, String> = fields.toMap()
 }
 
-private const val PLIST_CONFIG_TASK_NAME = "generatePlistConfig"
-private const val PLIST_CONFIG_EXTENSION_NAME = "plistConfigRegistry"
+private const val IOS_CONFIG_TASK_NAME = "generateIosConfig"
+private const val IOS_CONFIG_EXTENSION_NAME = "iosConfigRegistry"
 private val isMac = DefaultNativePlatform.getCurrentOperatingSystem().isMacOsX
 
-private open class PlistConfigRegistry {
-    private val extensions = linkedMapOf<String, PlistConfigExtension>()
+private open class IosConfigRegistry {
+    private val extensions = linkedMapOf<String, IosConfigExtension>()
 
-    fun add(modulePath: String, extension: PlistConfigExtension) {
+    fun add(modulePath: String, extension: IosConfigExtension) {
         extensions[modulePath] = extension
     }
 
@@ -65,22 +65,22 @@ private open class PlistConfigRegistry {
     }
 }
 
-private fun Project.plistConfigRegistry(): PlistConfigRegistry {
-    val existing = extensions.findByName(PLIST_CONFIG_EXTENSION_NAME) as? PlistConfigRegistry
+private fun Project.iosConfigRegistry(): IosConfigRegistry {
+    val existing = extensions.findByName(IOS_CONFIG_EXTENSION_NAME) as? IosConfigRegistry
     if (existing != null) return existing
-    return extensions.create(PLIST_CONFIG_EXTENSION_NAME, PlistConfigRegistry::class.java)
+    return extensions.create(IOS_CONFIG_EXTENSION_NAME, IosConfigRegistry::class.java)
 }
 
-private fun Project.configurePlistConfigTask(registry: PlistConfigRegistry) {
-    if (tasks.findByName(PLIST_CONFIG_TASK_NAME) != null) return
+private fun Project.configureIosConfigTask(registry: IosConfigRegistry) {
+    if (tasks.findByName(IOS_CONFIG_TASK_NAME) != null) return
 
-    val outputFile = file("iosApp/Configuration/SDKKeyConfig.xcconfig")
+    val outputFile = file("iosApp/Configuration/iosConfig.xcconfig")
     fun syncConfig() {
         val newContent = registry.toXcconfigContent()
         if (!outputFile.exists() || outputFile.readText() != newContent) {
             outputFile.parentFile.mkdirs()
             outputFile.writeText(newContent)
-            logger.lifecycle("${outputFile.name} updated successfully from plistConfig declarations")
+            logger.lifecycle("${outputFile.name} updated successfully from iosConfig declarations")
         }
     }
 
@@ -90,9 +90,9 @@ private fun Project.configurePlistConfigTask(registry: PlistConfigRegistry) {
         }
     }
 
-    tasks.register(PLIST_CONFIG_TASK_NAME) {
+    tasks.register(IOS_CONFIG_TASK_NAME) {
         group = "ios"
-        description = "Generates iosApp/Configuration/SDKKeyConfig.xcconfig from module plist declarations."
+        description = "Generates iosApp/Configuration/iosConfig.xcconfig from module ios declarations."
         enabled = isMac
         outputs.file(outputFile)
         doLast {

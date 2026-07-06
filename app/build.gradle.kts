@@ -20,13 +20,13 @@ plugins {
     alias(libs.plugins.buildkonfig)
     alias(libs.plugins.koinCompiler)
     id("com.waynell.tinypng")
-    id("com.basic.plist")
+    id("com.basic.ios")
 }
 apply(from = "../batchTask.gradle")
 val androidNameSpace = "com.basic.app"
 
 //ios模块中可以$(fieldName)这样进行引用, 如：$(APPLICATION_ID)
-plistConfig {
+iosConfig {
     field("APP_NAME", ProjectBuildConfig.Build.appName)
     field("VERSION_NAME", ProjectBuildConfig.Build.Ios.versionName)
     field("VERSION_CODE", "${ProjectBuildConfig.Build.Ios.versionCode}")
