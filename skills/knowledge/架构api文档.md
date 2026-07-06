@@ -1287,7 +1287,7 @@ object SomeSdk {
 
 使用约束：
 
-- 必须核心 key 由对应 `lib_xxx` 通过 `BuildKonfig` 注入，并在 Android/iOS actual 实现中分别读取。
+- 必须核心 key 由对应 `libs/<name>` SDK 模块通过 `BuildKonfig` 注入，并在 Android/iOS actual 实现中分别读取。
 - common 初始化 API 不暴露 `appId`、`appKey`、`secret` 等必须核心 key。
 - 可运行时决定的非必须参数，例如 channel、授权状态、设备隐私参数，可保留在 common API 中作为初始化参数。
 - Android Manifest placeholder 与 iOS `com.basic.ios` 字段值都必须来自 `SDKKeyConfig`。
@@ -1339,7 +1339,7 @@ iosApp/Configuration/iosConfig.xcconfig
 | 类型 | Gradle task |
 | --- | --- |
 | 根任务 | `./gradlew generateIosConfig` |
-| 模块代理任务 | `./gradlew :lib_xxx:generateIosConfig` |
+| 模块代理任务 | `./gradlew :libs:<name>:generateIosConfig` |
 
 约束：
 

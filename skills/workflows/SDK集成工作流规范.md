@@ -1,12 +1,12 @@
 # SDK 集成工作流规范 (SDK Integration Workflow)
 
-> 本文档定义 Android/iOS 原生 SDK 桥接至 KMP `lib_xxx` 模块的分析、确认、编码与验收流程。目标是把平台差异收敛到模块内部，向 `commonMain` 提供稳定、可测试、无原生类型泄露的接口。
+> 本文档定义 Android/iOS 原生 SDK 桥接至 KMP `libs/<name>` SDK 模块的分析、确认、编码与验收流程。目标是把平台差异收敛到模块内部，向 `commonMain` 提供稳定、可测试、无原生类型泄露的接口。
 
 ## 0. 适用范围与输入
 
 ### 0.1 适用任务
 - 新增三方 SDK 适配模块。
-- 在既有 `lib_xxx` 中补充 SDK 能力。
+- 在既有 `libs/<name>` 中补充 SDK 能力。
 - 修复 SDK 双端签名、生命周期、回调、Pod/CInterop 或 Manifest/Info.plist 相关问题。
 
 ### 0.2 必要输入
@@ -29,8 +29,8 @@ AI 执行三方 SDK 集成任务时，必须按以下六个阶段推进。阶段
 - `AGENTS.md`。
 - `skills/workflows/Lib模版生成指南.md`。
 - `skills/standards/Pod依赖使用指南与规范.md`。
-- 当前项目真实存在的 `lib_*` 模块列表。
-- 若目标 `lib_xxx` 已存在，读取其 `build.gradle.kts`、`AndroidManifest.xml`、`di/DI.kt`、`di/impl/ApplicationServiceImpl.*.kt`。
+- 当前项目真实存在的 `libs/*` SDK 模块列表。
+- 若目标 `libs/<name>` 已存在，读取其 `build.gradle.kts`、`AndroidManifest.xml`、`di/DI.kt`、`di/impl/ApplicationServiceImpl.*.kt`。
 - 若为新增模块，先按 `Lib模版生成指南.md` 创建骨架，再继续 SDK 集成。
 
 按需读取：
@@ -40,11 +40,11 @@ AI 执行三方 SDK 集成任务时，必须按以下六个阶段推进。阶段
 现状扫描建议：
 
 ```bash
-find . -maxdepth 2 -type d -name 'lib_*' | sort
-rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|cocoapods|pod\\(" settings.gradle.kts shared_common build.gradle.kts lib_* -g '*.kt' -g '*.kts' -g '*.xml'
+find libs -maxdepth 2 -mindepth 2 -type d | sort
+rg -n "include\\(\\\":libs:|project\\(\\\":libs:|registerSPI|ApplicationService|cocoapods|pod\\(" settings.gradle.kts shared_common build.gradle.kts libs -g '*.kt' -g '*.kts' -g '*.xml'
 ```
 
-若当前项目没有任何既有 `lib_*`，AI 必须明确说明“当前项目暂无可复用 SDK lib 案例”，然后以模板与通用规范推进。
+若当前项目没有任何既有 `libs/*` SDK 模块，AI 必须明确说明“当前项目暂无可复用 SDK 模块案例”，然后以模板与通用规范推进。
 
 若读取了 `SDK集成案例手册.md`，必须在后续报告中输出：
 
@@ -91,7 +91,7 @@ AI 必须输出 `[SDK 文档/物理签名获取报告]`：
 - 本地物理 SDK 资料，例如 `.h`、`.aar`、`.jar`、`.framework`、XCFramework、Pod synthetic headers 的路径与关键结论。
 
 归档要求：
-- 归档位置优先为当前 SDK 模块内的 `lib_xxx/docs/`；若模块尚未创建，应在创建模块时同步创建 `docs/`。
+- 归档位置优先为当前 SDK 模块内的 `libs/<name>/docs/`；若模块尚未创建，应在创建模块时同步创建 `docs/`。
 - 文档链接必须写入模块内 Markdown 索引文件，例如 `docs/README.md` 或 `docs/集成资料.md`。
 - 若只能获得链接或文本摘要，必须记录链接、获取时间、来源、用途和关键字段说明。
 - AI 自行采信的资料必须记录检索来源、访问时间、资料标题或文件名、URL 或本地路径、用于支撑的实现结论；只作为排除项时，也应简要记录排除原因。
@@ -103,7 +103,7 @@ AI 必须输出 `[SDK 文档/物理签名获取报告]`：
 推荐目录结构：
 
 ```text
-lib_xxx/
+libs/<name>/
   docs/
     README.md
     sdk-document-links.md
@@ -139,20 +139,20 @@ lib_xxx/
 
 | 侵入点 | 目标文件/位置 | 是否允许 | 项目标准方案 | 风险 |
 | :--- | :--- | :--- | :--- | :--- |
-| Gradle 依赖 | `lib_xxx/build.gradle.kts` | 是 | 模块内管理依赖 | 版本冲突 |
-| Pod 依赖 | `lib_xxx/build.gradle.kts` | 是 | 带版本号，必要时配置 `moduleName`/`headers` | CInterop 失败 |
-| Android 配置 | `lib_xxx/src/androidMain/AndroidManifest.xml` | 是 | 权限、queries、activity/alias 收敛在 lib 内 | 合并冲突、导出风险 |
+| Gradle 依赖 | `libs/<name>/build.gradle.kts` | 是 | 模块内管理依赖 | 版本冲突 |
+| Pod 依赖 | `libs/<name>/build.gradle.kts` | 是 | 带版本号，必要时配置 `moduleName`/`headers` | CInterop 失败 |
+| Android 配置 | `libs/<name>/src/androidMain/AndroidManifest.xml` | 是 | 权限、queries、activity/alias 收敛在 SDK 模块内 | 合并冲突、导出风险 |
 | iOS 配置 | `iosApp/iosApp/Info.plist` 或 Xcode 能力项 | 谨慎 | 仅必须项，逐项注释用途 | Scheme/UL 不完整 |
-| 生命周期 | `lib_xxx/.../ApplicationServiceImpl.*.kt` | 是 | 通过 SPI 接入 `ApplicationService` | 宿主污染 |
+| 生命周期 | `libs/<name>/.../ApplicationServiceImpl.*.kt` | 是 | 通过 SPI 接入 `ApplicationService` | 宿主污染 |
 | Koin 挂载 | `app/src/commonMain/.../App.kt` | 是 | 在 `modules(...)` 追加模块 | 忘记挂载导致 SPI 不执行 |
 | 宿主入口 | `MainActivity` / `AppDelegate` | 禁止新增业务逻辑 | 仅已有 `ApplicationProxyManager` 分发 | 污染宿主 |
 
 风险匹配规则：
-- SDK 需要 App 生命周期、前后台、Intent、URL、Universal Link 时，必须在 `lib_xxx` 内实现 `ApplicationService`。
-- Android 回调 Activity、`activity-alias`、`queries`、权限必须放在 `lib_xxx/src/androidMain/AndroidManifest.xml`。
+- SDK 需要 App 生命周期、前后台、Intent、URL、Universal Link 时，必须在对应 `libs/<name>` 内实现 `ApplicationService`。
+- Android 回调 Activity、`activity-alias`、`queries`、权限必须放在 `libs/<name>/src/androidMain/AndroidManifest.xml`。
 - iOS URL Scheme、Universal Link、`LSApplicationQueriesSchemes` 若必须修改 `Info.plist`，必须在报告中逐项说明业务原因；AppKey/AppId 等变量值必须通过 `com.basic.ios` 从 `SDKKeyConfig` 注入，不得直接硬编码到 `Info.plist`。
 - `iosApp/Podfile` 由根 Gradle 自动汇总生成，禁止手动修改。
-- 任何 AppKey/AppId 硬编码都必须列为风险。能运行时传入的参数优先运行时 `init(config)` 传入；必须配置的核心 key 通过 `SDKKeyConfig` 区分 Android/iOS，再由所在 lib 模块注入和读取。
+- 任何 AppKey/AppId 硬编码都必须列为风险。能运行时传入的参数优先运行时 `init(config)` 传入；必须配置的核心 key 通过 `SDKKeyConfig` 区分 Android/iOS，再由所在 SDK 模块注入和读取。
 
 报告后必须询问开发者：
 > 针对上述风险，是否有新的应对方案或特殊项目规范需要补充？
@@ -187,7 +187,7 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 接口设计红线：
 - `commonMain` 严禁暴露 `Intent`、`Bundle`、`Activity`、`UIViewController`、`NSDictionary`、`NSData` 等平台类型。
 - 平台模型必须在 `androidMain`/`iosMain` 转换为 common data class、sealed class 或 JSON 字符串。
-- 一键登录类 SDK 的授权页 UI 配置不得抽象成跨项目通用 DSL 或大而全配置对象；`commonMain` 只暴露初始化、预取号、一键登录、关闭授权页、清缓存、版本查询、状态结果等稳定能力，授权页 UI 在 lib 模块的平台实现内按项目直接修改。
+- 一键登录类 SDK 的授权页 UI 配置不得抽象成跨项目通用 DSL 或大而全配置对象；`commonMain` 只暴露初始化、预取号、一键登录、关闭授权页、清缓存、版本查询、状态结果等稳定能力，授权页 UI 在对应 SDK 模块的平台实现内按项目直接修改。
 - 双端能力不一致时，必须明确：
   - 是否隐藏该能力。
   - 是否在缺失平台抛 `UnsupportedOperationException`。
@@ -214,7 +214,7 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 6. `iosMain` actual 实现、`@file:OptIn(ExperimentalForeignApi::class)`、delegate 保活策略。
 7. `ApplicationService` 生命周期和外部唤起接入。
 8. `DI.kt` 注册与 `app/src/commonMain/.../App.kt` 模块挂载。
-9. `lib_xxx/docs/` 资料归档与字段路径矩阵记录。
+9. `libs/<name>/docs/` 资料归档与字段路径矩阵记录。
 10. 业务调用示例或最小验证入口。
 11. 编译/静态检查/人工验证步骤。
 
@@ -239,7 +239,7 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 | Koin 模块已挂载 | 通过/失败 | `App.kt` |
 | 宿主无 SDK 业务污染 | 通过/失败 | MainActivity/AppDelegate |
 | Debug 日志/集成检测不进 release | 通过/失败 | 版本判断 |
-| SDK 资料已归档 | 通过/失败 | `lib_xxx/docs/` |
+| SDK 资料已归档 | 通过/失败 | `libs/<name>/docs/` |
 | 回调字段路径已审计 | 通过/失败 | 字段路径矩阵/示例 payload |
 | 异步初始化结果已协程化 | 通过/失败/不适用 | `suspend init(...): ResultModel` 或说明 |
 | 编译或替代验证完成 | 通过/失败 | 命令与结果 |
@@ -247,11 +247,12 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 ## 2. 项目核心桥接模式
 
 ### 2.1 模块边界
-- 模块名统一 `lib_xxx`。
-- namespace 统一 `com.basic.<suffix>`。
-- Android SDK 文件放在 `lib_xxx/libs/android/` 或 Maven 依赖中。
-- iOS Pod 写在 `lib_xxx/build.gradle.kts` 的 `cocoapods` 内。
-- `shared_common` 只通过 Gradle `api(project(":lib_xxx"))` 获得类型可见性，不承载 SDK 生命周期逻辑。
+- SDK 模块统一收敛在 `libs/<name>/`，Gradle path 统一为 `:libs:<name>`。
+- `<name>` 必须取原 `lib_xxx` 模块名去掉 `lib_` 后的 `xxx`，并保留原大小写，例如 `lib_geyan` -> `libs/geyan`、`lib_umeng` -> `libs/umeng`、`lib_openInstall` -> `libs/openInstall`、`lib_topon` -> `libs/topon`、`lib_pay` -> `libs/pay`；禁止按“认证/统计/广告/支付”等能力域重命名目录。
+- 低风险迁移与现有模块可继续保留 namespace `com.basic.<suffix>`；新增模块默认与 `<name>` 保持语义一致。
+- Android SDK 文件放在 `libs/<name>/libs/android/` 或 Maven 依赖中。
+- iOS Pod 写在 `libs/<name>/build.gradle.kts` 的 `cocoapods` 内。
+- `shared_common` 只通过 Gradle `api(project(":libs:<name>"))` 获得需要暴露的 SDK 类型可见性，不承载 SDK 生命周期逻辑；未接入业务链路的 SDK 模块只 include，不强行暴露。
 - Koin 模块挂载位置必须以当前项目实际 `initKoin`/`startKoin` 代码为准。本仓库当前观察到的位置是 `app/src/commonMain/kotlin/com/basic/app/App.kt` 的 `modules(...)`。
 
 ### 2.2 SPI 生命周期接入
@@ -280,8 +281,8 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 - 回调中不得直接泄露 `NSError`、`NSDictionary`、`NSData`，必须转换为 common 模型。
 
 ### 2.4 Android 回调 Activity 与别名
-- 微信、支付宝等要求固定路径的回调 Activity，应放在 `lib_xxx/src/androidMain/kotlin/...`。
-- 若平台要求 `${applicationId}.wxapi.*` 等宿主路径，优先使用 `activity-alias` 指向 lib 内 Activity。
+- 微信、支付宝等要求固定路径的回调 Activity，应放在 `libs/<name>/src/androidMain/kotlin/...`。
+- 若平台要求 `${applicationId}.wxapi.*` 等宿主路径，优先使用 `activity-alias` 指向 SDK 模块内 Activity。
 - openinstall、DeepLink 等外部唤起入口若希望复用当前壳 Activity，可使用 `activity-alias` 承载 `intent-filter`，并把 `targetActivity` 指向壳入口，以降低 lib 与壳工程耦合。
 - 项目侧手写 Manifest 配置必须以官方集成文档为准；AAR 内部 Manifest 只用于物理审计、冲突排查和理解 SDK 内部声明，不得直接复制进项目 Manifest。
 - 若 AAR Manifest 与官方文档不一致，集成报告必须标明差异，并优先采用官方文档配置；只有运行时或 manifest merge 明确证明缺失时，才做最小补充。

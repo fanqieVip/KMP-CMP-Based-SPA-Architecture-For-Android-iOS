@@ -6,6 +6,7 @@ shared_base: 架构核心
 shared_common: 组件化公共依赖
 shared_native: 安全加密模块（如安卓的ndk库实现）
 shared_project: 具体项目模块
+libs：三方sdk统一存放目录
 
 #### 依赖关系 ####
 shared_base -> shared_common -> shared_project -> app -> iosApp

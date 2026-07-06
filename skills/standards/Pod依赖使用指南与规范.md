@@ -62,7 +62,7 @@ pod("SomeStaticLib") {
 }
 ```
 
-项目案例：`lib_openInstall` 使用 `libOpenInstallSDK` 时配置 `headers = "OpenInstallSDK.h"`。
+项目案例：`libs/openInstall` 使用 `libOpenInstallSDK` 时配置 `headers = "OpenInstallSDK.h"`。
 
 ### 3.2 文件夹名与 framework 名不一致
 
@@ -86,9 +86,9 @@ pod("SomeFramework") {
 ```
 
 项目案例：
-- `lib_topon` 的 `AnyThinkiOS` 配置 `moduleName = "AnyThinkSDK"`。
-- `lib_pay` 的 `WechatOpenSDK-XCFramework` 配置 `moduleName = "WechatOpenSDK"`。
-- `lib_pay` 的 `AlipaySDK-iOS` 配置 `moduleName = "AlipaySDK"`。
+- `libs/topon` 的 `AnyThinkiOS` 配置 `moduleName = "AnyThinkSDK"`。
+- `libs/pay` 的 `WechatOpenSDK-XCFramework` 配置 `moduleName = "WechatOpenSDK"`。
+- `libs/pay` 的 `AlipaySDK-iOS` 配置 `moduleName = "AlipaySDK"`。
 
 ### 3.3 CInterop 阶段失败
 
@@ -105,7 +105,7 @@ pod("SomeFramework") {
 }
 ```
 
-项目案例：`lib_umeng` 的 `UMDevice` 配置 `headers = "UMDevice/UMZid.h"`。
+项目案例：`libs/umeng` 的 `UMDevice` 配置 `headers = "UMDevice/UMZid.h"`。
 
 ### 3.4 多个 .h 文件需要导入
 
@@ -133,7 +133,7 @@ pod("SomeFramework") {
 }
 ```
 
-项目案例：`lib_umeng/src/nativeInterop/cinterop/UMAPM_umbrella.h` 聚合多个 `UMAPM` 头文件，并在 `UMAPM` Pod 中通过 `headers = project.file(...).absolutePath` 指定。
+项目案例：`libs/umeng/src/nativeInterop/cinterop/UMAPM_umbrella.h` 聚合多个 `UMAPM` 头文件，并在 `UMAPM` Pod 中通过 `headers = project.file(...).absolutePath` 指定。
 
 ### 3.5 Pod 名、模块名、头文件三件套核对
 

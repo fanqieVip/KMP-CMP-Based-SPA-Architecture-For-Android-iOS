@@ -4,8 +4,9 @@
 
 ## 1. 命名与目录规范 (Naming Convention)
 
-- **模块名**: 统一以 `lib_` 开头（小写）。
-- **Android Namespace**: 格式为 `com.basic.<suffix>`（如 `com.basic.alipay`）。
+- **模块路径**: SDK 模块统一收敛到 `libs/<name>/`，Gradle path 为 `:libs:<name>`，不得继续在根目录平铺新增 `lib_*` 模块。
+- **模块命名**: `<name>` 必须取原 `lib_xxx` 模块名去掉 `lib_` 后的 `xxx`，并保留原大小写，例如 `lib_geyan` -> `libs/geyan`、`lib_openInstall` -> `libs/openInstall`。
+- **Android Namespace**: 低风险迁移与现有模块可继续使用 `com.basic.<suffix>`（如 `com.basic.geyan`）；新增模块默认与 `<name>` 保持语义一致，不得按“认证/统计/广告”等能力域另起目录名。
 - **源码路径**: 物理文件夹路径必须匹配 namespace，例如 `src/commonMain/kotlin/com/basic/xxx/`。
 
 ## 2. 自动化生产线 (Automation Pipeline)
@@ -13,7 +14,7 @@
 当收到“初始化 Lib 模块”指令时，AI 必须连续执行以下步骤：
 
 ### 2.1 物理结构生成 (Physical Tree)
-1. 创建根目录 `lib_xxx/`。
+1. 创建模块根目录 `libs/<name>/`。
 2. 创建 `libs/android/` 目录。
 3. 创建标准源码树：
     - `src/commonMain/kotlin/com/basic/xxx/di/impl/`
@@ -24,10 +25,10 @@
 
 ### 2.2 构建配置注入 (Gradle & Settings)
 1. **build.gradle.kts**: 必须使用 [内置 Gradle 模板](#51-buildgradlekts-模板)。
-2. **settings.gradle.kts**: 自动添加 `include(":lib_xxx")`。
-3. **shared_common/build.gradle.kts**: 在 `commonMain`、`androidMain`、`iosMain` 依赖块中自动添加 `api(project(":lib_xxx"))`。
-4. **Android 本地 SDK**: AAR/JAR 必须放在 `lib_xxx/libs/android/`，并使用模板中的 `compileOnly(fileTree(...))`。这是本项目框架规范，框架会处理最终依赖打包，AI 不得擅自改成 `implementation(files(...))`、`api(files(...))` 或复制到 app 模块。
-5. **iOS Info.plist 参数**: 模板默认引入 `com.basic.ios`。若 SDK 需要在 iOS `Info.plist` 添加 AppKey、AppId、URL Scheme 等参数，必须在当前 `lib_xxx/build.gradle.kts` 通过 `iosConfig { field(...) }` 声明，字段值统一从 `SDKKeyConfig` 读取，禁止直接硬编码到 `Info.plist`。
+2. **settings.gradle.kts**: 自动添加 `include(":libs:<name>")`。
+3. **shared_common/build.gradle.kts**: 只有该能力需要对公共业务层可见时，才在 `commonMain`、`androidMain`、`iosMain` 依赖块中添加 `api(project(":libs:<name>"))`；未接入业务链路的 SDK 模块只 include，不强行暴露。
+4. **Android 本地 SDK**: AAR/JAR 必须放在 `libs/<name>/libs/android/`，并使用模板中的 `compileOnly(fileTree(...))`。这是本项目框架规范，框架会处理最终依赖打包，AI 不得擅自改成 `implementation(files(...))`、`api(files(...))` 或复制到 app 模块。
+5. **iOS Info.plist 参数**: 模板默认引入 `com.basic.ios`。若 SDK 需要在 iOS `Info.plist` 添加 AppKey、AppId、URL Scheme 等参数，必须在当前 `libs/<name>/build.gradle.kts` 通过 `iosConfig { field(...) }` 声明，字段值统一从 `SDKKeyConfig` 读取，禁止直接硬编码到 `Info.plist`。
 
 ### 2.3 代码模板生成 (DI & SPI)
 1. **ApplicationService 模板**: 必须使用 [内置 SPI 模板](#52-spi-生命周期模板)。
@@ -44,7 +45,7 @@
 
 ## 4. 常用指令 (AI Instructions)
 
-- **指令：`初始化 Lib 模块 <Name>`**：启动全自动生产线。
+- **指令：`初始化 Lib 模块 <Name>`**：启动全自动生产线；执行前必须先按 SDK 名确定 `<name>`，迁移既有 `lib_xxx` 时必须使用原 `xxx`。
 
 ## 5. 标准模板库 (Standard Templates)
 

@@ -7,7 +7,7 @@
 ### 0.1 什么时候读取
 
 仅在以下任务中按需读取：
-- 新增或改造 `lib_xxx` SDK 模块。
+- 新增或改造 `libs/<name>` SDK 模块。
 - 分析 SDK 对 Gradle、Pod、Manifest、Info.plist、宿主生命周期的侵入。
 - 设计 Android/iOS 双端 `expect/actual` API。
 - 排查 Pod/CInterop、外部唤起、回调丢失、平台类型泄露等问题。
@@ -17,8 +17,8 @@
 必须先扫描当前项目，而不是直接套用样例：
 
 ```bash
-find . -maxdepth 2 -type d -name 'lib_*' | sort
-rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|ApplicationProxyManager|cocoapods|pod\\(" settings.gradle.kts build.gradle.kts shared_common app shared_base lib_* -g '*.kt' -g '*.kts' -g '*.xml'
+find libs -maxdepth 2 -mindepth 2 -type d | sort
+rg -n "include\\(\\\":libs:|project\\(\\\":libs:|registerSPI|ApplicationService|ApplicationProxyManager|cocoapods|pod\\(" settings.gradle.kts build.gradle.kts shared_common app shared_base libs -g '*.kt' -g '*.kts' -g '*.xml'
 ```
 
 结论必须分三类：
@@ -26,12 +26,12 @@ rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|Ap
 | 结论 | AI 行为 |
 | :--- | :--- |
 | 当前项目存在相同样例模块 | 可以引用该模块作为“本项目已有案例”，但仍要读物理文件核对 |
-| 当前项目不存在相同模块，但存在相似 `lib_*` | 只能引用相似模式，不能引用不存在的路径 |
-| 当前项目没有可复用 SDK lib | 明确说明暂无案例，按 `Lib模版生成指南.md` 和 `SDK集成工作流规范.md` 推进 |
+| 当前项目不存在相同模块，但存在相似 `libs/*` | 只能引用相似模式，不能引用不存在的路径 |
+| 当前项目没有可复用 SDK 模块 | 明确说明暂无案例，按 `Lib模版生成指南.md` 和 `SDK集成工作流规范.md` 推进 |
 
 ### 0.3 禁止误用
 
-- 禁止假设所有项目都有 `lib_topon`、`lib_pay`、`lib_openInstall`、`lib_umeng`。
+- 禁止假设所有项目都有 `libs/topon`、`libs/pay`、`libs/openInstall`、`libs/umeng`。
 - 禁止把“本仓库当前观察到的位置”写成跨项目绝对规则。
 - 禁止只读本手册不读源码。
 - 禁止从样例复制 AppKey、scheme、包名、Pod 版本、Activity 名称到新 SDK。
@@ -46,10 +46,10 @@ rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|Ap
 | :--- | :--- | :--- |
 | 1 | `settings.gradle.kts` | 确认模块是否被 include |
 | 2 | `shared_common/build.gradle.kts` 或业务聚合模块 | 确认业务侧如何看到 lib API |
-| 3 | `lib_xxx/build.gradle.kts` | 确认 Android/iOS 依赖、Pod、CInterop、资源开关 |
-| 4 | `lib_xxx/src/commonMain/**` | 确认 common API、模型、DI/SPI |
-| 5 | `lib_xxx/src/androidMain/**` | 确认 Android actual、Manifest、回调 Activity、AAR/JAR |
-| 6 | `lib_xxx/src/iosMain/**` | 确认 iOS actual、delegate、URL/UL、cocoapods API |
+| 3 | `libs/<name>/build.gradle.kts` | 确认 Android/iOS 依赖、Pod、CInterop、资源开关 |
+| 4 | `libs/<name>/src/commonMain/**` | 确认 common API、模型、DI/SPI |
+| 5 | `libs/<name>/src/androidMain/**` | 确认 Android actual、Manifest、回调 Activity、AAR/JAR |
+| 6 | `libs/<name>/src/iosMain/**` | 确认 iOS actual、delegate、URL/UL、cocoapods API |
 | 7 | `app/**/App.kt`、`ApplicationProxyManager` | 确认 Koin 挂载和生命周期分发 |
 | 8 | `iosApp/Info.plist`、Android Manifest 合并点 | 确认宿主级配置是否必要 |
 
@@ -76,7 +76,7 @@ rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|Ap
 
 | 类型 | 示例 | 使用方式 |
 | :--- | :--- | :--- |
-| 文件路径事实 | `lib_pay/src/androidMain/AndroidManifest.xml` 有微信回调 alias | 仅当前项目存在该文件时引用 |
+| 文件路径事实 | `libs/pay/src/androidMain/AndroidManifest.xml` 有微信回调 alias | 仅当前项目存在该文件时引用 |
 | 架构模式 | 固定回调路径可用 `activity-alias` 指向 lib 内 Activity | 可迁移到相似 SDK |
 | 项目约定 | 当前仓库 Koin 挂载在 `App.kt` 的 `modules(...)` | 迁移前必须重新搜索 `startKoin` |
 | SDK 特例 | TopOn Android 9+ WebView 多进程处理 | 仅同类 WebView/广告 SDK 参考 |
@@ -90,14 +90,14 @@ rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|Ap
 - 业务层只需要 common API，不应接触平台类型。
 
 模式：
-- 新建或复用 `lib_xxx`。
+- 新建或复用 `libs/<name>`。
 - `settings.gradle.kts` include 模块。
-- 业务聚合模块通过 Gradle `api(project(":lib_xxx"))` 暴露类型。
-- `lib_xxx` 内维护 Android Maven/AAR/JAR 与 iOS Pod。
+- 业务聚合模块按需通过 Gradle `api(project(":libs:<name>"))` 暴露类型。
+- `libs/<name>` 内维护 Android Maven/AAR/JAR 与 iOS Pod。
 - `commonMain` 只放接口、模型、DI，不放平台类型。
 
 判断点：
-- 如果 SDK 只有单端能力，也仍可放入 `lib_xxx`，但 common API 必须明确另一端策略：隐藏、no-op、抛 `UnsupportedOperationException`，或业务不暴露。
+- 如果 SDK 只有单端能力，也仍可放入 `libs/<name>`，但 common API 必须明确另一端策略：隐藏、no-op、抛 `UnsupportedOperationException`，或业务不暴露。
 
 ### 2.2 生命周期扇出模式 (Lifecycle Fan-out)
 
@@ -175,7 +175,7 @@ rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|Ap
 - iOS Pod 无法生成 `.klib`、找不到头文件、module 名不一致。
 
 诊断顺序：
-1. Pod 是否在所在 `lib_xxx/build.gradle.kts` 中声明。
+1. Pod 是否在所在 `libs/<name>/build.gradle.kts` 中声明。
 2. 是否显式写 `version`。
 3. `build/cocoapods/synthetic/...` 或 Pods 目录里的 framework/module 名是否与 Pod 名一致。
 4. 头文件是否在子目录或 framework headers 下。
@@ -210,18 +210,18 @@ rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|Ap
 
 以下案例只代表当前仓库的可观察证据。迁移到其他项目时，先按第 1 章重新提取。
 
-### 3.1 `lib_openInstall`：归因唤醒与安装参数
+### 3.1 `libs/openInstall`：归因唤醒与安装参数
 
 场景：
 - 安装参数、渠道归因、DeepLink 唤醒。
 
 证据文件：
-- `lib_openInstall/build.gradle.kts`
-- `lib_openInstall/src/androidMain/AndroidManifest.xml`
-- `lib_openInstall/src/commonMain/kotlin/com/basic/openinstall/OpenInstallHelper.kt`
-- `lib_openInstall/src/androidMain/kotlin/com/basic/openinstall/OpenInstallHelper.android.kt`
-- `lib_openInstall/src/iosMain/kotlin/com/basic/openinstall/OpenInstallHelper.ios.kt`
-- `lib_openInstall/src/*Main/kotlin/com/basic/openinstall/di/impl/ApplicationServiceImpl.*.kt`
+- `libs/openInstall/build.gradle.kts`
+- `libs/openInstall/src/androidMain/AndroidManifest.xml`
+- `libs/openInstall/src/commonMain/kotlin/com/basic/openinstall/OpenInstallHelper.kt`
+- `libs/openInstall/src/androidMain/kotlin/com/basic/openinstall/OpenInstallHelper.android.kt`
+- `libs/openInstall/src/iosMain/kotlin/com/basic/openinstall/OpenInstallHelper.ios.kt`
+- `libs/openInstall/src/*Main/kotlin/com/basic/openinstall/di/impl/ApplicationServiceImpl.*.kt`
 
 侵入面：
 - Android 使用 JAR 与 Manifest `activity-alias`。
@@ -244,20 +244,20 @@ rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|Ap
 - 双端协议审计必须区分 install 参数和 wakeup 参数。
 - I/O 映射必须说明 Android 原始字符串与 iOS 对象转 JSON 的差异。
 
-### 3.2 `lib_pay`：支付/登录/分享外部回调
+### 3.2 `libs/pay`：支付/登录/分享外部回调
 
 场景：
 - 微信/支付宝支付、登录、分享、小程序跳转。
 
 证据文件：
-- `lib_pay/build.gradle.kts`
-- `lib_pay/src/androidMain/AndroidManifest.xml`
-- `lib_pay/src/commonMain/kotlin/com/basic/pay/wechat/WechatUtils.kt`
-- `lib_pay/src/androidMain/kotlin/com/basic/pay/wechat/*.kt`
-- `lib_pay/src/iosMain/kotlin/com/basic/pay/wechat/WechatUtils.ios.kt`
-- `lib_pay/src/commonMain/kotlin/com/basic/pay/alipay/AlipayUtils.kt`
-- `lib_pay/src/iosMain/kotlin/com/basic/pay/di/impl/ApplicationServiceImpl.ios.kt`
-- `lib_pay/src/commonMain/kotlin/com/basic/pay/bean/*.kt`
+- `libs/pay/build.gradle.kts`
+- `libs/pay/src/androidMain/AndroidManifest.xml`
+- `libs/pay/src/commonMain/kotlin/com/basic/pay/wechat/WechatUtils.kt`
+- `libs/pay/src/androidMain/kotlin/com/basic/pay/wechat/*.kt`
+- `libs/pay/src/iosMain/kotlin/com/basic/pay/wechat/WechatUtils.ios.kt`
+- `libs/pay/src/commonMain/kotlin/com/basic/pay/alipay/AlipayUtils.kt`
+- `libs/pay/src/iosMain/kotlin/com/basic/pay/di/impl/ApplicationServiceImpl.ios.kt`
+- `libs/pay/src/commonMain/kotlin/com/basic/pay/bean/*.kt`
 
 侵入面：
 - Android Manifest 有 `queries`、回调 Activity、`activity-alias`。
@@ -281,21 +281,21 @@ rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|Ap
 - I/O 映射必须保留平台错误码。
 - 验收必须覆盖未安装、取消、超时、冷启动回调、热启动回调。
 
-### 3.3 `lib_topon`：广告聚合与复杂回调模型
+### 3.3 `libs/topon`：广告聚合与复杂回调模型
 
 场景：
 - 广告聚合、开屏、Banner、原生、插屏、激励视频。
 
 证据文件：
-- `lib_topon/build.gradle.kts`
-- `lib_topon/src/androidMain/AndroidManifest.xml`
-- `lib_topon/src/commonMain/kotlin/com/basic/topon/TpSdk.kt`
-- `lib_topon/src/commonMain/kotlin/com/basic/topon/sdk/*.kt`
-- `lib_topon/src/androidMain/kotlin/com/basic/topon/sdk/*.kt`
-- `lib_topon/src/iosMain/kotlin/com/basic/topon/sdk/*.kt`
-- `lib_topon/src/androidMain/kotlin/com/basic/topon/Convert.kt`
-- `lib_topon/src/iosMain/kotlin/com/basic/topon/Convert.kt`
-- `lib_topon/src/commonMain/kotlin/com/basic/topon/bean/*.kt`
+- `libs/topon/build.gradle.kts`
+- `libs/topon/src/androidMain/AndroidManifest.xml`
+- `libs/topon/src/commonMain/kotlin/com/basic/topon/TpSdk.kt`
+- `libs/topon/src/commonMain/kotlin/com/basic/topon/sdk/*.kt`
+- `libs/topon/src/androidMain/kotlin/com/basic/topon/sdk/*.kt`
+- `libs/topon/src/iosMain/kotlin/com/basic/topon/sdk/*.kt`
+- `libs/topon/src/androidMain/kotlin/com/basic/topon/Convert.kt`
+- `libs/topon/src/iosMain/kotlin/com/basic/topon/Convert.kt`
+- `libs/topon/src/commonMain/kotlin/com/basic/topon/bean/*.kt`
 
 侵入面：
 - Android 使用 AAR、本地资源、权限、support/legacy 依赖。
@@ -319,17 +319,17 @@ rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|Ap
 - I/O 映射必须包含广告信息、错误码、关闭原因、奖励事件。
 - 侵入分析必须列出 Android 权限、资源、AAR、iOS moduleName。
 
-### 3.4 `lib_umeng`：统计/APM 与隐私预初始化
+### 3.4 `libs/umeng`：统计/APM 与隐私预初始化
 
 场景：
 - 统计、崩溃、APM、设备相关能力。
 
 证据文件：
-- `lib_umeng/build.gradle.kts`
-- `lib_umeng/src/commonMain/kotlin/com/basic/umeng/UMHelper.kt`
-- `lib_umeng/src/androidMain/kotlin/com/basic/umeng/UMHelper.android.kt`
-- `lib_umeng/src/iosMain/kotlin/com/basic/umeng/UMHelper.ios.kt`
-- `lib_umeng/src/nativeInterop/cinterop/UMAPM_umbrella.h`
+- `libs/umeng/build.gradle.kts`
+- `libs/umeng/src/commonMain/kotlin/com/basic/umeng/UMHelper.kt`
+- `libs/umeng/src/androidMain/kotlin/com/basic/umeng/UMHelper.android.kt`
+- `libs/umeng/src/iosMain/kotlin/com/basic/umeng/UMHelper.ios.kt`
+- `libs/umeng/src/nativeInterop/cinterop/UMAPM_umbrella.h`
 
 侵入面：
 - Android 使用 Maven 依赖和权限。
@@ -356,12 +356,12 @@ rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|Ap
 
 | 目标 SDK 场景 | 优先参考模式 | 可参考案例 |
 | :--- | :--- | :--- |
-| 支付、授权、分享 | 外部 App 调起回调 + 回调状态机 | `lib_pay` |
-| DeepLink、归因、唤醒 | 外部 App 调起回调 + 平台对象归一化 | `lib_openInstall` |
-| 广告聚合、多广告位 | 平台对象归一化 + 生命周期扇出 | `lib_topon` |
-| 统计、APM、崩溃 | 隐私双阶段初始化 + Pod/CInterop 诊断 | `lib_umeng` |
+| 支付、授权、分享 | 外部 App 调起回调 + 回调状态机 | `libs/pay` |
+| DeepLink、归因、唤醒 | 外部 App 调起回调 + 平台对象归一化 | `libs/openInstall` |
+| 广告聚合、多广告位 | 平台对象归一化 + 生命周期扇出 | `libs/topon` |
+| 统计、APM、崩溃 | 隐私双阶段初始化 + Pod/CInterop 诊断 | `libs/umeng` |
 | 单纯工具 SDK | 模块外壳 + 平台对象归一化 | 视当前项目扫描结果而定 |
-| 只有 iOS Pod 问题 | Pod/CInterop 诊断 | `lib_umeng`、`lib_openInstall`、`lib_pay`、`lib_topon` 中的对应 Pod 配置 |
+| 只有 iOS Pod 问题 | Pod/CInterop 诊断 | `libs/umeng`、`libs/openInstall`、`libs/pay`、`libs/topon` 中的对应 Pod 配置 |
 
 ## 5. 输出到 SDK 工作流的结论模板
 
@@ -380,8 +380,8 @@ rg -n "include\\(\\\":lib_|project\\(\\\":lib_|registerSPI|ApplicationService|Ap
 
 ```text
 [案例参考结论]
-- 当前项目可复用案例：有，lib_pay
-- 物理证据已读取：lib_pay/build.gradle.kts、AndroidManifest.xml、WechatUtils.*、ApplicationServiceImpl.ios.kt
+- 当前项目可复用案例：有，libs/pay
+- 物理证据已读取：libs/pay/build.gradle.kts、AndroidManifest.xml、WechatUtils.*、ApplicationServiceImpl.ios.kt
 - 可迁移模式：外部 App 调起回调、状态流、超时兜底
 - 不可直接套用点：目标 SDK 的错误码、Android 回调 Activity 路径、iOS URL host
 - 需要用户确认的差异：支付最终结果是否必须服务端查单
