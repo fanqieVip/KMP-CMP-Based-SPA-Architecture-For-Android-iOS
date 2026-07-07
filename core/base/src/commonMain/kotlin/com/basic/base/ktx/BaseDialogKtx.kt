@@ -43,6 +43,8 @@ import io.github.hristogochev.vortex.model.ScreenModelStore
 import io.github.hristogochev.vortex.model.rememberScreenModel
 import io.github.hristogochev.vortex.navigator.LocalScreenStateKey
 import io.github.hristogochev.vortex.util.multiplatformName
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
 abstract class Dialog(
     private val alignment: Alignment = Alignment.Center,
@@ -55,6 +57,7 @@ abstract class Dialog(
     internal var priorityGroup: String? = null
     internal var isShow by mutableStateOf(true)
     internal var dialogStateHostKey: String? = null
+    private val cleanupActions = mutableListOf<() -> Unit>()
 
     /**
      * 链路来源
@@ -85,6 +88,7 @@ abstract class Dialog(
                         if (!isShow) {
                             onDismiss()
                             dialogController.dismiss(this@Dialog)
+                            cleanUpAutoActions()
                         }
                     }
                 } else {
@@ -168,6 +172,32 @@ abstract class Dialog(
 
     @Composable
     abstract fun CreateUI()
+
+    /**
+     * 弹窗关闭时自动清理包裹的对象，主要用于函数参数的自动回收
+     */
+    protected fun <T : Any> autoClear(initialValue: T? = null): ReadWriteProperty<Any?, T?> {
+        return object : ReadWriteProperty<Any?, T?> {
+            private var value: T? = initialValue
+            init {
+                cleanupActions.add {
+                    value = null
+                }
+            }
+            override fun getValue(thisRef: Any?, property: KProperty<*>): T? = value
+            override fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T?) {
+                value = newValue
+            }
+        }
+    }
+
+    /**
+     * 自动清理所有autoClear代理的对象
+     */
+    internal fun cleanUpAutoActions(){
+        cleanupActions.forEach { it.invoke() }
+        cleanupActions.clear()
+    }
 }
 
 internal data class PriorityDialog(
@@ -274,6 +304,7 @@ class DialogController {
                     dialogStateHostKey?.let {
                         ScreenModelStore.dispose(it)
                     }
+                    cleanUpAutoActions()
                 }
             }
         }
@@ -292,6 +323,7 @@ class DialogController {
                     dialogStateHostKey?.let {
                         ScreenModelStore.dispose(it)
                     }
+                    cleanUpAutoActions()
                 }
             }
         }
@@ -322,6 +354,7 @@ class DialogController {
                         dialogStateHostKey?.let {
                             ScreenModelStore.dispose(it)
                         }
+                        cleanUpAutoActions()
                     }
                 }
             }

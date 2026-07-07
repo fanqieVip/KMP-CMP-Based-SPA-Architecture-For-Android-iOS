@@ -75,3 +75,39 @@ class XxxScreen : BasicScreen() {
     - `startIcon` 装饰位。
     - `enable` 状态切换（禁用时自动降级为 `Text` 展示）。
     - 支持 `String`、`AnnotatedString` 或 `TextFieldValue` 作为数据源。
+
+## 6. 弹窗与内存泄漏防护 (Dialog & Memory Leaks)
+
+### 6.1 核心挑战
+在 KMP 架构中，`Dialog` 实例通常具有较长的生命周期。如果弹窗持有外部 Lambda（如 `onDismiss` 或 `onConfirm` 回调），而这些 Lambda 捕获了 `Activity` 或 `ScreenModel` 的引用，一旦弹窗被意外持有（或销毁时机过晚），极易造成内存泄漏。
+
+### 6.2 自动清理机制 (`by autoClear`)
+框架在 `Dialog` 和 `NativeDialog` 基类中提供了 `autoClear` 属性委托。**所有作为类成员的函数回调，必须使用此委托。**
+
+#### 标准用法：
+```kotlin
+class MyDialog(
+    private val tag: String, 
+    onDismiss: (tag: String) -> Unit // 构造函数参数
+) : BasicDialog() {
+
+    // 1. 使用 by autoClear 包装回调。在弹窗关闭后，此引用会自动置空，切断引用链。
+    private val dismissCallback by autoClear(onDismiss)
+
+    @Composable
+    override fun CreateUI() {
+        Button(onClick = { dismiss() }) { Text("关闭") }
+    }
+
+    override fun onDismiss() {
+        // 2. 通过委托访问回调
+        dismissCallback?.invoke(tag)
+    }
+}
+```
+
+### 6.3 最佳实践红线
+- ❌ **严禁**：在 `Dialog` 子类中直接定义 `val callback: () -> Unit`。
+- ✅ **强制**：使用 `private val callback by autoClear(initialBlock)`。
+- ✅ **作用域绑定**：尽可能将复杂的业务逻辑封装在 `ScreenModel` 中，利用 `rememberHostScreenModel` 共享模型，而不是通过层层 Lambda 传递。
+

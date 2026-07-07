@@ -54,7 +54,9 @@ class NativeDialogScreen : BasicScreen() {
     }
 }
 
-class DemoNativeDialog(private val onDismiss: () -> Unit) : BasicNativeDialog(alignment = Alignment.BottomCenter, animation = DialogAnimation.Bottom) {
+class DemoNativeDialog(dismiss: () -> Unit) : BasicNativeDialog(alignment = Alignment.BottomCenter, animation = DialogAnimation.Bottom) {
+    //注意：构造器中函数不要直接写val dismiss: (tag: String) -> Unit, 需要通过by autoClear加载并自动处理清空，避免内存泄漏
+    private val dismissCallback by autoClear(dismiss)
     @Composable
     override fun CreateUI() {
         Column(modifier = Modifier.fillMaxWidth().height(400.dp).background(Color.White), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -68,6 +70,6 @@ class DemoNativeDialog(private val onDismiss: () -> Unit) : BasicNativeDialog(al
 
     override fun onDismiss() {
         super.onDismiss()
-        this.onDismiss.invoke()
+        this.dismissCallback?.invoke()
     }
 }

@@ -1,8 +1,5 @@
 package com.basic.project.ui.screen.dialog
 
-import com.basic.base.router.Router
-import com.basic.common.share.RouterConstant
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,11 +16,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basic.base.ktx.LocalDialogController
+import com.basic.base.router.Router
 import com.basic.base.utils.toastShort
 import com.basic.common.base.BasicDialog
 import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
+import com.basic.common.share.RouterConstant
 
 @Router(RouterConstant.DIALOG_NORMAL)
 class NormalDialogScreen : BasicScreen() {
@@ -48,7 +47,9 @@ class NormalDialogScreen : BasicScreen() {
     }
 }
 
-class Dialog1(private val tag: String, private val dismiss: (tag: String) -> Unit) : BasicDialog(cancelAble = false) {
+class Dialog1(private val tag: String, dismiss: (tag: String) -> Unit) : BasicDialog(cancelAble = false) {
+    //注意：构造器中函数不要直接写val dismiss: (tag: String) -> Unit, 需要通过by autoClear加载并自动处理清空，避免内存泄漏
+    private val dismissCallback by autoClear(dismiss)
     @Composable
     override fun CreateUI() {
         Column(
@@ -66,6 +67,6 @@ class Dialog1(private val tag: String, private val dismiss: (tag: String) -> Uni
     }
 
     override fun onDismiss() {
-        dismiss(tag)
+        dismissCallback?.invoke(tag)
     }
 }

@@ -769,6 +769,13 @@ open class ApiException(val code: Int = -1, error: String?) : Exception(error)
 abstract fun CreateUI()
 ```
 
+防泄漏机制：
+
+```kotlin
+// 强制使用此委托持有所有函数回调成员，弹窗销毁时会自动置为 null
+protected fun <T : Any> autoClear(initialValue: T? = null): ReadWriteProperty<Any?, T?>
+```
+
 可覆写：
 
 ```kotlin
@@ -817,6 +824,9 @@ LocalDialogController.current.showNow(ConfirmDialog(), traceId)
 ```kotlin
 @Composable
 abstract fun CreateUI()
+
+// 防泄漏委托：弹窗销毁时自动清空引用
+protected fun <T : Any> autoClear(initialValue: T? = null): ReadWriteProperty<Any?, T?>
 
 fun show(uiContainer: UIContainer, traceId: String? = null)
 

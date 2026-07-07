@@ -40,6 +40,8 @@ import com.basic.base.local.UIContainer
 import com.benasher44.uuid.uuid4
 import io.github.hristogochev.vortex.navigator.LocalScreenStateKey
 import io.github.hristogochev.vortex.util.multiplatformName
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
 abstract class NativeDialog(
     private val alignment: Alignment = Alignment.Center,
@@ -55,6 +57,7 @@ abstract class NativeDialog(
      * 链路来源
      */
     internal var fromTraceId: String? = null
+    private val cleanupActions = mutableListOf<() -> Unit>()
     @Composable
     internal fun Content(
         onDismissCall: () -> Unit
@@ -77,6 +80,7 @@ abstract class NativeDialog(
                         if (!isShow) {
                             onDismiss()
                             onDismissCall()
+                            cleanUpAutoActions()
                             //回退状态，方便重用
                             isShow = true
                         }
@@ -171,6 +175,32 @@ abstract class NativeDialog(
     open fun onShow() {}
 
     open fun onDismiss() {}
+
+    /**
+     * 弹窗关闭时自动清理包裹的对象，主要用于函数参数的自动回收
+     */
+    protected fun <T : Any> autoClear(initialValue: T? = null): ReadWriteProperty<Any?, T?> {
+        return object : ReadWriteProperty<Any?, T?> {
+            private var value: T? = initialValue
+            init {
+                cleanupActions.add {
+                    value = null
+                }
+            }
+            override fun getValue(thisRef: Any?, property: KProperty<*>): T? = value
+            override fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T?) {
+                value = newValue
+            }
+        }
+    }
+
+    /**
+     * 自动清理所有autoClear代理的对象
+     */
+    internal fun cleanUpAutoActions(){
+        cleanupActions.forEach { it.invoke() }
+        cleanupActions.clear()
+    }
 
     /**
      * 弹出原生弹窗
