@@ -211,7 +211,8 @@ class MixInteractionScreen : BasicScreen() {
  * 混合交互演示Model
  */
 class MixInteractionScreenModel : BasicScreenModel(), PagingControl {
-    val data = mutableStateListOf<Int>()
+    val data = mutableStateListOf<Int>() // 数据列表
+
     override fun onInit(context: ScreenContext) {
     }
 
@@ -239,7 +240,7 @@ class MixInteractionScreenModel : BasicScreenModel(), PagingControl {
         pagingOver(loadTime > 2)
     }
 
-    private var loadTime = 0
+    private var loadTime = 0 // 加载次数记录
     override suspend fun pagingMore() {
         return withContext(Dispatchers.Main) {
             loadTime++

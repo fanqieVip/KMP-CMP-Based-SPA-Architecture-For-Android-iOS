@@ -68,8 +68,13 @@ class PriorityDialogScreen : BasicScreen() {
 
 /**
  * 示例优先级弹窗
+ * @param tag 弹窗标签
+ * @param dismiss 关闭回调
  */
-class PriorityDialog(private val tag: String, dismiss: (tag: String) -> Unit) : BasicDialog() {
+class PriorityDialog(
+    private val tag: String,
+    dismiss: (tag: String) -> Unit
+) : BasicDialog() {
     //注意：构造器中函数不要直接写val dismiss: (tag: String) -> Unit, 需要通过by autoClear加载并自动处理清空，避免内存泄漏
     private val dismissCallback by autoClear(dismiss)
     @Composable

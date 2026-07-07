@@ -10,16 +10,16 @@ internal const val HTTP_SUCCESS = 200
 
 /**
  * http接口协议数据封装壳
+ * @param data 业务数据
+ * @param code 业务错误码，200表示成功
+ * @param subCode 二级错误码
+ * @param msg 错误说明
  */
 @Serializable
 data class Data<T>(
-    //数据
     val data: T?,
-    //错误码
     val code: Int,
-    //二级错误码
     val subCode: Int?,
-    //错误说明
     val msg: String?,
 ) {
     /**

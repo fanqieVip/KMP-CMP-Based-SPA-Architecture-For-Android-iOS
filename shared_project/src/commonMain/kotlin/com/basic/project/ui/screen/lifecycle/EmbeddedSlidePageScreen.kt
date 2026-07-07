@@ -110,8 +110,8 @@ class EmbeddedSlidePageScreen : BasicScreen() {
  * 滑动嵌套页面模型
  */
 class EmbeddedSlidePageScreenModel : BasicScreenModel() {
-    var current by mutableStateOf("order")
-    val tabs = mutableStateListOf<String>("home", "order", "mine", "tom", "jack", "center", "side", "mini-program")
+    var current by mutableStateOf("order") // 当前选中的 Tab 标识
+    val tabs = mutableStateListOf<String>("home", "order", "mine", "tom", "jack", "center", "side", "mini-program") // 所有可用的 Tab 列表
     override fun onInit(context: ScreenContext) {
     }
 

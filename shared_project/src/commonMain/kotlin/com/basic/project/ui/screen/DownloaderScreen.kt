@@ -76,11 +76,11 @@ class DownloaderScreen : BasicScreen() {
  * 下载器状态模型
  */
 class DownloaderScreenModel : BasicScreenModel() {
-    var state by mutableStateOf<DownloadState?>(null)
+    var state by mutableStateOf<DownloadState?>(null) // 下载状态
         private set
-    var progress by mutableStateOf<DownloadProgressState?>(null)
+    var progress by mutableStateOf<DownloadProgressState?>(null) // 下载进度
         private set
-    private var task: DownloadTask? = null
+    private var task: DownloadTask? = null // 下载任务
     override fun onInit(context: ScreenContext) {
 
     }

@@ -82,9 +82,11 @@ class PagingInteractionScreen : BasicScreen() {
  * 分页交互状态模型
  */
 class PagingInteractionScreenModel() : BasicScreenModel(), PagingControl {
+    // 数据列表
     val data = mutableStateListOf<Int>()
-    override fun onInit(context: ScreenContext) {
 
+    override fun onInit(context: ScreenContext) {
+        // 初始化逻辑
     }
 
     override fun onLoad(context: ScreenContext) {
@@ -111,7 +113,7 @@ class PagingInteractionScreenModel() : BasicScreenModel(), PagingControl {
         pagingOver(loadTime > 2)
     }
 
-    private var loadTime = 0
+    private var loadTime = 0 // 加载次数记录
     override suspend fun pagingMore() {
         return withContext(Dispatchers.Main) {
             loadTime++

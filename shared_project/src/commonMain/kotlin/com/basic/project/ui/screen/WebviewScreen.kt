@@ -166,13 +166,13 @@ class WebviewScreenModel : BasicScreenModel() {
 
 /**
  * 测试js通信数据示例
+ * @param id id
+ * @param name 名称
+ * @param age 年龄
  */
 @Serializable
 data class TestUserInfo(
-    //id
     val id: String,
-    //名称
     val name: String,
-    //年龄
     val age: Int
 )

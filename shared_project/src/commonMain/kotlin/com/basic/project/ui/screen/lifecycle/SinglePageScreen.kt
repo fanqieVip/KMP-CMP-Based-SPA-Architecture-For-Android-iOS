@@ -35,9 +35,12 @@ import io.github.hristogochev.vortex.util.currentOrThrow
 
 /**
  * 单页面生命周期演示页面
+ * @param pageNo 页面序号
  */
 @Router(RouterConstant.LIFECYCLE_SINGLE_PAGE)
-class SinglePageScreen(@Params("pageNo") private val pageNo: Int = 0) : BasicScreen() {
+class SinglePageScreen(
+    @Params("pageNo") private val pageNo: Int = 0
+) : BasicScreen() {
     override val key = super.key + hashCode()
 
     @Composable
@@ -82,7 +85,7 @@ class SinglePageScreen(@Params("pageNo") private val pageNo: Int = 0) : BasicScr
  * 单页面生命周期状态模型
  */
 class SinglePageScreenModel : BasicScreenModel() {
-    val lifecycleChangeHis = mutableStateListOf<Pair<String, String>>()
+    val lifecycleChangeHis = mutableStateListOf<Pair<String, String>>() // 生命周期变更历史
     override fun onInit(context: ScreenContext) {
     }
 

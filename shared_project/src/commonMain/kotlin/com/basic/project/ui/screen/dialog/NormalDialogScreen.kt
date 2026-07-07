@@ -52,14 +52,21 @@ class NormalDialogScreen : BasicScreen() {
 
 /**
  * 示例普通弹窗
+ * @param tag 弹窗标签
+ * @param dismiss 关闭回调
  */
-class NormalDialog(private val tag: String, dismiss: (tag: String) -> Unit) : BasicDialog(cancelAble = false) {
+class NormalDialog(
+    private val tag: String,
+    dismiss: (tag: String) -> Unit
+) : BasicDialog(cancelAble = false) {
     //注意：构造器中函数不要直接写val dismiss: (tag: String) -> Unit, 需要通过by autoClear加载并自动处理清空，避免内存泄漏
     private val dismissCallback by autoClear(dismiss)
+
     @Composable
     override fun CreateUI() {
         Column(
-            modifier = Modifier.fillMaxWidth().height(400.dp).background(Color.White, RoundedCornerShape(10.dp)),
+            modifier = Modifier.fillMaxWidth().height(400.dp)
+                .background(Color.White, RoundedCornerShape(10.dp)),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

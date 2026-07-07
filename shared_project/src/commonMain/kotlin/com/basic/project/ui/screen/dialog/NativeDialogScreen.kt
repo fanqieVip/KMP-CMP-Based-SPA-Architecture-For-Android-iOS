@@ -26,10 +26,7 @@ import com.basic.common.base.BasicTitleBar
 import com.basic.common.base.DialogAnimation
 
 /**
- * @Description:
- * @Author:         fanj
- * @CreateDate:     2026/4/13 11:44
- * @Version:
+ * 原生弹窗演示页面
  */
 @Router(RouterConstant.DIALOG_NATIVE)
 class NativeDialogScreen : BasicScreen() {
@@ -56,6 +53,7 @@ class NativeDialogScreen : BasicScreen() {
 
 /**
  * 原生弹窗
+ * @param dismiss 关闭回调
  */
 class DemoNativeDialog(dismiss: () -> Unit) : BasicNativeDialog(alignment = Alignment.BottomCenter, animation = DialogAnimation.Bottom) {
     //注意：构造器中函数不要直接写val dismiss: (tag: String) -> Unit, 需要通过by autoClear加载并自动处理清空，避免内存泄漏

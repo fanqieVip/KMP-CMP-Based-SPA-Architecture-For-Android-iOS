@@ -16,6 +16,10 @@ import com.basic.base.ui.NativeDialog
 
 /**
  * 业务 Dialog 基类
+ * @param alignment 对齐方式
+ * @param cancelAble 是否可点击阴影取消
+ * @param shadowColor 阴影颜色
+ * @param animation 弹窗动画
  */
 abstract class BasicDialog(
     alignment: Alignment = Alignment.Center,
@@ -32,6 +36,10 @@ abstract class BasicDialog(
 
 /**
  * 业务 NativeDialog 基类
+ * @param alignment 对齐方式
+ * @param cancelAble 是否可点击阴影取消
+ * @param shadowColor 阴影颜色
+ * @param animation 弹窗动画
  */
 abstract class BasicNativeDialog(
     alignment: Alignment = Alignment.Center,

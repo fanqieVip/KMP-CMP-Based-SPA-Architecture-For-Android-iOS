@@ -96,14 +96,33 @@ class LintSymbolProcessor(
         val isKtorfitApi = this.hasKtorfitAnnotations()
         val isDataClass = modifiers.contains(Modifier.DATA)
 
-        // 1. 校验文档注释红线 (新增对 data class 的全方位校验)
+        // 1. 校验文档注释红线
         if (isScreen || isScreenModel || isDialog || isRepository || isKtorfitApi || isDataClass) {
+            val typeLabel = when {
+                isDataClass -> "Data Class"
+                isScreen -> "Screen"
+                isScreenModel -> "ScreenModel"
+                isDialog -> "Dialog"
+                isRepository -> "Repository"
+                isKtorfitApi -> "Api"
+                else -> "类"
+            }
+
             // A. 类注释校验
-            if (docString.isNullOrBlank()) {
-                logger.error("架构红线 [Documentation]: ${if (isDataClass) "Data Class" else "类"} [$className] 缺少 KDoc 类注释。请使用 /** ... */ 添加描述。", this)
+            val classDoc = docString
+            if (classDoc.isNullOrBlank()) {
+                logger.error("架构红线 [Documentation]: $typeLabel [$className] 缺少 KDoc 类注释。请使用 /** ... */ 添加描述。", this)
+            } else {
+                // B. 构造器参数校验：强制要求在类注释中使用 @param 标注构造器中的所有参数
+                primaryConstructor?.parameters?.forEach { param ->
+                    val paramName = param.name?.asString() ?: ""
+                    if (!classDoc.contains("@param $paramName")) {
+                        logger.error("架构红线 [Documentation]: $typeLabel [$className] 的构造参数 [$paramName] 必须在类 KDoc 中通过 @param 进行注释说明。", param)
+                    }
+                }
             }
             
-            // B. 方法注释校验 (排除 override 方法、构造函数、以及 Data Class 自动生成的方法)
+            // C. 方法注释校验 (排除 override 方法、构造函数、以及 Data Class 自动生成的方法)
             declarations.filterIsInstance<KSFunctionDeclaration>().forEach { func ->
                 val name = func.simpleName.asString()
                 val isOverride = func.modifiers.contains(Modifier.OVERRIDE)
@@ -115,12 +134,14 @@ class LintSymbolProcessor(
                 }
             }
 
-            // C. 成员变量注释校验 (仅针对 Data Class)
-            if (isDataClass) {
-                declarations.filterIsInstance<KSPropertyDeclaration>().forEach { prop ->
-                    if (!prop.hasAnyComment(fileLines)) {
-                        logger.error("架构红线 [Documentation]: Data Class 成员变量 [${prop.simpleName.asString()}] 缺少注释 (/** */ 或 //)。", prop)
-                    }
+            // D. 成员变量注释校验 (排除重写变量和构造器参数变量)
+            declarations.filterIsInstance<KSPropertyDeclaration>().forEach { prop ->
+                val isOverride = prop.modifiers.contains(Modifier.OVERRIDE)
+                // 检查该属性是否来源于构造函数
+                val isConstructorParam = primaryConstructor?.parameters?.any { it.name?.asString() == prop.simpleName.asString() } == true
+                
+                if (!isOverride && !isConstructorParam && !prop.hasAnyComment(fileLines)) {
+                    logger.error("架构红线 [Documentation]: $typeLabel 成员变量 [${prop.simpleName.asString()}] 缺少注释 (/** */ 或 //)。", prop)
                 }
             }
         }

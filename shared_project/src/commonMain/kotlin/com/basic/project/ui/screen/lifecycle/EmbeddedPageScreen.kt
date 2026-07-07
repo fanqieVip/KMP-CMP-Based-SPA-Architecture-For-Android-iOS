@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -108,8 +109,8 @@ class EmbeddedPageScreen : BasicScreen() {
  * 嵌套页面模型
  */
 class EmbeddedPageScreenModel : BasicScreenModel() {
-    var current by mutableStateOf("order")
-    val tabs = mutableStateListOf<String>("home", "order", "mine")
+    var current by mutableStateOf("order") // 当前选中的页面标识
+    val tabs = mutableStateListOf<String>("home", "order", "mine") // 页面列表
     override fun onInit(context: ScreenContext) {
     }
 

@@ -84,6 +84,8 @@ class SingleParamsTransitiveScreen : BasicScreen() {
 
 /**
  * 参数传递结果演示页面
+ * @param param 传递的参数
+ * @param callbackId 回调 ID
  */
 @Router(RouterConstant.PARAMS_TRANSITIVE_NEXT)
 class SingleParamsTransitiveNextScreen(
@@ -126,9 +128,10 @@ class SingleParamsTransitiveNextScreen(
 
 /**
  * 参数传递结果演示模型
+ * @param callbackId 回调 ID
  */
 class SingleParamsTransitiveNextScreenModel(callbackId: String?) : BasicScreenModel() {
-    val callback = asCallback<(String) -> Unit>(callbackId)
+    val callback = asCallback<(String) -> Unit>(callbackId) // 页面回传回调
     override fun onInit(context: ScreenContext) {
     }
 

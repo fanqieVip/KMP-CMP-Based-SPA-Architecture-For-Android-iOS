@@ -9,6 +9,7 @@ import com.basic.common.net.ktorfit
  * 测试模块数据仓库
  */
 object TestRepository {
+    // 测试模块 API 实例
     private val testApi by lazy { ktorfit.createTestApi() }
 
     /**

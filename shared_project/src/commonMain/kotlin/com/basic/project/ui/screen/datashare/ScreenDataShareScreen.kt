@@ -211,7 +211,7 @@ fun ScreenDataShareInnerPage2(tag: String) {
  * 内部页面模型
  */
 class ScreenDataShareInnerPageScreenModel : BasicScreenModel() {
-    var selfInputText by mutableStateOf("")
+    var selfInputText by mutableStateOf("") // 页面私有输入内容
     override fun onInit(context: ScreenContext) {}
     override fun onLoad(context: ScreenContext) {
     }
@@ -221,7 +221,7 @@ class ScreenDataShareInnerPageScreenModel : BasicScreenModel() {
  * 共享数据模型
  */
 class ScreenDataShareSharedScreenModel : BasicScreenModel() {
-    var shareInputText by mutableStateOf("")
+    var shareInputText by mutableStateOf("") // 跨页面共享的输入内容
     override fun onInit(context: ScreenContext) {
     }
 
@@ -233,8 +233,8 @@ class ScreenDataShareSharedScreenModel : BasicScreenModel() {
  * 屏幕数据共享模型
  */
 class ScreenDataShareScreenModel : BasicScreenModel() {
-    var current by mutableStateOf("order")
-    val tabs = mutableStateListOf<String>("home", "order")
+    var current by mutableStateOf("order") // 当前选中的 Tab
+    val tabs = mutableStateListOf<String>("home", "order") // 所有的 Tab 列表
     override fun onInit(context: ScreenContext) {
     }
 

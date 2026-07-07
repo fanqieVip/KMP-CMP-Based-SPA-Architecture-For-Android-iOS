@@ -77,7 +77,7 @@ class PermissionScreen : BasicScreen() {
  * 权限请求状态模型
  */
 class PermissionScreenModel() : BasicScreenModel() {
-    val permissionState = MutableStateFlow(PermissionController.State.NOT_DETERMINED)
+    val permissionState = MutableStateFlow(PermissionController.State.NOT_DETERMINED) // 权限状态 Flow
 
     override fun onInit(context: ScreenContext) {
     }

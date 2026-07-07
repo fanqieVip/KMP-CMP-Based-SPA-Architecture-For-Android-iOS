@@ -37,6 +37,7 @@ import org.jetbrains.compose.resources.painterResource
  * 等待框
  */
 object LoadingDialog : Dialog(cancelAble = false) {
+    //等待提示内容
     private var content by mutableStateOf("")
 
     /**
