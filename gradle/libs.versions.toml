@@ -62,6 +62,7 @@ haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version.ref = "haze" }
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
+ksp-symbol-processing-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
 vortex = { module = "io.github.hristogochev:vortex", version.ref = "vortex" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
