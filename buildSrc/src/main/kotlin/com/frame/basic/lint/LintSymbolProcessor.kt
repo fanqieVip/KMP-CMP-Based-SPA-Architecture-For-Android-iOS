@@ -16,6 +16,7 @@ private const val DIALOG_TYPE = "com.basic.base.ktx.Dialog"
 private const val NATIVE_DIALOG_TYPE = "com.basic.base.ui.NativeDialog"
 private const val FORBIDDEN_REMEMBER_METHOD = "io.github.hristogochev.vortex.model.rememberScreenModel"
 private const val FORBIDDEN_SCREEN_IMPORT = "io.github.hristogochev.vortex.screen.Screen"
+private const val FORBIDDEN_SETTINGS_IMPORT = "com.russhwolf.settings.Settings"
 private const val ROUTER_ANNOTATION = "com.basic.base.router.Router"
 private const val PARAMS_ANNOTATION = "com.basic.base.router.Params"
 
@@ -39,6 +40,7 @@ class LintSymbolProcessor(
         // 预定义正则，确保精确匹配 import
         // 匹配 import 后接空格，再接全路径，最后接空格或行尾
         val screenImportRegex = Regex("import\\s+${FORBIDDEN_SCREEN_IMPORT.replace(".", "\\.")}(\\s+|$)")
+        val settingsImportRegex = Regex("import\\s+${FORBIDDEN_SETTINGS_IMPORT.replace(".", "\\.")}(\\s+|$)")
 
         resolver.getAllFiles().forEach { file ->
             // 2. 检查导入红线
@@ -64,6 +66,13 @@ class LintSymbolProcessor(
                         if (screenImportRegex.containsMatchIn(line)) {
                             logger.error(
                                 "架构红线 [Forbidden]: 禁止直接使用 Vortex 的 Screen 作为基类。请统一继承项目封装的 BaseScreen (或 BasicScreen) 以确保生命周期与 Trace 链路正常。",
+                                file
+                            )
+                        }
+                        // 检查 Settings (强制使用项目封装的响应式存储)
+                        if (settingsImportRegex.containsMatchIn(line)) {
+                            logger.error(
+                                "架构红线 [Forbidden]: 禁止直接使用 MultiplatformSettings 的 Settings。原因：为了确保数据的一致性与响应式更新，请统一使用 core/base 中封装的 settings.asFlowXXX 系列 API。",
                                 file
                             )
                         }
