@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import buildkonfig.BuildConfig_com_basic_base
 import com.basic.base.AutoSize
 import com.basic.base.Os
+import com.basic.base.base.BaseScreen
 import com.basic.base.constant.VersionStatus
 import com.basic.base.di.service.ToastService
 import com.basic.base.getPlatform
@@ -45,14 +46,13 @@ import com.basic.base.vortex.CurrentScreen
 import com.basic.base.vortex.CurrentScreenPredictiveBack
 import com.basic.base.vortex.IOSSlideTransitionPredictiveBack
 import io.github.hristogochev.vortex.navigator.Navigator
-import io.github.hristogochev.vortex.screen.Screen
 import io.github.hristogochev.vortex.transitions.SlideTransition
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
 @Composable
 fun BaseApp(
-    screen: () -> Screen,
+    screen: () -> BaseScreen,
     uiContainer: UIContainer,
     permissionController: PermissionController
 ) {

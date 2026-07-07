@@ -1,6 +1,7 @@
 package com.basic.app
 
 import androidx.compose.runtime.Composable
+import com.basic.base.base.BaseScreen
 import com.basic.base.local.PermissionController
 import com.basic.base.local.UIContainer
 import com.basic.common.base.BasicApp
@@ -11,7 +12,7 @@ import io.github.hristogochev.vortex.screen.Screen
 import org.koin.core.context.startKoin
 
 @Composable
-fun App(screen: () -> Screen = { SplashScreen() }, uiContainer: UIContainer, permissionController: PermissionController) {
+fun App(screen: () -> BaseScreen = { SplashScreen() }, uiContainer: UIContainer, permissionController: PermissionController) {
     BasicApp(screen, uiContainer = uiContainer, permissionController = permissionController)
 }
 
