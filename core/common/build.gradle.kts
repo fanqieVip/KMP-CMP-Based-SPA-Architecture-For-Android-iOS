@@ -51,8 +51,8 @@ kotlin {
                 implementation(libs.koin.core)
                 implementation(libs.koin.annotations)
                 implementation(libs.koin.compose)
-                api(project(":shared_base"))
-                api(project(":shared_native"))
+                api(projects.core.base)
+                api(projects.core.native)
             }
         }
 
@@ -67,15 +67,15 @@ kotlin {
                     )
                 )
                 implementation(libs.koin.android)
-                api(project(":shared_base"))
-                api(project(":shared_native"))
+                api(projects.core.base)
+                api(projects.core.native)
             }
         }
 
         iosMain {
             dependencies {
-                api(project(":shared_base"))
-                api(project(":shared_native"))
+                api(projects.core.base)
+                api(projects.core.native)
             }
         }
     }

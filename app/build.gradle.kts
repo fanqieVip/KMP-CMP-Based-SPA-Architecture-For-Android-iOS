@@ -61,8 +61,8 @@ kotlin {
                         "-Xg-generate-debug-trampoline=disable",//禁用轻量级调试信息，减少无用代码生成，优化运行效率并微量减小体积
                     )
                 }
-                //仅导出无安全隐患的shared_base模块
-                export(project(":shared_base"))
+                //仅导出无安全隐患的core/base模块
+                export(projects.core.base)
             }
         }
     }
@@ -78,17 +78,17 @@ kotlin {
                 "include" to listOf("**/*.jar", "**/*.aar")
             )))
             implementation(libs.coil.ktor.android)
-            api(project(":shared_project"))
+            api(projects.sharedProject)
         }
         commonMain.dependencies {
             implementation(libs.koin.core)
             implementation(libs.koin.annotations)
             implementation(libs.koin.compose)
             implementation(libs.compose.multiplatform.components)
-            api(project(":shared_project"))
+            api(projects.sharedProject)
         }
         iosMain.dependencies {
-            api(project(":shared_project"))
+            api(projects.sharedProject)
         }
     }
 }

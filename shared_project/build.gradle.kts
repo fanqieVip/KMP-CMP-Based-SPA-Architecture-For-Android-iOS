@@ -43,7 +43,7 @@ kotlin {
                 implementation(libs.koin.core)
                 implementation(libs.koin.annotations)
                 implementation(libs.koin.compose)
-                api(project(":shared_common"))
+                api(projects.core.common)
                 api(libs.permissions.microphone)
             }
         }
@@ -59,13 +59,13 @@ kotlin {
                     )
                 )
                 implementation(libs.koin.android)
-                api(project(":shared_common"))
+                api(projects.core.common)
             }
         }
 
         iosMain {
             dependencies {
-                api(project(":shared_common"))
+                api(projects.core.common)
             }
         }
     }

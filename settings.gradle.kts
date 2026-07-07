@@ -77,8 +77,8 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-include(":app")
-include(":shared_base")
-include(":shared_common")
-include(":shared_project")
-include(":shared_native")
+include("app")
+include("core:base")
+include("core:common")
+include("core:native")
+include("shared_project")
