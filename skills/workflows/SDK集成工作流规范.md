@@ -192,7 +192,12 @@ AI 必须输出 `[双端功能差异对齐报告]`：
   - 是否隐藏该能力。
   - 是否在缺失平台抛 `UnsupportedOperationException`。
   - 是否用 no-op，并说明业务后果。
-- 回调型 SDK 优先转换为 suspend、Flow 或状态回调；需要页面生命周期兜底时，参考支付模块的 `ScreenLifecycle` 超时策略。
+- 回调型 SDK 必须先审计回调触发次数，再决定 common API 范式：
+  - 若文档、Demo、物理签名或运行日志能够确认一次调用流程内只返回一次最终结果，可以转换为 `suspend` 协程范式。
+  - 若回调可能多次触发，例如持续状态、多阶段结果、重复点击结果、生命周期事件或可重入回调，必须优先设计为 lambda 回调或 Flow，不得强行转换为 `suspend`。
+  - 若无法确认回调是否只触发一次，必须先询问开发者：“该 SDK 回调是否保证一次调用流程内只返回一次最终结果？如果不保证，我将使用 lambda/Flow 形态暴露。”
+  - 术语使用 `lambda`，不要误写为 `lambal`。
+  - 需要页面生命周期兜底时，参考支付模块的 `ScreenLifecycle` 超时策略。
 - 初始化 API 若存在异步回调结果，common 层初始化入口必须优先设计为 `suspend init(...): ResultModel`，不得只返回 `Unit`。
 - 初始化结果模型必须至少表达成功/失败，并尽量保留 `code`、`message`、`raw` 等排障字段。
 - Android/iOS 平台初始化回调必须在 `actual` 实现内转换为 common 结果模型，不得向 common 层泄露平台类型。
@@ -282,6 +287,8 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 
 ### 2.4 Android 回调 Activity 与别名
 - 微信、支付宝等要求固定路径的回调 Activity，应放在 `libs/<name>/src/androidMain/kotlin/...`。
+- SDK 模块如需新增 Android `Activity` 承载 SDK 页面、回调页、自定义授权页、透明中转页等，默认父类必须使用 `androidx.fragment.app.FragmentActivity`，方便后续使用 `supportFragmentManager`、`DialogFragment`、Fragment Result 和 Lifecycle 能力。
+- 只有 SDK 官方明确要求继承特定 `Activity` 基类，或当前页面必须避免 AndroidX Fragment 依赖时，才允许改用其他父类；原因必须写入集成报告。
 - 若平台要求 `${applicationId}.wxapi.*` 等宿主路径，优先使用 `activity-alias` 指向 SDK 模块内 Activity。
 - openinstall、DeepLink 等外部唤起入口若希望复用当前壳 Activity，可使用 `activity-alias` 承载 `intent-filter`，并把 `targetActivity` 指向壳入口，以降低 lib 与壳工程耦合。
 - 项目侧手写 Manifest 配置必须以官方集成文档为准；AAR 内部 Manifest 只用于物理审计、冲突排查和理解 SDK 内部声明，不得直接复制进项目 Manifest。
@@ -293,6 +300,7 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 ### 2.5 回调归一化
 - 成功、取消、失败、超时必须映射为 common sealed status。
 - 无法保证回调必达的 SDK，必须设计超时兜底或查单提示。
+- 无法保证回调只触发一次的 SDK，common API 不得使用单次 `suspend` 返回值承载全部结果；应使用 lambda 回调或 Flow，并在报告中说明多次回调场景。
 - 需要业务页面生命周期参与的能力，接口可要求传入 `CoroutineScope` 与 `StateFlow<ScreenLifecycle>`。
 - 平台错误码必须保留 code/message，不能只返回 `Boolean`。
 - 回调数据模型必须以文档、示例 payload 或物理 SDK 声明为准，字段路径必须显式记录并按平台差异转换。

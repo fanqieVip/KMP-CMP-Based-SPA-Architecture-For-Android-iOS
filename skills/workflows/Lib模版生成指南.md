@@ -42,6 +42,7 @@
 - ❌ **禁止包含业务代码**：仅产生 DI 和生命周期骨架。
 - ❌ **禁止配置文件残留**：`proguard-rules.pro` 必须保持“出厂设置”级别的洁净。
 - ❌ **禁止空头引用**：所有修改 Gradle 配置的操作必须基于物理文件夹已存在的保障。
+- ✅ **新增 Activity 父类默认值**：SDK 模块后续若新增 Android `Activity` 承载 SDK 页面、回调页、自定义授权页或透明中转页，默认继承 `androidx.fragment.app.FragmentActivity`，除非官方 SDK 明确要求其他父类或必须避免 AndroidX Fragment 依赖。
 
 ## 4. 常用指令 (AI Instructions)
 
