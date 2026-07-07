@@ -43,15 +43,15 @@ class PriorityDialogScreen : BasicScreen() {
                 val scope = rememberCoroutineScope()
                 Button(onClick = {
                     scope.launch {
-                        dialogController.showPriority(priority = 2, Dialog2("弹窗1") {
+                        dialogController.showPriority(priority = 2, PriorityDialog("弹窗1") {
                             toastShort("关闭了${it}")
                         })
                         delay(2000)
-                        dialogController.showPriority(priority = 0, Dialog2("弹窗2") {
+                        dialogController.showPriority(priority = 0, PriorityDialog("弹窗2") {
                             toastShort("关闭了${it}")
                         })
                         delay(1000)
-                        dialogController.showPriority(priority = 1, Dialog2("弹窗3") {
+                        dialogController.showPriority(priority = 1, PriorityDialog("弹窗3") {
                             toastShort("关闭了${it}")
                         })
                     }
@@ -63,7 +63,7 @@ class PriorityDialogScreen : BasicScreen() {
     }
 }
 
-class Dialog2(private val tag: String, dismiss: (tag: String) -> Unit) : BasicDialog() {
+class PriorityDialog(private val tag: String, dismiss: (tag: String) -> Unit) : BasicDialog() {
     //注意：构造器中函数不要直接写val dismiss: (tag: String) -> Unit, 需要通过by autoClear加载并自动处理清空，避免内存泄漏
     private val dismissCallback by autoClear(dismiss)
     @Composable

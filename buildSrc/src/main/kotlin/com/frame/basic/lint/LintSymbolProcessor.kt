@@ -4,6 +4,7 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
@@ -84,10 +85,13 @@ class LintSymbolProcessor(
 
         val selfType = asStarProjectedType()
         val className = simpleName.asString()
+        val qName = qualifiedName?.asString() ?: ""
         val isRepository = className.endsWith("Repository")
         val isScreen = screenType?.isAssignableFrom(selfType) == true
         val isScreenModel = screenModelType?.isAssignableFrom(selfType) == true
-        val isDialog = (dialogType?.isAssignableFrom(selfType) == true) || (nativeDialogType?.isAssignableFrom(selfType) == true)
+        val isBaseDialog = dialogType?.isAssignableFrom(selfType) == true
+        val isBaseNativeDialog = nativeDialogType?.isAssignableFrom(selfType) == true
+        val isDialog = isBaseDialog || isBaseNativeDialog
         val isAbstract = modifiers.contains(Modifier.ABSTRACT)
 
         // 1. 校验 API 类定义规则：检测到 Ktorfit 注解时，名字必须是以 Api 结尾
@@ -97,7 +101,23 @@ class LintSymbolProcessor(
             }
         }
 
-        // 2. 校验属性成员
+        // 2. 校验命名规范
+        if (!isAbstract) {
+            if (isScreen && qName != SCREEN_TYPE && !className.endsWith("Screen")) {
+                logger.error("架构红线 [Naming]: Screen 实现类 [$className] 命名必须以 'Screen' 结尾。", this)
+            }
+            if (isScreenModel && qName != SCREEN_MODEL_TYPE && !className.endsWith("ScreenModel")) {
+                logger.error("架构红线 [Naming]: ScreenModel 实现类 [$className] 命名必须以 'ScreenModel' 结尾。", this)
+            }
+            if (isBaseDialog && qName != DIALOG_TYPE && !className.endsWith("Dialog")) {
+                logger.error("架构红线 [Naming]: Dialog 实现类 [$className] 命名必须以 'Dialog' 结尾。", this)
+            }
+            if (isBaseNativeDialog && qName != NATIVE_DIALOG_TYPE && !className.endsWith("NativeDialog")) {
+                logger.error("架构红线 [Naming]: NativeDialog 实现类 [$className] 命名必须以 'NativeDialog' 结尾。", this)
+            }
+        }
+
+        // 3. 校验属性成员
         declarations.filterIsInstance<KSPropertyDeclaration>().forEach { property ->
             if (property.isLikelyKtorfitApi()) {
                 val propName = property.simpleName.asString()
@@ -116,7 +136,7 @@ class LintSymbolProcessor(
             }
         }
 
-        // 3. 校验函数返回
+        // 4. 校验函数返回
         declarations.filterIsInstance<KSFunctionDeclaration>().forEach { function ->
             val returnType = function.returnType?.resolve()
             if (returnType?.isApiRelated() == true) {
