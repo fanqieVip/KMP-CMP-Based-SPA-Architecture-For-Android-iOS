@@ -37,7 +37,7 @@ import io.github.hristogochev.vortex.util.currentOrThrow
  * 单页面生命周期演示页面
  */
 @Router(RouterConstant.LIFECYCLE_SINGLE_PAGE)
-data class SinglePageScreen(@Params("pageNo") private val pageNo: Int = 0) : BasicScreen() {
+class SinglePageScreen(@Params("pageNo") private val pageNo: Int = 0) : BasicScreen() {
     override val key = super.key + hashCode()
 
     @Composable

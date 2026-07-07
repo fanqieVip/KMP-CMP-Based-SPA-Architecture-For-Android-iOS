@@ -4,6 +4,7 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
+import com.google.devtools.ksp.symbol.FileLocation
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
@@ -44,27 +45,26 @@ class LintSymbolProcessor(
         val settingsImportRegex = Regex("import\\s+${FORBIDDEN_SETTINGS_IMPORT.replace(".", "\\.")}(\\s+|$)")
 
         resolver.getAllFiles().forEach { file ->
+            val fileLines = File(file.filePath).readLines()
             if (moduleName != "base") {
-                File(file.filePath).useLines { lines ->
-                    lines.takeWhile { line ->
-                        val trimmed = line.trim()
-                        trimmed.isEmpty() || trimmed.startsWith("package") || trimmed.startsWith("import") || trimmed.startsWith("/") || trimmed.startsWith("*") || trimmed.startsWith("@")
-                    }.forEach { line ->
-                        if (line.contains(FORBIDDEN_REMEMBER_METHOD)) {
-                            logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 rememberScreenModel。原因：它无法触发业务生命周期。请统一使用项目封装 of rememberMainScreenModel。", file)
-                        }
-                        if (screenImportRegex.containsMatchIn(line)) {
-                            logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 Screen 作为基类。请统一继承项目封装的 BaseScreen (或 BasicScreen) 以确保生命周期与 Trace 链路正常。", file)
-                        }
-                        if (settingsImportRegex.containsMatchIn(line)) {
-                            logger.error("架构红线 [Forbidden]: 禁止直接使用 MultiplatformSettings 的 Settings。原因：为了确保数据的一致性与响应式更新，请统一使用 core/base 中封装的 settings.asFlowXXX 系列 API。", file)
-                        }
+                fileLines.takeWhile { line ->
+                    val trimmed = line.trim()
+                    trimmed.isEmpty() || trimmed.startsWith("package") || trimmed.startsWith("import") || trimmed.startsWith("/") || trimmed.startsWith("*") || trimmed.startsWith("@")
+                }.forEach { line ->
+                    if (line.contains(FORBIDDEN_REMEMBER_METHOD)) {
+                        logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 rememberScreenModel。原因：它无法触发业务生命周期。请统一使用项目封装的 rememberMainScreenModel。", file)
+                    }
+                    if (screenImportRegex.containsMatchIn(line)) {
+                        logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 Screen 作为基类。请统一继承项目封装的 BaseScreen (或 BasicScreen) 以确保生命周期与 Trace 链路正常。", file)
+                    }
+                    if (settingsImportRegex.containsMatchIn(line)) {
+                        logger.error("架构红线 [Forbidden]: 禁止直接使用 MultiplatformSettings 的 Settings。原因：为了确保数据的一致性与响应式更新，请统一使用 core/base 中封装的 settings.asFlowXXX 系列 API。", file)
                     }
                 }
             }
 
             file.declarations.filterIsInstance<KSClassDeclaration>().forEach { 
-                it.checkArchitectureRules(screenType, screenModelType, dialogType, nativeDialogType) 
+                it.checkArchitectureRules(screenType, screenModelType, dialogType, nativeDialogType, fileLines) 
             }
         }
 
@@ -76,10 +76,11 @@ class LintSymbolProcessor(
         screenType: KSType?,
         screenModelType: KSType?,
         dialogType: KSType?,
-        nativeDialogType: KSType?
+        nativeDialogType: KSType?,
+        fileLines: List<String>
     ) {
         declarations.filterIsInstance<KSClassDeclaration>().forEach { 
-            it.checkArchitectureRules(screenType, screenModelType, dialogType, nativeDialogType) 
+            it.checkArchitectureRules(screenType, screenModelType, dialogType, nativeDialogType, fileLines) 
         }
 
         val selfType = asStarProjectedType()
@@ -93,16 +94,16 @@ class LintSymbolProcessor(
         val isDialog = isBaseDialog || isBaseNativeDialog
         val isAbstract = modifiers.contains(Modifier.ABSTRACT)
         val isKtorfitApi = this.hasKtorfitAnnotations()
+        val isDataClass = modifiers.contains(Modifier.DATA)
 
-        // 1. 校验文档注释红线
-        if (isScreen || isScreenModel || isDialog || isRepository || isKtorfitApi) {
+        // 1. 校验文档注释红线 (新增对 data class 的全方位校验)
+        if (isScreen || isScreenModel || isDialog || isRepository || isKtorfitApi || isDataClass) {
             // A. 类注释校验
             if (docString.isNullOrBlank()) {
-                logger.error("架构红线 [Documentation]: 类 [$className] 缺少 KDoc 类注释。请使用 /** ... */ 添加描述。", this)
+                logger.error("架构红线 [Documentation]: ${if (isDataClass) "Data Class" else "类"} [$className] 缺少 KDoc 类注释。请使用 /** ... */ 添加描述。", this)
             }
             
             // B. 方法注释校验 (排除 override 方法、构造函数、以及 Data Class 自动生成的方法)
-            val isDataClass = modifiers.contains(Modifier.DATA)
             declarations.filterIsInstance<KSFunctionDeclaration>().forEach { func ->
                 val name = func.simpleName.asString()
                 val isOverride = func.modifiers.contains(Modifier.OVERRIDE)
@@ -111,6 +112,15 @@ class LintSymbolProcessor(
                 
                 if (!isOverride && !isConstructor && !isGeneratedDataMethod && func.docString.isNullOrBlank()) {
                     logger.error("架构红线 [Documentation]: 方法 [$name] 缺少 KDoc 注释。非重写方法必须显式说明功能意图。", func)
+                }
+            }
+
+            // C. 成员变量注释校验 (仅针对 Data Class)
+            if (isDataClass) {
+                declarations.filterIsInstance<KSPropertyDeclaration>().forEach { prop ->
+                    if (!prop.hasAnyComment(fileLines)) {
+                        logger.error("架构红线 [Documentation]: Data Class 成员变量 [${prop.simpleName.asString()}] 缺少注释 (/** */ 或 //)。", prop)
+                    }
                 }
             }
         }
@@ -151,6 +161,22 @@ class LintSymbolProcessor(
 
         // 5. 原有规则校验
         checkOriginalRules(isScreen, isScreenModel, isDialog, isAbstract)
+    }
+
+    private fun KSPropertyDeclaration.hasAnyComment(fileLines: List<String>): Boolean {
+        if (!docString.isNullOrBlank()) return true
+        val loc = location as? FileLocation ?: return false
+        val lineIndex = loc.lineNumber - 1
+        if (lineIndex < 0 || lineIndex >= fileLines.size) return false
+        
+        val currentLine = fileLines[lineIndex]
+        if (currentLine.contains("//")) return true
+        
+        if (lineIndex > 0) {
+            val prevLine = fileLines[lineIndex - 1].trim()
+            if (prevLine.startsWith("//")) return true
+        }
+        return false
     }
 
     private fun KSClassDeclaration.hasKtorfitAnnotations(): Boolean {

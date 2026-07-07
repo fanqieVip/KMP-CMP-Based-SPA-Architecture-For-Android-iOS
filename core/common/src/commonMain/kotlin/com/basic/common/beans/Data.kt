@@ -8,6 +8,9 @@ import kotlinx.serialization.Serializable
  */
 internal const val HTTP_SUCCESS = 200
 
+/**
+ * http接口协议数据封装壳
+ */
 @Serializable
 data class Data<T>(
     //数据
@@ -19,6 +22,9 @@ data class Data<T>(
     //错误说明
     val msg: String?,
 ) {
+    /**
+     * 只要不是成功都抛出异常
+     */
     fun throwFail(): T? {
         if (code != HTTP_SUCCESS) {
             throw ApiException(code, msg)

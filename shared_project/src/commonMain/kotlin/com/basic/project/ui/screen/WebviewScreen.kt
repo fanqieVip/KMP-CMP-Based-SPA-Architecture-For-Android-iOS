@@ -163,9 +163,16 @@ class WebviewScreenModel : BasicScreenModel() {
         webviewState.destroyed()
     }
 }
+
+/**
+ * 测试js通信数据示例
+ */
 @Serializable
 data class TestUserInfo(
+    //id
     val id: String,
+    //名称
     val name: String,
+    //年龄
     val age: Int
 )
