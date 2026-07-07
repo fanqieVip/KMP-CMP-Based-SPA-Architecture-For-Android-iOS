@@ -7,6 +7,7 @@ import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.Modifier
 import java.io.File
 
 private const val SCREEN_TYPE = "io.github.hristogochev.vortex.screen.Screen"
@@ -15,6 +16,8 @@ private const val DIALOG_TYPE = "com.basic.base.ktx.Dialog"
 private const val NATIVE_DIALOG_TYPE = "com.basic.base.ui.NativeDialog"
 private const val FORBIDDEN_REMEMBER_METHOD = "io.github.hristogochev.vortex.model.rememberScreenModel"
 private const val FORBIDDEN_SCREEN_IMPORT = "io.github.hristogochev.vortex.screen.Screen"
+private const val ROUTER_ANNOTATION = "com.basic.base.router.Router"
+private const val PARAMS_ANNOTATION = "com.basic.base.router.Params"
 
 class LintSymbolProcessor(
     private val environment: SymbolProcessorEnvironment
@@ -93,13 +96,51 @@ class LintSymbolProcessor(
         val isScreenModel = screenModelType?.isAssignableFrom(selfType) == true
         val isDialog = (dialogType?.isAssignableFrom(selfType) == true) || 
                        (nativeDialogType?.isAssignableFrom(selfType) == true)
+        val isAbstract = modifiers.contains(Modifier.ABSTRACT)
 
-        if (isScreen || isScreenModel) {
-            val typeLabel = if (isScreen) "Screen" else "ScreenModel"
+        if (isScreen) {
+            if (!isAbstract) {
+                // 1. 检查 @Router 注解
+                val hasRouter = annotations.any {
+                    it.annotationType.resolve().declaration.qualifiedName?.asString() == ROUTER_ANNOTATION
+                }
+                if (!hasRouter) {
+                    logger.error(
+                        "架构红线 [Forbidden]: Screen 实现类 [${simpleName.asString()}] 必须添加 @Router 注解以支持路由导航。",
+                        this
+                    )
+                }
+
+                // 2. 检查构造器参数的 @Params 注解
+                primaryConstructor?.parameters?.forEach { param ->
+                    val hasParams = param.annotations.any {
+                        it.annotationType.resolve().declaration.qualifiedName?.asString() == PARAMS_ANNOTATION
+                    }
+                    if (!hasParams) {
+                        logger.error(
+                            "架构红线 [Forbidden]: Screen 实现类 [${simpleName.asString()}] 的构造参数 [${param.name?.asString()}] 必须添加 @Params 注解，以确保路由解析正常。",
+                            param
+                        )
+                    }
+                }
+            }
+
+            // 3. 检查函数参数（无论是否抽象，都不允许传 Lambda）
             primaryConstructor?.parameters?.forEach { param ->
                 if (param.type.resolve().isFunctionType()) {
                     logger.error(
-                        "架构红线 [Forbidden]: $typeLabel 子类 [${simpleName.asString()}] 构造器禁止包含函数参数。原因：$typeLabel 必须保证可序列化或生命周期安全，禁止持有外部 Lambda 以防内存泄漏。",
+                        "架构红线 [Forbidden]: Screen 子类 [${simpleName.asString()}] 构造器禁止包含函数参数。原因：Screen 必须支持 URL 序列化以实现跨模块跳转。",
+                        param
+                    )
+                }
+            }
+        }
+
+        if (isScreenModel) {
+            primaryConstructor?.parameters?.forEach { param ->
+                if (param.type.resolve().isFunctionType()) {
+                    logger.error(
+                        "架构红线 [Forbidden]: ScreenModel 子类 [${simpleName.asString()}] 构造器禁止包含函数参数。原因：ScreenModel 必须保证生命周期安全，禁止持有外部 Lambda 以防内存泄漏。",
                         param
                     )
                 }

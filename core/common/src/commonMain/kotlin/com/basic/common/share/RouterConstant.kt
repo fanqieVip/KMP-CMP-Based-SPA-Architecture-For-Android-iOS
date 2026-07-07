@@ -1,6 +1,7 @@
 package com.basic.common.share
 
 object RouterConstant {
+    const val SPLASH = "SplashScreen"
     const val MAIN = "MainScreen"
     const val SCREEN = "ScreenScreen"
     const val MODULE_COMMUNICATION = "ModuleCommunicationScreen"

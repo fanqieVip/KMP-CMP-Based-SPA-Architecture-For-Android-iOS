@@ -19,6 +19,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.basic.base.getDeviceId
 import com.basic.base.ktx.takeOnce
+import com.basic.base.router.Router
 import com.basic.base.router.asRouter
 import com.basic.base.utils.logDebug
 import com.basic.base.utils.networkGrantedState
@@ -31,6 +32,7 @@ import io.github.hristogochev.vortex.util.currentOrThrow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
+@Router(RouterConstant.SPLASH)
 class SplashScreen : BasicScreen() {
     override val onAppearTransition: ScreenTransition = ScreenTransitionNone
     override val onDisappearTransition: ScreenTransition = ScreenTransitionNone
