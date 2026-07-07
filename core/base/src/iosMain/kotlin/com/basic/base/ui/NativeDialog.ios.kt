@@ -14,8 +14,10 @@ import com.basic.base.local.UIContainer
 import io.github.hristogochev.vortex.model.ScreenModelStore
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.UIKit.UIColor
+import platform.UIKit.UINavigationController
 import platform.UIKit.UIModalPresentationOverFullScreen
 import platform.UIKit.UIModalTransitionStyleCrossDissolve
+import platform.UIKit.UITabBarController
 import platform.UIKit.UIViewController
 
 internal actual fun UIContainer.showNativeDialog(dialog: NativeDialog) {
@@ -39,7 +41,23 @@ internal actual fun UIContainer.showNativeDialog(dialog: NativeDialog) {
         modalPresentationStyle = UIModalPresentationOverFullScreen
         modalTransitionStyle = UIModalTransitionStyleCrossDissolve
     }
-    presentViewController(viewControllerToPresent = dialogVC, animated = false, completion = null)
+    findTopMostViewController().presentViewController(
+        viewControllerToPresent = dialogVC,
+        animated = false,
+        completion = null
+    )
 }
 
-
+private fun UIViewController.findTopMostViewController(): UIViewController {
+    var controller = this
+    while (controller.parentViewController != null) {
+        controller = controller.parentViewController!!
+    }
+    while (true) {
+        controller = when (controller) {
+            is UINavigationController -> controller.visibleViewController ?: controller
+            is UITabBarController -> controller.selectedViewController ?: controller
+            else -> controller.presentedViewController ?: return controller
+        }
+    }
+}

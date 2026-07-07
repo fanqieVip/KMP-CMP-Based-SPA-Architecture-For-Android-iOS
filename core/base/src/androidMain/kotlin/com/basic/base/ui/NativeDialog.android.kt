@@ -22,12 +22,13 @@ import androidx.lifecycle.ViewModel
 import com.basic.base.R
 import com.basic.base.local.UIContainer
 import com.basic.base.ui.AndroidNativeDialog.Companion.NativeDialogKey
+import com.basic.base.utils.ActivityStackManager
 import com.benasher44.uuid.uuid4
 import io.github.hristogochev.vortex.model.ScreenModelStore
 
 internal val showNativeDialogMap = hashMapOf<String, NativeDialog>()
 internal actual fun UIContainer.showNativeDialog(dialog: NativeDialog) {
-    (this as? FragmentActivity)?.supportFragmentManager?.let {
+    ActivityStackManager.getTopFragmentActivity()?.supportFragmentManager?.let {
         val dialogContainer = AndroidNativeDialog().apply {
             if (arguments == null) {
                 arguments = Bundle()
