@@ -77,6 +77,8 @@ abstract class NativeDialog(
                         if (!isShow) {
                             onDismiss()
                             onDismissCall()
+                            //回退状态，方便重用
+                            isShow = true
                         }
                     }
                 } else {
