@@ -89,6 +89,7 @@ abstract class Dialog(
                             onDismiss()
                             dialogController.dismiss(this@Dialog)
                             cleanUpAutoActions()
+                            isShow = true
                         }
                     }
                 } else {
@@ -305,6 +306,7 @@ class DialogController {
                         ScreenModelStore.dispose(it)
                     }
                     cleanUpAutoActions()
+                    isShow = true
                 }
             }
         }
@@ -324,6 +326,7 @@ class DialogController {
                         ScreenModelStore.dispose(it)
                     }
                     cleanUpAutoActions()
+                    isShow = true
                 }
             }
         }
@@ -355,6 +358,7 @@ class DialogController {
                             ScreenModelStore.dispose(it)
                         }
                         cleanUpAutoActions()
+                        isShow = true
                     }
                 }
             }
