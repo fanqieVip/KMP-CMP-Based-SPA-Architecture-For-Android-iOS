@@ -16,6 +16,9 @@ import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 
+/**
+ * 页面栈详情描述页面
+ */
 @Router(RouterConstant.STACK_DESCRIBE)
 class StackDescribeScreen: BasicScreen() {
     @Composable

@@ -20,6 +20,9 @@ import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 
+/**
+ * 字典映射选择演示
+ */
 @Router(RouterConstant.FILE_KIT_DIRECTORY_MAPPING)
 class DictionaryMappingScreen: BasicScreen() {
     @Composable

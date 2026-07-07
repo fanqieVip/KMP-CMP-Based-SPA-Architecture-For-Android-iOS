@@ -12,6 +12,9 @@ import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 import com.basic.project.ui.menu.CreateMenu
 
+/**
+ * 磁盘数据持久化演示页面
+ */
 @Router(RouterConstant.DISK_DATA)
 class DiskDataScreen: BasicScreen() {
     @Composable

@@ -34,6 +34,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.time.ExperimentalTime
 
+/**
+ * 分页交互演示页面
+ */
 @Router(RouterConstant.INTERACTION_PAGING)
 class PagingInteractionScreen : BasicScreen() {
 
@@ -75,6 +78,9 @@ class PagingInteractionScreen : BasicScreen() {
     }
 }
 
+/**
+ * 分页交互状态模型
+ */
 class PagingInteractionScreenModel() : BasicScreenModel(), PagingControl {
     val data = mutableStateListOf<Int>()
     override fun onInit(context: ScreenContext) {

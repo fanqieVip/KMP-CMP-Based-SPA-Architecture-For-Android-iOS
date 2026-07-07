@@ -72,6 +72,9 @@ class DownloaderScreen : BasicScreen() {
     }
 }
 
+/**
+ * 下载器状态模型
+ */
 class DownloaderScreenModel : BasicScreenModel() {
     var state by mutableStateOf<DownloadState?>(null)
         private set
@@ -82,6 +85,9 @@ class DownloaderScreenModel : BasicScreenModel() {
 
     }
 
+    /**
+     * 开始下载
+     */
     fun start() {
         screenModelScope.launchScope {
             task = DownloadManager.downloadAndGet(
@@ -106,6 +112,9 @@ class DownloaderScreenModel : BasicScreenModel() {
         }
     }
 
+    /**
+     * 取消下载
+     */
     fun cancel() {
         screenModelScope.launchScope {
             task?.cancel()

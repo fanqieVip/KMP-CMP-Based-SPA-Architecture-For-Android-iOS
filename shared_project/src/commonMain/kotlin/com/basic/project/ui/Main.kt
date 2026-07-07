@@ -13,6 +13,12 @@ import com.basic.common.share.RouterConstant
 import com.basic.project.ui.menu.CreateMenu
 import io.github.hristogochev.vortex.screen.ScreenTransition
 
+/**
+ * 主页
+ */
+/**
+ * 主首页
+ */
 @Router(RouterConstant.MAIN)
 class MainScreen : BasicScreen() {
     override val onAppearTransition: ScreenTransition = ScreenTransitionNone

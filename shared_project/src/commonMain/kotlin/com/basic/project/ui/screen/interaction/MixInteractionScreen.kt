@@ -49,6 +49,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * 混合交互演示
+ */
 @Router(RouterConstant.INTERACTION_MIX)
 class MixInteractionScreen : BasicScreen() {
     @Composable
@@ -204,6 +207,9 @@ class MixInteractionScreen : BasicScreen() {
     }
 }
 
+/**
+ * 混合交互演示Model
+ */
 class MixInteractionScreenModel : BasicScreenModel(), PagingControl {
     val data = mutableStateListOf<Int>()
     override fun onInit(context: ScreenContext) {

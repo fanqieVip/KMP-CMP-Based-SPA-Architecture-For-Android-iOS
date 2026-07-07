@@ -36,6 +36,9 @@ import dev.icerock.moko.permissions.microphone.RECORD_AUDIO
 import io.github.hristogochev.vortex.model.screenModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 
+/**
+ * 权限请求演示页面
+ */
 @Router(RouterConstant.PERMISSION)
 class PermissionScreen : BasicScreen() {
     @Composable
@@ -70,6 +73,9 @@ class PermissionScreen : BasicScreen() {
     }
 }
 
+/**
+ * 权限请求状态模型
+ */
 class PermissionScreenModel() : BasicScreenModel() {
     val permissionState = MutableStateFlow(PermissionController.State.NOT_DETERMINED)
 
@@ -82,6 +88,9 @@ class PermissionScreenModel() : BasicScreenModel() {
         }
     }
 
+    /**
+     * 申请录音权限
+     */
     fun applyPermission(permissionController: PermissionController) {
         screenModelScope.launchScope {
             permissionState.value = permissionController.providePermission(Permission.RECORD_AUDIO)

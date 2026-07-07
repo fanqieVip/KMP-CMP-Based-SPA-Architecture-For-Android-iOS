@@ -17,6 +17,9 @@ import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 
+/**
+ * 跨模块通信演示页面
+ */
 @Router(RouterConstant.MODULE_COMMUNICATION)
 class ModuleCommunicationScreen: BasicScreen() {
     @Composable

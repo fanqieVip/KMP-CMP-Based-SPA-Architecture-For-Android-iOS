@@ -29,6 +29,9 @@ import com.basic.common.base.BasicTitleBar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * 优先级弹窗演示页面
+ */
 @Router(RouterConstant.DIALOG_PRIORITY)
 class PriorityDialogScreen : BasicScreen() {
     @Composable
@@ -63,6 +66,9 @@ class PriorityDialogScreen : BasicScreen() {
     }
 }
 
+/**
+ * 示例优先级弹窗
+ */
 class PriorityDialog(private val tag: String, dismiss: (tag: String) -> Unit) : BasicDialog() {
     //注意：构造器中函数不要直接写val dismiss: (tag: String) -> Unit, 需要通过by autoClear加载并自动处理清空，避免内存泄漏
     private val dismissCallback by autoClear(dismiss)

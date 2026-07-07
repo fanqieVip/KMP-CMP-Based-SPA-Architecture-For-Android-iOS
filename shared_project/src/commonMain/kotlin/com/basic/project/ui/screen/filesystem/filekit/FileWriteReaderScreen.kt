@@ -48,6 +48,9 @@ import io.github.vinceglb.filekit.readString
 import io.github.vinceglb.filekit.utils.toPath
 import io.github.vinceglb.filekit.writeString
 
+/**
+ * 文件读写演示页面
+ */
 @Router(RouterConstant.FILE_KIT_FILE_WRITE_READER)
 class FileWriteReaderScreen: BasicScreen() {
     @Composable

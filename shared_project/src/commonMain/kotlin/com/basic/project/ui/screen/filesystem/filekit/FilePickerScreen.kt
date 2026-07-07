@@ -29,6 +29,9 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.absolutePath
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 
+/**
+ * 文件选择器演示
+ */
 @Router(RouterConstant.FILE_KIT_FILE_PICKER)
 class FilePickerScreen: BasicScreen() {
     @Composable

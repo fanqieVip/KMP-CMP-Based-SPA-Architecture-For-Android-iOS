@@ -28,6 +28,9 @@ import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 
+/**
+ * 基本类型演示
+ */
 @Router(RouterConstant.DISK_DATA_BASIC_TYPE)
 class BasicTypeScreen : BasicScreen() {
     @Composable

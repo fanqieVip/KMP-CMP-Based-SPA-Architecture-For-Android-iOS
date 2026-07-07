@@ -34,6 +34,9 @@ import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.exists
 import io.github.vinceglb.filekit.size
 
+/**
+ * 图库选择与裁剪演示
+ */
 @Router(RouterConstant.FILE_KIT_GALLERY_PICKER)
 class GalleryPickerScreen : BasicScreen() {
     @Composable

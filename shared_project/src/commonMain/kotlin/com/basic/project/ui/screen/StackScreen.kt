@@ -12,6 +12,9 @@ import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 import com.basic.project.ui.menu.CreateMenu
 
+/**
+ * 页面栈管理演示页面
+ */
 @Router(RouterConstant.STACK)
 class StackScreen : BasicScreen() {
     @Composable

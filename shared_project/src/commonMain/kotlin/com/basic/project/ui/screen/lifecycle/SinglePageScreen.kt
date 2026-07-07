@@ -33,6 +33,9 @@ import com.basic.common.share.ShareData
 import io.github.hristogochev.vortex.navigator.LocalNavigator
 import io.github.hristogochev.vortex.util.currentOrThrow
 
+/**
+ * 单页面生命周期演示页面
+ */
 @Router(RouterConstant.LIFECYCLE_SINGLE_PAGE)
 data class SinglePageScreen(@Params("pageNo") private val pageNo: Int = 0) : BasicScreen() {
     override val key = super.key + hashCode()
@@ -75,6 +78,9 @@ data class SinglePageScreen(@Params("pageNo") private val pageNo: Int = 0) : Bas
     }
 }
 
+/**
+ * 单页面生命周期状态模型
+ */
 class SinglePageScreenModel : BasicScreenModel() {
     val lifecycleChangeHis = mutableStateListOf<Pair<String, String>>()
     override fun onInit(context: ScreenContext) {

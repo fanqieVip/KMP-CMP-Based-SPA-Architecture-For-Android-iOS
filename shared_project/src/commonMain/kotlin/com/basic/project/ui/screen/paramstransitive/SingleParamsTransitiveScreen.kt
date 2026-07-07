@@ -36,6 +36,9 @@ import com.basic.common.share.RouterConstant
 import io.github.hristogochev.vortex.navigator.LocalNavigator
 import io.github.hristogochev.vortex.util.currentOrThrow
 
+/**
+ * 参数传递演示页面
+ */
 @Router(RouterConstant.PARAMS_TRANSITIVE_SINGLE_PAGE)
 class SingleParamsTransitiveScreen : BasicScreen() {
     @Composable
@@ -79,6 +82,9 @@ class SingleParamsTransitiveScreen : BasicScreen() {
     }
 }
 
+/**
+ * 参数传递结果演示页面
+ */
 @Router(RouterConstant.PARAMS_TRANSITIVE_NEXT)
 class SingleParamsTransitiveNextScreen(
     @Params("param") private val param: String = "",
@@ -118,6 +124,9 @@ class SingleParamsTransitiveNextScreen(
     }
 }
 
+/**
+ * 参数传递结果演示模型
+ */
 class SingleParamsTransitiveNextScreenModel(callbackId: String?) : BasicScreenModel() {
     val callback = asCallback<(String) -> Unit>(callbackId)
     override fun onInit(context: ScreenContext) {

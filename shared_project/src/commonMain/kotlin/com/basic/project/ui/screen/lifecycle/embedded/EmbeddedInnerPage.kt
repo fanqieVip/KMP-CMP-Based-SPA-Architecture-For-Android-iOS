@@ -50,6 +50,9 @@ fun EmbeddedInnerPage(title: String, screenModel: EmbeddedInnerPageScreenModel =
     }
 }
 
+/**
+ * 嵌套内页模型
+ */
 class EmbeddedInnerPageScreenModel : BasicScreenModel() {
     val lifecycleChangeHis = mutableStateListOf<Pair<String, String>>()
     override fun onInit(context: ScreenContext) {

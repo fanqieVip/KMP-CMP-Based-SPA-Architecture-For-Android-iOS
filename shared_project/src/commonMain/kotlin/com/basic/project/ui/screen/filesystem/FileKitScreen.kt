@@ -12,6 +12,9 @@ import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 import com.basic.project.ui.menu.CreateMenu
 
+/**
+ * FileKit 文件工具演示页面
+ */
 @Router(RouterConstant.FILE_SYSTEM_FILE_KIT)
 class FileKitScreen : BasicScreen() {
     @Composable

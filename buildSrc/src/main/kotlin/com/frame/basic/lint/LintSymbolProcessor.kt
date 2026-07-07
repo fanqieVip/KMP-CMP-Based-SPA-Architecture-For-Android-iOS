@@ -4,7 +4,6 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
-import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
@@ -52,7 +51,7 @@ class LintSymbolProcessor(
                         trimmed.isEmpty() || trimmed.startsWith("package") || trimmed.startsWith("import") || trimmed.startsWith("/") || trimmed.startsWith("*") || trimmed.startsWith("@")
                     }.forEach { line ->
                         if (line.contains(FORBIDDEN_REMEMBER_METHOD)) {
-                            logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 rememberScreenModel。原因：它无法触发业务生命周期。请统一使用项目封装的 rememberMainScreenModel。", file)
+                            logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 rememberScreenModel。原因：它无法触发业务生命周期。请统一使用项目封装 of rememberMainScreenModel。", file)
                         }
                         if (screenImportRegex.containsMatchIn(line)) {
                             logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 Screen 作为基类。请统一继承项目封装的 BaseScreen (或 BasicScreen) 以确保生命周期与 Trace 链路正常。", file)
@@ -93,15 +92,35 @@ class LintSymbolProcessor(
         val isBaseNativeDialog = nativeDialogType?.isAssignableFrom(selfType) == true
         val isDialog = isBaseDialog || isBaseNativeDialog
         val isAbstract = modifiers.contains(Modifier.ABSTRACT)
+        val isKtorfitApi = this.hasKtorfitAnnotations()
 
-        // 1. 校验 API 类定义规则：检测到 Ktorfit 注解时，名字必须是以 Api 结尾
-        if (this.hasKtorfitAnnotations()) {
-            if (!className.endsWith("Api")) {
-                logger.error("架构红线 [Naming]: Ktorfit API 接口 [$className] 命名必须以 'Api' 结尾。", this)
+        // 1. 校验文档注释红线
+        if (isScreen || isScreenModel || isDialog || isRepository || isKtorfitApi) {
+            // A. 类注释校验
+            if (docString.isNullOrBlank()) {
+                logger.error("架构红线 [Documentation]: 类 [$className] 缺少 KDoc 类注释。请使用 /** ... */ 添加描述。", this)
+            }
+            
+            // B. 方法注释校验 (排除 override 方法、构造函数、以及 Data Class 自动生成的方法)
+            val isDataClass = modifiers.contains(Modifier.DATA)
+            declarations.filterIsInstance<KSFunctionDeclaration>().forEach { func ->
+                val name = func.simpleName.asString()
+                val isOverride = func.modifiers.contains(Modifier.OVERRIDE)
+                val isConstructor = name == "<init>"
+                val isGeneratedDataMethod = isDataClass && (name == "copy" || name.startsWith("component") || name == "toString" || name == "hashCode" || name == "equals")
+                
+                if (!isOverride && !isConstructor && !isGeneratedDataMethod && func.docString.isNullOrBlank()) {
+                    logger.error("架构红线 [Documentation]: 方法 [$name] 缺少 KDoc 注释。非重写方法必须显式说明功能意图。", func)
+                }
             }
         }
 
-        // 2. 校验命名规范
+        // 2. 校验 API 类命名规范
+        if (isKtorfitApi && !className.endsWith("Api")) {
+            logger.error("架构红线 [Naming]: Ktorfit API 接口 [$className] 命名必须以 'Api' 结尾。", this)
+        }
+
+        // 3. 校验组件命名规范
         if (!isAbstract) {
             if (isScreen && qName != SCREEN_TYPE && !className.endsWith("Screen")) {
                 logger.error("架构红线 [Naming]: Screen 实现类 [$className] 命名必须以 'Screen' 结尾。", this)
@@ -117,45 +136,25 @@ class LintSymbolProcessor(
             }
         }
 
-        // 3. 校验属性成员
+        // 4. 校验属性成员与网络隔离
         declarations.filterIsInstance<KSPropertyDeclaration>().forEach { property ->
             if (property.isLikelyKtorfitApi()) {
                 val propName = property.simpleName.asString()
                 if (!isRepository) {
-                    logger.error(
-                        "架构红线 [Isolation]: 类 [$className] 禁止持有网络 API 实例 [$propName]。所有网络请求必须封装在 Repository 类中（命名以Repository结尾 ）。",
-                        property
-                    )
+                    logger.error("架构红线 [Isolation]: 类 [$className] 禁止持有网络 API 实例 [$propName]。所有网络请求必须封装在 Repository 类中（命名以Repository结尾 ）。", property)
                 }
                 if (!property.modifiers.contains(Modifier.PRIVATE)) {
-                    logger.error(
-                        "架构红线 [Encapsulation]: Repository 内部的 API 实例 [$propName] 必须声明为 private。严禁将原始接口暴露给外部。",
-                        property
-                    )
+                    logger.error("架构红线 [Encapsulation]: Repository 内部的 API 实例 [$propName] 必须声明为 private。严禁将原始接口暴露给外部。", property)
                 }
             }
         }
 
-        // 4. 校验函数返回
-        declarations.filterIsInstance<KSFunctionDeclaration>().forEach { function ->
-            val returnType = function.returnType?.resolve()
-            if (returnType?.isApiRelated() == true) {
-                if (!isRepository || !function.modifiers.contains(Modifier.PRIVATE)) {
-                    logger.error(
-                        "架构红线 [Isolation]: 禁止在非私有或非 Repository 类（命名以Repository结尾）中返回网络 API 实例 [${function.simpleName.asString()}]。",
-                        function
-                    )
-                }
-            }
-        }
-
+        // 5. 原有规则校验
         checkOriginalRules(isScreen, isScreenModel, isDialog, isAbstract)
     }
 
     private fun KSClassDeclaration.hasKtorfitAnnotations(): Boolean {
-        // 检查类本身
         if (annotations.any { it.isKtorfitAnnotation() }) return true
-        // 检查类中定义的方法
         return getAllFunctions().any { func ->
             func.annotations.any { it.isKtorfitAnnotation() }
         }

@@ -5,6 +5,9 @@ import com.basic.common.beans.UserInfo
 import de.jensklingenberg.ktorfit.http.GET
 import de.jensklingenberg.ktorfit.http.Query
 
+/**
+ * 测试模块网络接口
+ */
 interface TestApi {
     /**
      * 根据账号获取用户信息

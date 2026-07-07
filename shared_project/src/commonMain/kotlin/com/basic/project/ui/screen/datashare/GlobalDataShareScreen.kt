@@ -22,6 +22,9 @@ import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 import com.basic.project.ui.menu.CreateMenu
 
+/**
+ * 全局数据共享演示页面
+ */
 @Router(RouterConstant.DATA_SHARE_GLOBAL)
 class GlobalDataShareScreen: BasicScreen() {
     @Composable

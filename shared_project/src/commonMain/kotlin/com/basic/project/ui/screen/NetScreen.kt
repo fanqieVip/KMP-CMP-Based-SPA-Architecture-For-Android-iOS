@@ -30,6 +30,9 @@ import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 import com.basic.common.repository.TestRepository
 
+/**
+ * 网络请求演示页面
+ */
 @Router(RouterConstant.NET)
 class NetScreen : BasicScreen() {
     @Composable

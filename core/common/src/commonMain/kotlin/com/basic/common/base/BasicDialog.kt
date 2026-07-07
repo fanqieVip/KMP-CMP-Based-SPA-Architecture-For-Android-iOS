@@ -14,6 +14,9 @@ import androidx.compose.ui.graphics.Color
 import com.basic.base.ktx.Dialog
 import com.basic.base.ui.NativeDialog
 
+/**
+ * 业务 Dialog 基类
+ */
 abstract class BasicDialog(
     alignment: Alignment = Alignment.Center,
     cancelAble: Boolean = true,
@@ -27,6 +30,9 @@ abstract class BasicDialog(
     exit = animation.exit
 )
 
+/**
+ * 业务 NativeDialog 基类
+ */
 abstract class BasicNativeDialog(
     alignment: Alignment = Alignment.Center,
     cancelAble: Boolean = true,

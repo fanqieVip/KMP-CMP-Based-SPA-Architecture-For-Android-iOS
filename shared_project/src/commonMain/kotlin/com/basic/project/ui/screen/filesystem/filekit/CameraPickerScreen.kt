@@ -35,6 +35,9 @@ import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.exists
 import io.github.vinceglb.filekit.size
 
+/**
+ * 相机拍照选择演示
+ */
 @Router(RouterConstant.FILE_KIT_CAMERA_PICKER)
 class CameraPickerScreen : BasicScreen() {
     @Composable

@@ -35,6 +35,9 @@ import com.basic.common.base.BasicScreenModel
 import com.basic.common.base.BasicTitleBar
 import com.basic.project.ui.screen.lifecycle.embedded.EmbeddedInnerPage
 
+/**
+ * 嵌套模式生命周期演示页面
+ */
 @Router(RouterConstant.LIFECYCLE_EMBEDDED_PAGE)
 class EmbeddedPageScreen : BasicScreen() {
     @Composable
@@ -57,6 +60,9 @@ class EmbeddedPageScreen : BasicScreen() {
         )
     }
 
+    /**
+     * Pager区
+     */
     @Composable
     private fun BuildInnerPage(modifier: Modifier = Modifier) {
         val screenModel = rememberMainScreenModel { EmbeddedPageScreenModel() }
@@ -71,6 +77,9 @@ class EmbeddedPageScreen : BasicScreen() {
         }
     }
 
+    /**
+     * 底部导航
+     */
     @Composable
     private fun BuildNavigationTab(modifier: Modifier = Modifier) {
         val screenModel = rememberMainScreenModel { EmbeddedPageScreenModel() }
@@ -95,6 +104,9 @@ class EmbeddedPageScreen : BasicScreen() {
     }
 }
 
+/**
+ * 嵌套页面模型
+ */
 class EmbeddedPageScreenModel : BasicScreenModel() {
     var current by mutableStateOf("order")
     val tabs = mutableStateListOf<String>("home", "order", "mine")

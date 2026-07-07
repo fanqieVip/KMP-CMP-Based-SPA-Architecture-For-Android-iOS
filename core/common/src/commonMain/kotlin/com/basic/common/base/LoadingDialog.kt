@@ -33,8 +33,15 @@ import com.basic.common.R_com_basic_common
 import com.basic.common.common_loading_icon
 import org.jetbrains.compose.resources.painterResource
 
+/**
+ * 等待框
+ */
 object LoadingDialog : Dialog(cancelAble = false) {
     private var content by mutableStateOf("")
+
+    /**
+     * 显示等待框
+     */
     fun show(dialogController: DialogController, text: String) {
         content = text
         dialogController.showMaxPriority(this)

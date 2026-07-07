@@ -29,6 +29,9 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.absolutePath
 import io.github.vinceglb.filekit.dialogs.openDirectoryPicker
 
+/**
+ * 字典文件选择演示
+ */
 @Router(RouterConstant.FILE_KIT_DICTIONARY_PICKER)
 class DictionaryPickerScreen: BasicScreen() {
     @Composable

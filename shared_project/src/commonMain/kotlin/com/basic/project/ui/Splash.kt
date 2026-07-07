@@ -32,6 +32,12 @@ import io.github.hristogochev.vortex.util.currentOrThrow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
+/**
+ * 启屏页
+ */
+/**
+ * 启动页
+ */
 @Router(RouterConstant.SPLASH)
 class SplashScreen : BasicScreen() {
     override val onAppearTransition: ScreenTransition = ScreenTransitionNone

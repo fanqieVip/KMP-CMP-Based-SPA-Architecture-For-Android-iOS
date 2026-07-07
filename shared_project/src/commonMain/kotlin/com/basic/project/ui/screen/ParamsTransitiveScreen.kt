@@ -12,6 +12,9 @@ import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 import com.basic.project.ui.menu.CreateMenu
 
+/**
+ * 路由参数传递演示页面
+ */
 @Router(RouterConstant.PARAMS_TRANSITIVE)
 class ParamsTransitiveScreen : BasicScreen() {
     @Composable

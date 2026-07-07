@@ -12,6 +12,9 @@ import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 import com.basic.project.ui.menu.CreateMenu
 
+/**
+ * 弹窗系统演示页面
+ */
 @Router(RouterConstant.DIALOG)
 class DialogScreen : BasicScreen() {
     @Composable

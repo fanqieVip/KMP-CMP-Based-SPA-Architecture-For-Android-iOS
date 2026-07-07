@@ -41,6 +41,9 @@ import com.basic.common.base.BasicScreenModel
 import com.basic.common.base.BasicTitleBar
 import com.basic.common.share.RouterConstant
 
+/**
+ * 屏幕内数据共享演示
+ */
 @Router(RouterConstant.DATA_SHARE_SCREEN)
 class ScreenDataShareScreen : BasicScreen() {
     @Composable
@@ -69,6 +72,9 @@ class ScreenDataShareScreen : BasicScreen() {
         )
     }
 
+    /**
+     * 构建内部展示页
+     */
     @Composable
     private fun ColumnScope.BuildInnerPage() {
         val screenModel = rememberMainScreenModel { ScreenDataShareScreenModel() }
@@ -91,6 +97,9 @@ class ScreenDataShareScreen : BasicScreen() {
         }
     }
 
+    /**
+     * 构建底部导航
+     */
     @Composable
     private fun BuildNavigationTab() {
         val screenModel = rememberMainScreenModel { ScreenDataShareScreenModel() }
@@ -198,6 +207,9 @@ fun ScreenDataShareInnerPage2(tag: String) {
     }
 }
 
+/**
+ * 内部页面模型
+ */
 class ScreenDataShareInnerPageScreenModel : BasicScreenModel() {
     var selfInputText by mutableStateOf("")
     override fun onInit(context: ScreenContext) {}
@@ -205,6 +217,9 @@ class ScreenDataShareInnerPageScreenModel : BasicScreenModel() {
     }
 }
 
+/**
+ * 共享数据模型
+ */
 class ScreenDataShareSharedScreenModel : BasicScreenModel() {
     var shareInputText by mutableStateOf("")
     override fun onInit(context: ScreenContext) {
@@ -214,6 +229,9 @@ class ScreenDataShareSharedScreenModel : BasicScreenModel() {
     }
 }
 
+/**
+ * 屏幕数据共享模型
+ */
 class ScreenDataShareScreenModel : BasicScreenModel() {
     var current by mutableStateOf("order")
     val tabs = mutableStateListOf<String>("home", "order")

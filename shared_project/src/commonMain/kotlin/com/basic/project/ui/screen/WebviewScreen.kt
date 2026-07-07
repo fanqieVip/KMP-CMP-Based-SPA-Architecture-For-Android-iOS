@@ -41,6 +41,9 @@ import io.github.hristogochev.vortex.util.currentOrThrow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
+/**
+ * WebView 演示页面
+ */
 @Router(RouterConstant.WEBVIEW)
 class WebviewScreen : BasicScreen() {
 
@@ -141,6 +144,9 @@ class WebviewScreen : BasicScreen() {
     }
 }
 
+/**
+ * WebView 状态模型
+ */
 class WebviewScreenModel : BasicScreenModel() {
     private val url = "http://192.168.30.29:8083/test.html"
 //    private val url = "https://baidu.com"

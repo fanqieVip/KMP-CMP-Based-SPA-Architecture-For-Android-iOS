@@ -12,6 +12,9 @@ import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 import com.basic.project.ui.menu.CreateMenu
 
+/**
+ * 基础交互演示
+ */
 @Router(RouterConstant.SIMPLE_INTERACTION)
 class SimpleInteractionScreen: BasicScreen() {
     @Composable

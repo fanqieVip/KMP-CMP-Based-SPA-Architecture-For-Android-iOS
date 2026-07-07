@@ -30,6 +30,9 @@ import com.basic.common.base.BasicTitleBar
 import io.github.hristogochev.vortex.model.screenModelScope
 import kotlinx.coroutines.delay
 
+/**
+ * 基础交互演示页面
+ */
 @Router(RouterConstant.INTERACTION_BASIC)
 class BasicInteractionScreen : BasicScreen() {
     @Composable
@@ -71,6 +74,9 @@ class BasicInteractionScreen : BasicScreen() {
     }
 }
 
+/**
+ * 基础交互状态模型
+ */
 class BasicInteractionScreenModel : BasicScreenModel() {
     override fun onInit(context: ScreenContext) {
 
@@ -80,6 +86,9 @@ class BasicInteractionScreenModel : BasicScreenModel() {
         loadAnyDataSuccess()
     }
 
+    /**
+     * 模拟加载数据成功
+     */
     fun loadAnyDataSuccess() {
         screenModelScope.launchScope() {
             uiLoading("加载中...")
@@ -88,6 +97,9 @@ class BasicInteractionScreenModel : BasicScreenModel() {
         }
     }
 
+    /**
+     * 模拟加载数据失败
+     */
     fun loadAnyDataError() {
         screenModelScope.launchScope {
             uiLoading("加载中...")
@@ -98,6 +110,9 @@ class BasicInteractionScreenModel : BasicScreenModel() {
         }
     }
 
+    /**
+     * 模拟加载空数据
+     */
     fun loadAnyDataEmpty() {
         screenModelScope.launchScope {
             uiLoading("加载中...")
@@ -108,6 +123,9 @@ class BasicInteractionScreenModel : BasicScreenModel() {
         }
     }
 
+    /**
+     * 模拟提交数据
+     */
     fun submitAnyData() {
         screenModelScope.launchScope {
             showPopLoading("提交中...")

@@ -10,6 +10,9 @@ import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 
+/**
+ * Okio 文件系统演示页面
+ */
 @Router(RouterConstant.FILE_SYSTEM_OKIO)
 class OkioScreen : BasicScreen() {
     @Composable

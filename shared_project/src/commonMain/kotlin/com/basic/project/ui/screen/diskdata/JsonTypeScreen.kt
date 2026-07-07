@@ -29,6 +29,9 @@ import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 
+/**
+ * Json类型演示
+ */
 @Router(RouterConstant.DISK_DATA_JSON_TYPE)
 class JsonTypeScreen: BasicScreen() {
     @Composable

@@ -24,6 +24,9 @@ import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
 import com.basic.common.share.RouterConstant
 
+/**
+ * 普通弹窗演示页面
+ */
 @Router(RouterConstant.DIALOG_NORMAL)
 class NormalDialogScreen : BasicScreen() {
     @Composable
@@ -47,6 +50,9 @@ class NormalDialogScreen : BasicScreen() {
     }
 }
 
+/**
+ * 示例普通弹窗
+ */
 class NormalDialog(private val tag: String, dismiss: (tag: String) -> Unit) : BasicDialog(cancelAble = false) {
     //注意：构造器中函数不要直接写val dismiss: (tag: String) -> Unit, 需要通过by autoClear加载并自动处理清空，避免内存泄漏
     private val dismissCallback by autoClear(dismiss)
