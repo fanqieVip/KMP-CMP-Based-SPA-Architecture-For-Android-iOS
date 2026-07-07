@@ -22,6 +22,10 @@ import com.basic.common.beans.MenuEnum
 import io.github.hristogochev.vortex.navigator.LocalNavigator
 import io.github.hristogochev.vortex.util.currentOrThrow
 
+/**
+ * 创建菜单列表
+ * @param menus 菜单列表数据
+ */
 @Composable
 fun CreateMenu(menus: List<MenuEnum>) {
     val count = menus.size
@@ -35,6 +39,10 @@ fun CreateMenu(menus: List<MenuEnum>) {
     }
 }
 
+/**
+ * 渲染单个菜单项
+ * @param item 菜单项数据
+ */
 @Composable
 private fun MainItem(item: MenuEnum) {
     val navigator = LocalNavigator.currentOrThrow

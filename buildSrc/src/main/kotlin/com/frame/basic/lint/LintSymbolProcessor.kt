@@ -4,10 +4,12 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.FileLocation
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
@@ -45,26 +47,22 @@ class LintSymbolProcessor(
         val settingsImportRegex = Regex("import\\s+${FORBIDDEN_SETTINGS_IMPORT.replace(".", "\\.")}(\\s+|$)")
 
         resolver.getAllFiles().forEach { file ->
-            val fileLines = File(file.filePath).readLines()
-            if (moduleName != "base") {
-                fileLines.takeWhile { line ->
-                    val trimmed = line.trim()
-                    trimmed.isEmpty() || trimmed.startsWith("package") || trimmed.startsWith("import") || trimmed.startsWith("/") || trimmed.startsWith("*") || trimmed.startsWith("@")
-                }.forEach { line ->
-                    if (line.contains(FORBIDDEN_REMEMBER_METHOD)) {
-                        logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 rememberScreenModel。原因：它无法触发业务生命周期。请统一使用项目封装的 rememberMainScreenModel。", file)
-                    }
-                    if (screenImportRegex.containsMatchIn(line)) {
-                        logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 Screen 作为基类。请统一继承项目封装的 BaseScreen (或 BasicScreen) 以确保生命周期与 Trace 链路正常。", file)
-                    }
-                    if (settingsImportRegex.containsMatchIn(line)) {
-                        logger.error("架构红线 [Forbidden]: 禁止直接使用 MultiplatformSettings 的 Settings。原因：为了确保数据的一致性与响应式更新，请统一使用 core/base 中封装的 settings.asFlowXXX 系列 API。", file)
-                    }
-                }
+            val filePath = file.filePath
+            if (filePath.contains("build/generated/") || filePath.contains("build/generated-src/")) {
+                return@forEach
             }
 
-            file.declarations.filterIsInstance<KSClassDeclaration>().forEach { 
-                it.checkArchitectureRules(screenType, screenModelType, dialogType, nativeDialogType, fileLines) 
+            val fileLines = File(filePath).readLines()
+            
+            // 1. 导入检查
+            checkImportRules(file, moduleName, fileLines, screenImportRegex, settingsImportRegex)
+
+            // 2. 声明检查 (顶级函数与类)
+            file.declarations.forEach { declaration ->
+                when (declaration) {
+                    is KSClassDeclaration -> declaration.checkClassRules(screenType, screenModelType, dialogType, nativeDialogType, fileLines)
+                    is KSFunctionDeclaration -> declaration.checkFunctionRules()
+                }
             }
         }
 
@@ -72,116 +70,127 @@ class LintSymbolProcessor(
         return emptyList()
     }
 
-    private fun KSClassDeclaration.checkArchitectureRules(
+    private fun checkImportRules(file: KSFile, moduleName: String, fileLines: List<String>, screenRegex: Regex, settingsRegex: Regex) {
+        if (moduleName == "base") return
+        fileLines.takeWhile { line ->
+            val trimmed = line.trim()
+            trimmed.isEmpty() || trimmed.startsWith("package") || trimmed.startsWith("import") || trimmed.startsWith("/") || trimmed.startsWith("*") || trimmed.startsWith("@")
+        }.forEach { line ->
+            if (line.contains(FORBIDDEN_REMEMBER_METHOD)) {
+                logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 rememberScreenModel。请统一使用 rememberMainScreenModel。", file)
+            }
+            if (screenRegex.containsMatchIn(line)) {
+                logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 Screen 作为基类。请统一继承项目封装的 BaseScreen。", file)
+            }
+            if (settingsRegex.containsMatchIn(line)) {
+                logger.error("架构红线 [Forbidden]: 禁止直接使用 Settings。请统一使用 core/base 封装的 settings.asFlowXXX 系列 API。", file)
+            }
+        }
+    }
+
+    private fun KSClassDeclaration.checkClassRules(
         screenType: KSType?,
         screenModelType: KSType?,
         dialogType: KSType?,
         nativeDialogType: KSType?,
         fileLines: List<String>
     ) {
-        declarations.filterIsInstance<KSClassDeclaration>().forEach { 
-            it.checkArchitectureRules(screenType, screenModelType, dialogType, nativeDialogType, fileLines) 
+        if (classKind == ClassKind.ENUM_CLASS || classKind == ClassKind.ENUM_ENTRY) return
+
+        // 递归检查成员
+        declarations.forEach { declaration ->
+            when (declaration) {
+                is KSClassDeclaration -> declaration.checkClassRules(screenType, screenModelType, dialogType, nativeDialogType, fileLines)
+                is KSFunctionDeclaration -> declaration.checkFunctionRules(modifiers.contains(Modifier.DATA))
+                is KSPropertyDeclaration -> declaration.checkPropertyRule(this, fileLines)
+            }
         }
 
         val selfType = asStarProjectedType()
         val className = simpleName.asString()
-        val qName = qualifiedName?.asString() ?: ""
-        val isRepository = className.endsWith("Repository")
         val isScreen = screenType?.isAssignableFrom(selfType) == true
         val isScreenModel = screenModelType?.isAssignableFrom(selfType) == true
-        val isBaseDialog = dialogType?.isAssignableFrom(selfType) == true
-        val isBaseNativeDialog = nativeDialogType?.isAssignableFrom(selfType) == true
-        val isDialog = isBaseDialog || isBaseNativeDialog
+        val isDialog = (dialogType?.isAssignableFrom(selfType) == true) || (nativeDialogType?.isAssignableFrom(selfType) == true)
         val isAbstract = modifiers.contains(Modifier.ABSTRACT)
-        val isKtorfitApi = this.hasKtorfitAnnotations()
-        val isDataClass = modifiers.contains(Modifier.DATA)
 
-        // 1. 校验文档注释红线
-        if (isScreen || isScreenModel || isDialog || isRepository || isKtorfitApi || isDataClass) {
-            val typeLabel = when {
-                isDataClass -> "Data Class"
-                isScreen -> "Screen"
-                isScreenModel -> "ScreenModel"
-                isDialog -> "Dialog"
-                isRepository -> "Repository"
-                isKtorfitApi -> "Api"
-                else -> "类"
-            }
-
-            // A. 类注释校验
-            val classDoc = docString
-            if (classDoc.isNullOrBlank()) {
-                logger.error("架构红线 [Documentation]: $typeLabel [$className] 缺少 KDoc 类注释。请使用 /** ... */ 添加描述。", this)
-            } else {
-                // B. 构造器参数校验：强制要求在类注释中使用 @param 标注构造器中的所有参数
-                primaryConstructor?.parameters?.forEach { param ->
-                    val paramName = param.name?.asString() ?: ""
-                    if (!classDoc.contains("@param $paramName")) {
-                        logger.error("架构红线 [Documentation]: $typeLabel [$className] 的构造参数 [$paramName] 必须在类 KDoc 中通过 @param 进行注释说明。", param)
-                    }
-                }
-            }
-            
-            // C. 方法注释校验 (排除 override 方法、构造函数、以及 Data Class 自动生成的方法)
-            declarations.filterIsInstance<KSFunctionDeclaration>().forEach { func ->
-                val name = func.simpleName.asString()
-                val isOverride = func.modifiers.contains(Modifier.OVERRIDE)
-                val isConstructor = name == "<init>"
-                val isGeneratedDataMethod = isDataClass && (name == "copy" || name.startsWith("component") || name == "toString" || name == "hashCode" || name == "equals")
-                
-                if (!isOverride && !isConstructor && !isGeneratedDataMethod && func.docString.isNullOrBlank()) {
-                    logger.error("架构红线 [Documentation]: 方法 [$name] 缺少 KDoc 注释。非重写方法必须显式说明功能意图。", func)
-                }
-            }
-
-            // D. 成员变量注释校验 (排除重写变量和构造器参数变量)
-            declarations.filterIsInstance<KSPropertyDeclaration>().forEach { prop ->
-                val isOverride = prop.modifiers.contains(Modifier.OVERRIDE)
-                // 检查该属性是否来源于构造函数
-                val isConstructorParam = primaryConstructor?.parameters?.any { it.name?.asString() == prop.simpleName.asString() } == true
-                
-                if (!isOverride && !isConstructorParam && !prop.hasAnyComment(fileLines)) {
-                    logger.error("架构红线 [Documentation]: $typeLabel 成员变量 [${prop.simpleName.asString()}] 缺少注释 (/** */ 或 //)。", prop)
+        // A. 类 KDoc 校验
+        val classDoc = docString
+        if (classDoc.isNullOrBlank()) {
+            logger.error("架构红线 [Documentation]: 类 [$className] 缺少 KDoc 类注释 (/** ... */)。", this)
+        } else {
+            // B. 构造参数属性 @param 校验
+            primaryConstructor?.parameters?.filter { it.isVal || it.isVar }?.forEach { param ->
+                val paramName = param.name?.asString() ?: ""
+                if (!classDoc.contains("@param $paramName")) {
+                    logger.error("架构红线 [Documentation]: 类 [$className] 的构造参数属性 [$paramName] 必须在类 KDoc 中通过 @param 标注。", param)
                 }
             }
         }
 
-        // 2. 校验 API 类命名规范
-        if (isKtorfitApi && !className.endsWith("Api")) {
+        // C. 命名与隔离规则
+        if (!isAbstract) {
+            val qName = qualifiedName?.asString() ?: ""
+            if (isScreen && qName != SCREEN_TYPE && !className.endsWith("Screen")) logger.error("架构红线 [Naming]: Screen 实现类 [$className] 必须以 'Screen' 结尾。", this)
+            if (isScreenModel && qName != SCREEN_MODEL_TYPE && !className.endsWith("ScreenModel")) logger.error("架构红线 [Naming]: ScreenModel 实现类 [$className] 必须以 'ScreenModel' 结尾。", this)
+            if (isDialog && qName != DIALOG_TYPE && qName != NATIVE_DIALOG_TYPE && !className.endsWith("Dialog") && !className.endsWith("NativeDialog")) {
+                logger.error("架构红线 [Naming]: 弹窗实现类 [$className] 命名不规范。", this)
+            }
+        }
+
+        if (this.hasKtorfitAnnotations() && !className.endsWith("Api")) {
             logger.error("架构红线 [Naming]: Ktorfit API 接口 [$className] 命名必须以 'Api' 结尾。", this)
         }
 
-        // 3. 校验组件命名规范
-        if (!isAbstract) {
-            if (isScreen && qName != SCREEN_TYPE && !className.endsWith("Screen")) {
-                logger.error("架构红线 [Naming]: Screen 实现类 [$className] 命名必须以 'Screen' 结尾。", this)
-            }
-            if (isScreenModel && qName != SCREEN_MODEL_TYPE && !className.endsWith("ScreenModel")) {
-                logger.error("架构红线 [Naming]: ScreenModel 实现类 [$className] 命名必须以 'ScreenModel' 结尾。", this)
-            }
-            if (isBaseDialog && qName != DIALOG_TYPE && !className.endsWith("Dialog")) {
-                logger.error("架构红线 [Naming]: Dialog 实现类 [$className] 命名必须以 'Dialog' 结尾。", this)
-            }
-            if (isBaseNativeDialog && qName != NATIVE_DIALOG_TYPE && !className.endsWith("NativeDialog")) {
-                logger.error("架构红线 [Naming]: NativeDialog 实现类 [$className] 命名必须以 'NativeDialog' 结尾。", this)
+        // 网络隔离
+        checkIsolationRules(className)
+    }
+
+    private fun KSPropertyDeclaration.checkPropertyRule(parent: KSClassDeclaration, fileLines: List<String>) {
+        val isOverride = modifiers.contains(Modifier.OVERRIDE)
+        val propName = simpleName.asString()
+        val isConstructorParam = parent.primaryConstructor?.parameters?.any { it.name?.asString() == propName } == true
+        
+        if (!isOverride && !isConstructorParam && !hasAnyComment(fileLines)) {
+            logger.error("架构红线 [Documentation]: 成员变量 [$propName] 缺少注释 (/** */ 或 //)。", this)
+        }
+    }
+
+    private fun KSFunctionDeclaration.checkFunctionRules(isDataClass: Boolean = false) {
+        val name = simpleName.asString()
+        if (modifiers.contains(Modifier.OVERRIDE) || name == "<init>") return
+        if (isDataClass && (name == "copy" || name.startsWith("component") || name == "toString" || name == "hashCode" || name == "equals")) return
+
+        val doc = docString
+        if (doc.isNullOrBlank()) {
+            logger.error("架构红线 [Documentation]: 方法 [$name] 缺少 KDoc 注释 (/** ... */)。", this)
+            return
+        }
+
+        // 参数校验
+        parameters.forEach { param ->
+            val paramName = param.name?.asString() ?: ""
+            if (!doc.contains("@param $paramName")) {
+                logger.error("架构红线 [Documentation]: 方法 [$name] 的参数 [$paramName] 必须在 KDoc 中通过 @param 标注。", param)
             }
         }
 
-        // 4. 校验属性成员与网络隔离
+        // 返回值校验
+        val returnTypeRes = returnType?.resolve()
+        if (returnTypeRes != null && returnTypeRes.declaration.qualifiedName?.asString() != "kotlin.Unit") {
+            if (!doc.contains("@return")) {
+                logger.error("架构红线 [Documentation]: 方法 [$name] 必须在 KDoc 中通过 @return 说明返回值。", this)
+            }
+        }
+    }
+
+    private fun KSClassDeclaration.checkIsolationRules(className: String) {
+        val isRepository = className.endsWith("Repository")
         declarations.filterIsInstance<KSPropertyDeclaration>().forEach { property ->
             if (property.isLikelyKtorfitApi()) {
-                val propName = property.simpleName.asString()
-                if (!isRepository) {
-                    logger.error("架构红线 [Isolation]: 类 [$className] 禁止持有网络 API 实例 [$propName]。所有网络请求必须封装在 Repository 类中（命名以Repository结尾 ）。", property)
-                }
-                if (!property.modifiers.contains(Modifier.PRIVATE)) {
-                    logger.error("架构红线 [Encapsulation]: Repository 内部的 API 实例 [$propName] 必须声明为 private。严禁将原始接口暴露给外部。", property)
-                }
+                if (!isRepository) logger.error("架构红线 [Isolation]: 类 [$className] 禁止持有网络 API 实例。", property)
+                if (!property.modifiers.contains(Modifier.PRIVATE)) logger.error("架构红线 [Encapsulation]: API 实例必须声明为 private。", property)
             }
         }
-
-        // 5. 原有规则校验
-        checkOriginalRules(isScreen, isScreenModel, isDialog, isAbstract)
     }
 
     private fun KSPropertyDeclaration.hasAnyComment(fileLines: List<String>): Boolean {
@@ -189,75 +198,28 @@ class LintSymbolProcessor(
         val loc = location as? FileLocation ?: return false
         val lineIndex = loc.lineNumber - 1
         if (lineIndex < 0 || lineIndex >= fileLines.size) return false
-        
         val currentLine = fileLines[lineIndex]
         if (currentLine.contains("//")) return true
-        
-        if (lineIndex > 0) {
-            val prevLine = fileLines[lineIndex - 1].trim()
-            if (prevLine.startsWith("//")) return true
-        }
+        if (lineIndex > 0 && fileLines[lineIndex - 1].trim().startsWith("//")) return true
         return false
     }
 
-    private fun KSClassDeclaration.hasKtorfitAnnotations(): Boolean {
-        if (annotations.any { it.isKtorfitAnnotation() }) return true
-        return getAllFunctions().any { func ->
-            func.annotations.any { it.isKtorfitAnnotation() }
-        }
-    }
+    private fun KSClassDeclaration.hasKtorfitAnnotations(): Boolean = 
+        annotations.any { it.isKtorfitAnnotation() } || getAllFunctions().any { it.annotations.any { a -> a.isKtorfitAnnotation() } }
 
     private fun KSAnnotation.isKtorfitAnnotation(): Boolean {
         val fullName = annotationType.resolve().declaration.qualifiedName?.asString() ?: ""
-        val shortNameValue = shortName.asString()
-        return fullName.startsWith(KTORFIT_ANNOTATION_PACKAGE) || ktorfitAnnotations.contains(shortNameValue)
+        return fullName.startsWith(KTORFIT_ANNOTATION_PACKAGE) || ktorfitAnnotations.contains(shortName.asString())
     }
 
     private fun KSPropertyDeclaration.isLikelyKtorfitApi(): Boolean {
-        val directType = type.resolve()
-        if (directType.isApiRelated()) return true
-        if (simpleName.asString().endsWith("Api", ignoreCase = true)) return true
-        return false
+        val type = type.resolve()
+        return type.isApiRelated() || simpleName.asString().endsWith("Api", ignoreCase = true)
     }
 
-    private fun KSType.isApiRelated(): Boolean {
-        if (isKtorfitApiType()) return true
-        if (declaration.simpleName.asString() == "Lazy") {
-            return arguments.any { 
-                val innerType = it.type?.resolve()
-                innerType?.isKtorfitApiType() == true || innerType?.declaration?.simpleName?.asString()?.endsWith("Api", ignoreCase = true) == true 
-            }
-        }
-        return false
-    }
+    private fun KSType.isApiRelated(): Boolean = isKtorfitApiType() || (declaration.simpleName.asString() == "Lazy" && arguments.any { it.type?.resolve()?.isKtorfitApiType() == true })
 
-    private fun KSType.isKtorfitApiType(): Boolean {
-        val decl = declaration as? KSClassDeclaration ?: return false
-        if (decl.simpleName.asString().endsWith("Api", ignoreCase = true)) return true
-        return decl.hasKtorfitAnnotations()
-    }
+    private fun KSType.isKtorfitApiType(): Boolean = (declaration as? KSClassDeclaration)?.let { it.simpleName.asString().endsWith("Api", ignoreCase = true) || it.hasKtorfitAnnotations() } ?: false
 
-    private fun KSClassDeclaration.checkOriginalRules(isScreen: Boolean, isScreenModel: Boolean, isDialog: Boolean, isAbstract: Boolean) {
-        if (isScreen && !isAbstract) {
-            if (annotations.none { it.annotationType.resolve().declaration.qualifiedName?.asString() == "com.basic.base.router.Router" }) {
-                logger.error("架构红线 [Forbidden]: Screen 实现类 [${simpleName.asString()}] 必须添加 @Router 注解。", this)
-            }
-            primaryConstructor?.parameters?.forEach { param ->
-                if (param.annotations.none { it.annotationType.resolve().declaration.qualifiedName?.asString() == "com.basic.base.router.Params" }) {
-                    logger.error("架构红线 [Forbidden]: Screen 实现类 [${simpleName.asString()}] 的构造参数 [${param.name?.asString()}] 必须添加 @Params 注解。", param)
-                }
-            }
-        }
-        if ((isScreen || isScreenModel)) {
-            primaryConstructor?.parameters?.forEach { if (it.type.resolve().isFunctionType()) logger.error("架构红线 [Forbidden]: 页面/模型类 [${simpleName.asString()}] 构造器禁止包含函数参数。", it) }
-        }
-        if (isDialog) {
-            primaryConstructor?.parameters?.forEach { if ((it.isVal || it.isVar) && it.type.resolve().isFunctionType()) logger.error("架构红线 [Memory Leak]: Dialog 子类 [${simpleName.asString()}] 构造参数 [${it.name?.asString()}] 不允许使用 val/var。", it) }
-        }
-    }
-
-    private fun KSType.isFunctionType(): Boolean {
-        val name = declaration.qualifiedName?.asString() ?: ""
-        return name.startsWith("kotlin.Function") || name.startsWith("kotlin.coroutines.SuspendFunction")
-    }
+    private fun KSType.isFunctionType(): Boolean = declaration.qualifiedName?.asString()?.let { it.startsWith("kotlin.Function") || it.startsWith("kotlin.coroutines.SuspendFunction") } ?: false
 }

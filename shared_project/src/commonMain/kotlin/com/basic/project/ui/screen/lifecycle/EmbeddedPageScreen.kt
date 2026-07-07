@@ -63,6 +63,7 @@ class EmbeddedPageScreen : BasicScreen() {
 
     /**
      * Pager区
+     * @param modifier
      */
     @Composable
     private fun BuildInnerPage(modifier: Modifier = Modifier) {
@@ -80,6 +81,7 @@ class EmbeddedPageScreen : BasicScreen() {
 
     /**
      * 底部导航
+     * @param modifier
      */
     @Composable
     private fun BuildNavigationTab(modifier: Modifier = Modifier) {

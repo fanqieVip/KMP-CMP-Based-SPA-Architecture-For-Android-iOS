@@ -42,6 +42,8 @@ object LoadingDialog : Dialog(cancelAble = false) {
 
     /**
      * 显示等待框
+     * @param dialogController 弹窗控制器
+     * @param text 等待框文本
      */
     fun show(dialogController: DialogController, text: String) {
         content = text

@@ -24,6 +24,7 @@ data class Data<T>(
 ) {
     /**
      * 只要不是成功都抛出异常
+     * @return 返回业务数据
      */
     fun throwFail(): T? {
         if (code != HTTP_SUCCESS) {

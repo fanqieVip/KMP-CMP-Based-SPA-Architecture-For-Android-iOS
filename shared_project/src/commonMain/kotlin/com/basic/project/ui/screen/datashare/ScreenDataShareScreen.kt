@@ -135,6 +135,10 @@ class ScreenDataShareScreen : BasicScreen() {
     }
 }
 
+/**
+ * 屏幕内数据共享内部页面1
+ * @param tag 页面标识
+ */
 @Composable
 fun ScreenDataShareInnerPage(tag: String) {
     val model = rememberMainScreenModel(tag) { ScreenDataShareInnerPageScreenModel() }
@@ -171,6 +175,10 @@ fun ScreenDataShareInnerPage(tag: String) {
     }
 }
 
+/**
+ * 屏幕内数据共享内部页面2
+ * @param tag 页面标识
+ */
 @Composable
 fun ScreenDataShareInnerPage2(tag: String) {
     val model = rememberMainScreenModel(tag) { ScreenDataShareInnerPageScreenModel() }

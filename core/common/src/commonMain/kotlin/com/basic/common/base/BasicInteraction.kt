@@ -41,6 +41,15 @@ import com.basic.common.common_fail_icon
 import com.basic.common.common_loading_icon
 import org.jetbrains.compose.resources.painterResource
 
+/**
+ * Basic主交互组件
+ * @param screenModel 绑定的主要ScreenModel
+ * @param onLoading 加载中样式
+ * @param onPopLoading 提交数据处理中样式
+ * @param onEmpty 空数据样式
+ * @param onError 错误样式
+ * @param content 主要内容样式
+ */
 @Composable
 fun BasicInteraction(
     screenModel: MainScreenModel,
@@ -84,6 +93,11 @@ fun BasicInteraction(
     )
 }
 
+/**
+ * Basic加载中样式
+ * @param modifier 修饰符
+ * @param text 加载中文本
+ */
 @Composable
 fun BasicLoading(modifier: Modifier, text: String?) {
     Column(
@@ -107,6 +121,13 @@ fun BasicLoading(modifier: Modifier, text: String?) {
     }
 }
 
+/**
+ * Basic错误样式
+ * @param modifier 修饰符
+ * @param code 错误码
+ * @param error 错误详情
+ * @param clickRefresh 点击刷新回调
+ */
 @Composable
 fun BasicError(modifier: Modifier, code: Int, error: String?, clickRefresh: () -> Unit) {
     Column(

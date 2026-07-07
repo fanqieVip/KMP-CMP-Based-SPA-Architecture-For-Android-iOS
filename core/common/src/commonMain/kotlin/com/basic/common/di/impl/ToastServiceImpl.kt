@@ -18,6 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basic.base.di.service.ToastService
 
+/**
+ * ToastService的SPI实现类
+ */
 class ToastServiceImpl: ToastService {
     override fun toastUi(isVisible: Boolean, text: String): @Composable (BoxScope.() -> Unit) = {
         Box(

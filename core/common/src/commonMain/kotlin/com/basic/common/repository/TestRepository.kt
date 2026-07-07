@@ -14,6 +14,8 @@ object TestRepository {
 
     /**
      * 查询用户信息
+     * @param username 用户名
+     * @return 用户资料
      */
     suspend fun queryUserInfo(username: String): Data<UserInfo?> {
         return testApi.queryUserInfo(username)

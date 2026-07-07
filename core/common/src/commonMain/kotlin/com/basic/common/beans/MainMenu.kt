@@ -2,8 +2,13 @@ package com.basic.common.beans
 
 import com.basic.common.share.RouterConstant
 
+/**
+ * 菜单枚举
+ */
 interface MenuEnum {
+    //标题
     val title: String
+    //路径
     val path: String
 }
 

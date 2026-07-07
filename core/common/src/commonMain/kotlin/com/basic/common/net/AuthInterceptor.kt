@@ -7,6 +7,9 @@ import io.ktor.util.AttributeKey
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
+/**
+ * 会话拦截器
+ */
 class AuthInterceptor : HttpClientPlugin<Unit, AuthInterceptor> {
     override val key: AttributeKey<AuthInterceptor> = AttributeKey<AuthInterceptor>("AuthInterceptor")
 

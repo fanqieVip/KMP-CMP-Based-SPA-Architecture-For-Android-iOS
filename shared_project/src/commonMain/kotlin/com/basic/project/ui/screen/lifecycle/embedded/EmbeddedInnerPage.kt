@@ -27,6 +27,11 @@ import io.github.hristogochev.vortex.navigator.LocalNavigator
 import io.github.hristogochev.vortex.util.currentOrThrow
 
 
+/**
+ * 嵌套内页组件
+ * @param title 页面标题
+ * @param screenModel 页面状态模型
+ */
 @Composable
 fun EmbeddedInnerPage(title: String, screenModel: EmbeddedInnerPageScreenModel = rememberMainScreenModel(title) { EmbeddedInnerPageScreenModel() }){
     val scaffoldContentPadding = LocalHazeScaffoldContentPadding.current

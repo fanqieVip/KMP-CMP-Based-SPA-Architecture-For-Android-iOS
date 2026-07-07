@@ -75,6 +75,26 @@ import org.jetbrains.compose.resources.painterResource
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+/**
+ * 业务层通用列表刷新组件
+ * @param modifier 修饰符
+ * @param dataSize 数据长度
+ * @param state 刷新状态
+ * @param childScrollState 列表滚动状态
+ * @param canPullDownRefresh 是否允许下拉刷新
+ * @param contentPadding 内容内边距
+ * @param horizontalAlignment 水平对齐方式
+ * @param verticalArrangement 垂直排列方式
+ * @param flingBehavior 滚动行为
+ * @param overscrollEffect 越界效果
+ * @param refreshThreshold 刷新阈值
+ * @param refreshingOffset 刷新中偏移量
+ * @param backdropColor 背景颜色
+ * @param stickyHeader 吸顶头部
+ * @param refreshHeader 刷新头部
+ * @param refreshFooter 刷新底部
+ * @param content 列表项
+ */
 @Composable
 fun BasicRefreshLazyListInteraction(
     modifier: Modifier,
@@ -120,6 +140,27 @@ fun BasicRefreshLazyListInteraction(
     )
 }
 
+/**
+ * 业务层通用瀑布流刷新组件
+ * @param modifier 修饰符
+ * @param columns 列数配置
+ * @param dataSize 数据长度
+ * @param state 刷新状态
+ * @param childScrollState 列表滚动状态
+ * @param canPullDownRefresh 是否允许下拉刷新
+ * @param contentPadding 内容内边距
+ * @param horizontalArrangement 水平排列方式
+ * @param verticalItemSpacing 垂直项间距
+ * @param flingBehavior 滚动行为
+ * @param overscrollEffect 越界效果
+ * @param refreshThreshold 刷新阈值
+ * @param refreshingOffset 刷新中偏移量
+ * @param backdropColor 背景颜色
+ * @param refreshHeader 刷新头部
+ * @param refreshFooter 刷新底部
+ * @param stickyHeader 吸顶头部
+ * @param content 列表项
+ */
 @Composable
 fun BasicRefreshStaggeredGridInteraction(
     modifier: Modifier,
@@ -167,6 +208,27 @@ fun BasicRefreshStaggeredGridInteraction(
     )
 }
 
+/**
+ * 业务层通用网格刷新组件
+ * @param modifier 修饰符
+ * @param columns 列数配置
+ * @param dataSize 数据长度
+ * @param state 刷新状态
+ * @param childScrollState 列表滚动状态
+ * @param canPullDownRefresh 是否允许下拉刷新
+ * @param contentPadding 内容内边距
+ * @param horizontalArrangement 水平排列方式
+ * @param verticalArrangement 垂直排列方式
+ * @param flingBehavior 滚动行为
+ * @param overscrollEffect 越界效果
+ * @param refreshThreshold 刷新阈值
+ * @param refreshingOffset 刷新中偏移量
+ * @param backdropColor 背景颜色
+ * @param refreshHeader 刷新头部
+ * @param refreshFooter 刷新底部
+ * @param stickyHeader 吸顶头部
+ * @param content 列表项
+ */
 @Composable
 fun BasicRefreshLazyGridInteraction(
     modifier: Modifier,
@@ -217,13 +279,19 @@ fun BasicRefreshLazyGridInteraction(
 private const val AnimationDurationMs = 150 //箭头动画时间
 private val animationSpec = tween<Float>(durationMillis = AnimationDurationMs)
 
-// 自定义补零函数
+/**
+ * 自定义补零函数
+ * @param value 输入数值
+ * @return 补零后的字符串
+ */
 private fun padZero(value: Int): String {
     return if (value < 10) "0$value" else value.toString()
 }
 
 /**
  * 获取刷新时间
+ * @param time 刷新时间
+ * @return 格式化后的刷新时间字符串
  */
 private fun getRefreshTime(time: Instant): String {
     val instantFromMillis = Instant.fromEpochMilliseconds(time.toEpochMilliseconds())
@@ -239,6 +307,10 @@ private fun getRefreshTime(time: Instant): String {
     return "上次刷新：$formattedTime"
 }
 
+/**
+ * 刷新头部组件
+ * @param refreshRefreshState 刷新状态
+ */
 @Composable
 private fun RefreshHeader(refreshRefreshState: RefreshState) {
     val state = refreshRefreshState.state.collectAsState().value
@@ -333,6 +405,10 @@ private fun RefreshHeader(refreshRefreshState: RefreshState) {
     }
 }
 
+/**
+ * 刷新底部组件
+ * @param refreshRefreshState 刷新状态
+ */
 @Composable
 private fun RefreshFooter(refreshRefreshState: RefreshState) {
     val state = refreshRefreshState.state.collectAsState().value

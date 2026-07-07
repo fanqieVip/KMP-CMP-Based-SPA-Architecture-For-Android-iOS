@@ -28,6 +28,12 @@ import io.github.hristogochev.vortex.navigator.LocalNavigator
 import io.github.hristogochev.vortex.util.currentOrThrow
 import org.jetbrains.compose.resources.painterResource
 
+/**
+ * 业务层通用标题栏
+ * @param title 标题文本
+ * @param left 左侧组件
+ * @param right 右侧组件
+ */
 @Composable
 fun BasicTitleBar(
     title: String,
@@ -44,6 +50,13 @@ fun BasicTitleBar(
     )
 }
 
+/**
+ * 业务层通用标题栏（底层支持）
+ * @param modifier 修饰符
+ * @param center 中间标题内容
+ * @param left 左侧组件内容
+ * @param right 右侧组件内容
+ */
 @Composable
 fun BasicTitleBar(
     modifier: Modifier,
@@ -63,6 +76,10 @@ fun BasicTitleBar(
     }
 }
 
+/**
+ * 标题栏左侧默认返回按钮
+ * @param modifier 修饰符
+ */
 @Composable
 fun TitleBarLeft(modifier: Modifier) {
     val pageController = LocalNavigator.currentOrThrow
@@ -76,6 +93,11 @@ fun TitleBarLeft(modifier: Modifier) {
     }
 }
 
+/**
+ * 标题栏左侧按钮核心实现
+ * @param modifier 修饰符
+ * @param onClick 点击回调
+ */
 @Composable
 fun TitleBarLeftCore(modifier: Modifier, onClick: () -> Unit) {
     Box(modifier = modifier.padding(horizontal = 10.dp, vertical = 5.dp).clickable {
@@ -85,6 +107,10 @@ fun TitleBarLeftCore(modifier: Modifier, onClick: () -> Unit) {
     }
 }
 
+/**
+ * 标题栏右侧默认首页按钮
+ * @param modifier 修饰符
+ */
 @Composable
 fun TitleBarRight(modifier: Modifier) {
     val navigator = LocalNavigator.currentOrThrow

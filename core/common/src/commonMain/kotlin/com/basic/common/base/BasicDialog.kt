@@ -56,6 +56,8 @@ abstract class BasicNativeDialog(
 
 /**
  * 预定义弹窗动画密封类
+ * @param enter 弹窗进入动画
+ * @param exit 弹窗退出动画
  */
 sealed class DialogAnimation(val enter: EnterTransition, val exit: ExitTransition) {
     /**

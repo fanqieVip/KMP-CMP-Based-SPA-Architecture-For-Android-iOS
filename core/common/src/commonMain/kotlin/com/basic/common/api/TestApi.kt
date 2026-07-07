@@ -11,6 +11,8 @@ import de.jensklingenberg.ktorfit.http.Query
 interface TestApi {
     /**
      * 根据账号获取用户信息
+     * @param username 用户名
+     * @return 用户资料
      */
     @GET("/user/getUserPublicInfo")
     suspend fun queryUserInfo(@Query("username") username: String): Data<UserInfo?>

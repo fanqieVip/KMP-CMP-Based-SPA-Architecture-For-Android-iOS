@@ -90,6 +90,7 @@ class PermissionScreenModel() : BasicScreenModel() {
 
     /**
      * 申请录音权限
+     * @param permissionController
      */
     fun applyPermission(permissionController: PermissionController) {
         screenModelScope.launchScope {

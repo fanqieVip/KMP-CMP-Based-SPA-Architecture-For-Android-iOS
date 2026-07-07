@@ -62,6 +62,7 @@ class EmbeddedSlidePageScreen : BasicScreen() {
 
     /**
      * 构建内部页面内容
+     * @param modifier
      */
     @Composable
     private fun BuildInnerPage(modifier: Modifier = Modifier) {
@@ -82,6 +83,7 @@ class EmbeddedSlidePageScreen : BasicScreen() {
 
     /**
      * 构建顶部导航标签
+     * @param modifier
      */
     @Composable
     private fun BuildNavigationTab(modifier: Modifier = Modifier) {
