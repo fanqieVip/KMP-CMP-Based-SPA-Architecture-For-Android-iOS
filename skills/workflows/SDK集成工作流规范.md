@@ -187,7 +187,9 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 接口设计红线：
 - `commonMain` 严禁暴露 `Intent`、`Bundle`、`Activity`、`UIViewController`、`NSDictionary`、`NSData` 等平台类型。
 - 平台模型必须在 `androidMain`/`iosMain` 转换为 common data class、sealed class 或 JSON 字符串。
+- SDK common 层新增或修改对业务方可见的参数模型、结果模型、状态模型、协议项模型时，必须补齐 `@Serializable`，除非能明确证明该模型只在平台实现内部使用。
 - 一键登录类 SDK 的授权页 UI 配置不得抽象成跨项目通用 DSL 或大而全配置对象；`commonMain` 只暴露初始化、预取号、一键登录、关闭授权页、清缓存、版本查询、状态结果等稳定能力，授权页 UI 在对应 SDK 模块的平台实现内按项目直接修改。
+- 一键登录类 SDK 的协议/隐私政策文案必须按平台能力实现富文本高亮与点击；多协议时必须保留标题与链接的映射关系。若平台暂不具备精确 range 点击能力，至少保证协议区域可点击，并在 `libs/<name>/docs/` 记录降级原因和后续可改进方向。
 - 双端能力不一致时，必须明确：
   - 是否隐藏该能力。
   - 是否在缺失平台抛 `UnsupportedOperationException`。
@@ -246,6 +248,8 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 | Debug 日志/集成检测不进 release | 通过/失败 | 版本判断 |
 | SDK 资料已归档 | 通过/失败 | `libs/<name>/docs/` |
 | 回调字段路径已审计 | 通过/失败 | 字段路径矩阵/示例 payload |
+| 公共模型已序列化 | 通过/失败/不适用 | `@Serializable` |
+| 协议文案可点击 | 通过/失败/不适用 | 高亮、链接映射、降级记录 |
 | 异步初始化结果已协程化 | 通过/失败/不适用 | `suspend init(...): ResultModel` 或说明 |
 | 编译或替代验证完成 | 通过/失败 | 命令与结果 |
 
