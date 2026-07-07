@@ -25,7 +25,7 @@
 ### 网络 API
 - `Http`：Ktorfit 网络客户端
 - `TestApi`：示例 API 接口定义
-- 网络配置在 `shared_common/net/` 中
+- 网络配置在 `core/common/net/` 中
 
 ### 弹窗 API
 - `DialogController.showNow()`：普通弹窗
@@ -84,7 +84,7 @@ setContent {
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/di/service/ApplicationService.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/di/service/ApplicationService.kt` |
 | 作用 | 跨平台应用生命周期、DeepLink/Universal Link、Android Intent 分发接口。 |
 
 签名：
@@ -109,14 +109,14 @@ interface ApplicationService {
 
 | 实现 | 位置 | 行为 |
 | --- | --- | --- |
-| `common.di.impl.ApplicationServiceImpl` | `shared_common` | 调用 `common.Application.onCreate()`，Android 会启动 APK 环境定时校验。 |
+| `common.di.impl.ApplicationServiceImpl` | `core/common` | 调用 `common.Application.onCreate()`，Android 会启动 APK 环境定时校验。 |
 | `project.di.impl.ApplicationServiceImpl` | `shared_project` | App 创建时预加载 WebKit：`preloadWebkit("https://xxxx.com")`。 |
 
 ### `ApplicationProxyManager`
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/ApplicationProxyManager.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/ApplicationProxyManager.kt` |
 | 作用 | 聚合所有 `ApplicationService` 实现并安全调用。 |
 | 获取实现 | `SPIRegisterCenter.all<ApplicationService>()` |
 | 内建行为 | `onCreate()` 中初始化日志、自动检测网络权限；前后台切换更新 `appState.appIsForeground`。 |
@@ -127,7 +127,7 @@ interface ApplicationService {
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/spi/KoinSPI.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/spi/KoinSPI.kt` |
 | 签名 | `inline fun <reified T : Any> Module.registerSPI(crossinline impl: () -> T)` |
 | 作用 | 在 Koin module DSL 中注册 SPI 实现实例。 |
 
@@ -143,7 +143,7 @@ val projectModule = module {
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/spi/SPIRegisterCenter.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/spi/SPIRegisterCenter.kt` |
 | 签名 | `inline fun <reified T : Any> withImpl(): T?` |
 | 作用 | 获取某接口的第一个实现。 |
 
@@ -169,7 +169,7 @@ navigator.push(router?.main())
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/base/BaseScreen.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/base/BaseScreen.kt` |
 | 父类型 | `io.github.hristogochev.vortex.screen.Screen` |
 | 子类 | 业务层通常继承 `BasicScreen`。 |
 
@@ -201,7 +201,7 @@ BaseScreen.CanBackHandler(key = "form") {
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_common/src/commonMain/kotlin/com/basic/common/base/BasicScreen.kt` |
+| 位置 | `core/common/src/commonMain/kotlin/com/basic/common/base/BasicScreen.kt` |
 | 默认方向 | `ScreenOrientation.PORTRAIT` |
 | 默认背景 | `Color.White` |
 | 用途 | 业务页面推荐基类。 |
@@ -210,7 +210,7 @@ BaseScreen.CanBackHandler(key = "form") {
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
 | 类型 | `ProvidableCompositionLocal<TraceInfo?>` |
 | 作用 | 在当前 Compose UI 子树中读取页面/弹窗链路上下文。 |
 
@@ -232,7 +232,7 @@ val transitiveTraceId = traceInfo?.getTransitiveTraceId()
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
 | 签名 | `data class TraceInfo(private val fromId: String?, private val currentId: String?)` |
 | 作用 | 保存当前 UI 的所属链路与当前作用域中新起的链路。 |
 
@@ -247,7 +247,7 @@ API：
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
 | 签名 | `@Composable fun TraceInfoScope(newTraceId: String?, content: @Composable () -> Unit)` |
 | 作用 | 在当前 UI 内开启一段新链路作用域，并自动继承父级所属链路。 |
 
@@ -275,7 +275,7 @@ TraceInfoScope(newTraceId = "home_recommend_card") {
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
 | 作用 | 为 Vortex `Navigator` 增加带 `traceId` 的跳转 API。 |
 
 签名：
@@ -313,7 +313,7 @@ asRouter("project/detail")?.let { screen ->
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/router/Router.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/router/Router.kt` |
 | 签名 | `annotation class Router(val value: String)` |
 | 作用 | 标记一个 `Screen` 的 URL 路由路径，由 KSP 生成路由表。 |
 | 约束 | 被标记类必须实现 `io.github.hristogochev.vortex.screen.Screen`，否则编译报错。 |
@@ -332,7 +332,7 @@ class MainScreen(
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/router/Router.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/router/Router.kt` |
 | 签名 | `annotation class Params(val value: String, val jsonTarget: KClass<*> = Nothing::class, val autoDecode: Boolean = false)` |
 | 作用 | 标记 `@Router` Screen 构造参数对应的 URL query key。 |
 
@@ -376,7 +376,7 @@ class UserDetailScreen(
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/router/Router.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/router/Router.kt` |
 | 签名 | `fun asRouter(url: String): Screen?` |
 | 作用 | 根据 URL 查找路由并创建 `Screen` 实例。 |
 | 行为 | 只返回 `Screen?`，不直接执行导航。 |
@@ -479,7 +479,7 @@ class MainScreen(
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_common/src/commonMain/kotlin/com/basic/common/navigation/ProjectRouter.kt` |
+| 位置 | `core/common/src/commonMain/kotlin/com/basic/common/navigation/ProjectRouter.kt` |
 | 实现 | `shared_project/.../ProjectRouterImpl.kt` |
 | 作用 | 旧的跨模块页面工厂接口。新增页面路由优先使用 `@Router` + `asRouter(url)`。 |
 
@@ -533,7 +533,7 @@ class MainScreen(
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/base/MainScreenModel.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/base/MainScreenModel.kt` |
 | 父类型 | `ScreenModel` |
 | 推荐业务别名 | `BasicScreenModel` |
 
@@ -561,7 +561,7 @@ suspend fun dismissPopLoading()
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/ktx/RefreshLazyListKtx.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/ktx/RefreshLazyListKtx.kt` |
 | 类型 | `interface PagingControl` |
 | 作用 | 为任意 `MainScreenModel`/`BasicScreenModel` 增加刷新与分页控制能力。 |
 
@@ -630,7 +630,7 @@ inline fun <reified T : MainScreenModel> rememberMainScreenModel(
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_common/src/commonMain/kotlin/com/basic/common/base/BasicInteraction.kt` |
+| 位置 | `core/common/src/commonMain/kotlin/com/basic/common/base/BasicInteraction.kt` |
 | 签名 | `@Composable fun BasicInteraction(screenModel: MainScreenModel, ... content: BoxScope.(Modifier) -> Unit)` |
 | 作用 | 统一处理加载态、错误态、空态、弹窗 loading。 |
 
@@ -640,7 +640,7 @@ inline fun <reified T : MainScreenModel> rememberMainScreenModel(
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_common/src/commonMain/kotlin/com/basic/common/net/Http.kt` |
+| 位置 | `core/common/src/commonMain/kotlin/com/basic/common/net/Http.kt` |
 | 类型 | `Ktorfit` lazy singleton |
 | Base URL | `BuildConfig_com_basic_common.HTTP_URL` |
 
@@ -671,7 +671,7 @@ inline fun <reified T : MainScreenModel> rememberMainScreenModel(
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_common/src/commonMain/kotlin/com/basic/common/api/TestApi.kt` |
+| 位置 | `core/common/src/commonMain/kotlin/com/basic/common/api/TestApi.kt` |
 | Method | `GET` |
 | Path | `/user/getUserPublicInfo` |
 | Query | `username: String` |
@@ -725,7 +725,7 @@ fun throwFail(): T?
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/ktx/CoroutineScopeKtx.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/ktx/CoroutineScopeKtx.kt` |
 | 签名 | `fun CoroutineScope.launchScope(context: CoroutineContext = Dispatchers.Default, execute: suspend CoroutineScope.() -> Unit): CoroutineJob` |
 | 作用 | 包装协程启动、异常回调、最终回调。 |
 
@@ -759,7 +759,7 @@ open class ApiException(val code: Int = -1, error: String?) : Exception(error)
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/ktx/BaseDialogKtx.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/ktx/BaseDialogKtx.kt` |
 | 推荐业务基类 | `BasicDialog` |
 
 必须实现：
@@ -808,7 +808,7 @@ LocalDialogController.current.showNow(ConfirmDialog(), traceId)
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/ui/NativeDialog.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/ui/NativeDialog.kt` |
 | 推荐业务基类 | `BasicNativeDialog` |
 | 作用 | 跨平台原生弹窗基类。 |
 
@@ -836,7 +836,7 @@ NativeConfirmDialog().show(LocalUIContainer.current, traceId)
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_common/src/commonMain/kotlin/com/basic/common/base/LoadingDialog.kt` |
+| 位置 | `core/common/src/commonMain/kotlin/com/basic/common/base/LoadingDialog.kt` |
 | 签名 | `fun show(dialogController: DialogController, text: String)` |
 | 作用 | 最高优先级 loading 弹窗。 |
 
@@ -846,7 +846,7 @@ NativeConfirmDialog().show(LocalUIContainer.current, traceId)
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/datastore/PubSetting.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/datastore/PubSetting.kt` |
 | Android | SharedPreferences，文件名 `pub_Settings`。 |
 | iOS | NSUserDefaults，文件名 `pub_Settings`。 |
 
@@ -884,7 +884,7 @@ inline fun <reified T : Any> Settings.asFlowJson(key: String, initialValue: T? =
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/webview/state/WebViewState.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/webview/state/WebViewState.kt` |
 | 构造 | `WebViewState(scope: CoroutineScope)` |
 | 持有位置 | 必须放在 `ScreenModel` 中，推荐使用 `screenModelScope` 作为构造参数。 |
 
@@ -979,7 +979,7 @@ fun destroyed()
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/webview/platform/NativeWebView.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/webview/platform/NativeWebView.kt` |
 | 签名 | `@Composable expect fun NativeWebView(modifier: Modifier, state: WebViewState)` |
 | 作用 | 跨平台 Native WebView Composable。 |
 | 职责边界 | 只负责把 `WebViewState` 中持有的原生 WebView 挂到 Compose 树上，不负责持久化状态。 |
@@ -1011,7 +1011,7 @@ expect fun preloadWebkit(domain: String? = null)
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_base/src/commonMain/kotlin/com/basic/base/downloader/DownloadManager.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/downloader/DownloadManager.kt` |
 | 签名 | `suspend fun downloadAndGet(url: String, dir: PlatformFile): DownloadTask` |
 | 作用 | 获取或创建下载任务，并加入全局下载队列。 |
 | 并发 | 全局最多 4 个活动任务。 |
@@ -1103,7 +1103,7 @@ expect suspend fun getDeviceId(): DeviceId
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_native/src/commonMain/kotlin/com/basic/native/Encrypt.kt` |
+| 位置 | `core/native/src/commonMain/kotlin/com/basic/native/Encrypt.kt` |
 | 类型 | `expect object` |
 | 实现源头 | 具体加解密实现集中在 `commonMain` 的 `EncryptNativeImpl`；平台 `actual` 负责选择直接调用或通过 JNI 调用。 |
 
@@ -1121,7 +1121,7 @@ fun createSign(data: String): String
 | --- | --- |
 | `commonMain` | 定义 `expect object Encrypt`，并提供 `EncryptNativeImpl` 作为真正的加解密实现入口。 |
 | `iosMain` | `actual object Encrypt` 直接调用 `EncryptNativeImpl`。 |
-| `androidNativeArm64Main` | `actual object Encrypt` 直接调用 `EncryptNativeImpl`；同时提供 KNI/JNI 映射函数，先校验 JVM 桥接签名，再调用 `EncryptNativeImpl`。手动执行 `:shared_native:androidNativeArm64Binaries` 会生成 `src/androidNativeArm64Main/staticLib/libshared_nativeLibs.a`。 |
+| `androidNativeArm64Main` | `actual object Encrypt` 直接调用 `EncryptNativeImpl`；同时提供 KNI/JNI 映射函数，先校验 JVM 桥接签名，再调用 `EncryptNativeImpl`。手动执行 `:core:native:androidNativeArm64Binaries` 会生成 `src/androidNativeArm64Main/staticLib/libshared_nativeLibs.a`。 |
 | `androidMain` | `actual object Encrypt` 调用 `EncryptJni.external` 方法；`EncryptJni` 通过 `System.loadLibrary("shared_nativeLibs")` 加载 Android 打包阶段生成的 `.so`。 |
 
 Android 构建产物链路：
@@ -1129,7 +1129,7 @@ Android 构建产物链路：
 ```text
 commonMain EncryptNativeImpl
   -> androidNativeArm64Main KNI/JNI 映射函数
-  -> :shared_native:androidNativeArm64Binaries
+  -> :core:native:androidNativeArm64Binaries
   -> src/androidNativeArm64Main/staticLib/libshared_nativeLibs.a
   -> Android 打包时 CMake 链接 staticLib
   -> shared_nativeLibs.so
@@ -1152,7 +1152,7 @@ commonMain EncryptNativeImpl
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_native/src/commonMain/kotlin/com/basic/native/EnvChecker.kt` |
+| 位置 | `core/native/src/commonMain/kotlin/com/basic/native/EnvChecker.kt` |
 | 签名 | `expect inline fun checkEnv()` |
 | 作用 | 运行环境检测；建议敏感操作前调用。 |
 
@@ -1186,7 +1186,7 @@ fun BasicTitleBar(
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `shared_common/src/commonMain/kotlin/com/basic/common/base/BasicScaffold.kt` |
+| 位置 | `core/common/src/commonMain/kotlin/com/basic/common/base/BasicScaffold.kt` |
 | 作用 | 对 `HazeScaffold` 的业务默认封装。 |
 | Slots | `top`、`center`、`bottom`。 |
 
@@ -1362,9 +1362,9 @@ BasicScreen subclass
 ### 新增接口
 
 ```text
-shared_common/api/XxxApi.kt
+core/common/api/XxxApi.kt
   -> @GET/@POST...
-shared_common/beans/XxxDto.kt
+core/common/beans/XxxDto.kt
   -> @Serializable
 shared_project/repository/XxxRepository.kt
   -> ktorfit.createXxxApi()
@@ -1375,7 +1375,7 @@ ScreenModel
 ### 新增跨模块服务
 
 ```text
-shared_common/di/service/XxxService.kt
+core/common/di/service/XxxService.kt
 shared_project/di/impl/XxxServiceImpl.kt
 shared_project/di/DI.kt registerSPI<XxxService> { XxxServiceImpl() }
 caller -> withImpl<XxxService>()
@@ -1384,9 +1384,9 @@ caller -> withImpl<XxxService>()
 ### 新增平台能力
 
 ```text
-shared_base/src/commonMain/... expect API
-shared_base/src/androidMain/... actual API
-shared_base/src/iosMain/... actual API
+core/base/src/commonMain/... expect API
+core/base/src/androidMain/... actual API
+core/base/src/iosMain/... actual API
 ```
 
 ## 18. Demo 示例 API 使用说明
@@ -1428,7 +1428,7 @@ Demo 使用 `ProjectService` 展示跨模块通信：
 withImpl<ProjectService>()?.sayHello("跨模块通信成功")
 ```
 
-服务定义在 `shared_common/di/service/ProjectService.kt`，实现与注册在 `shared_project`：
+服务定义在 `core/common/di/service/ProjectService.kt`，实现与注册在 `shared_project`：
 
 ```kotlin
 class ProjectServiceImpl : ProjectService {

@@ -18,7 +18,7 @@
 
 ```bash
 find libs -maxdepth 2 -mindepth 2 -type d | sort
-rg -n "include\\(\\\":libs:|project\\(\\\":libs:|registerSPI|ApplicationService|ApplicationProxyManager|cocoapods|pod\\(" settings.gradle.kts build.gradle.kts shared_common app shared_base libs -g '*.kt' -g '*.kts' -g '*.xml'
+rg -n "include\\(\"libs:|projects\\.libs\\.|registerSPI|ApplicationService|ApplicationProxyManager|cocoapods|pod\\(" settings.gradle.kts build.gradle.kts core/common app core/base libs -g '*.kt' -g '*.kts' -g '*.xml'
 ```
 
 结论必须分三类：
@@ -45,7 +45,7 @@ rg -n "include\\(\\\":libs:|project\\(\\\":libs:|registerSPI|ApplicationService|
 | 顺序 | 证据 | 目的 |
 | :--- | :--- | :--- |
 | 1 | `settings.gradle.kts` | 确认模块是否被 include |
-| 2 | `shared_common/build.gradle.kts` 或业务聚合模块 | 确认业务侧如何看到 lib API |
+| 2 | `core/common/build.gradle.kts` 或业务聚合模块 | 确认业务侧如何看到 lib API |
 | 3 | `libs/<name>/build.gradle.kts` | 确认 Android/iOS 依赖、Pod、CInterop、资源开关 |
 | 4 | `libs/<name>/src/commonMain/**` | 确认 common API、模型、DI/SPI |
 | 5 | `libs/<name>/src/androidMain/**` | 确认 Android actual、Manifest、回调 Activity、AAR/JAR |
@@ -92,7 +92,7 @@ rg -n "include\\(\\\":libs:|project\\(\\\":libs:|registerSPI|ApplicationService|
 模式：
 - 新建或复用 `libs/<name>`。
 - `settings.gradle.kts` include 模块。
-- 业务聚合模块按需通过 Gradle `api(project(":libs:<name>"))` 暴露类型。
+- 业务聚合模块按需通过 Gradle `api(projects.libs.<nameAccessor>)` 暴露类型。
 - `libs/<name>` 内维护 Android Maven/AAR/JAR 与 iOS Pod。
 - `commonMain` 只放接口、模型、DI，不放平台类型。
 
@@ -116,7 +116,7 @@ rg -n "include\\(\\\":libs:|project\\(\\\":libs:|registerSPI|ApplicationService|
 
 禁止：
 - 把 SDK 逻辑写入 `MainActivity`、`AppDelegate`、`SceneDelegate`。
-- 把多个 SDK 生命周期逻辑堆进 `shared_common` 的同一个 ApplicationService。
+- 把多个 SDK 生命周期逻辑堆进 `core/common` 的同一个 ApplicationService。
 
 ### 2.3 外部 App 调起回调模式 (External App Round-trip)
 

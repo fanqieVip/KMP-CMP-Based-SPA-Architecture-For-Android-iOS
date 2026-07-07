@@ -41,7 +41,7 @@ AI 执行三方 SDK 集成任务时，必须按以下六个阶段推进。阶段
 
 ```bash
 find libs -maxdepth 2 -mindepth 2 -type d | sort
-rg -n "include\\(\\\":libs:|project\\(\\\":libs:|registerSPI|ApplicationService|cocoapods|pod\\(" settings.gradle.kts shared_common build.gradle.kts libs -g '*.kt' -g '*.kts' -g '*.xml'
+rg -n "include\\(\"libs:|projects\\.libs\\.|registerSPI|ApplicationService|cocoapods|pod\\(" settings.gradle.kts core/common build.gradle.kts libs -g '*.kt' -g '*.kts' -g '*.xml'
 ```
 
 若当前项目没有任何既有 `libs/*` SDK 模块，AI 必须明确说明“当前项目暂无可复用 SDK 模块案例”，然后以模板与通用规范推进。
@@ -252,7 +252,7 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 - 低风险迁移与现有模块可继续保留 namespace `com.basic.<suffix>`；新增模块默认与 `<name>` 保持语义一致。
 - Android SDK 文件放在 `libs/<name>/libs/android/` 或 Maven 依赖中。
 - iOS Pod 写在 `libs/<name>/build.gradle.kts` 的 `cocoapods` 内。
-- `shared_common` 只通过 Gradle `api(project(":libs:<name>"))` 获得需要暴露的 SDK 类型可见性，不承载 SDK 生命周期逻辑；未接入业务链路的 SDK 模块只 include，不强行暴露。
+- `core/common` 只通过 Gradle `api(projects.libs.<nameAccessor>)` 获得需要暴露的 SDK 类型可见性，不承载 SDK 生命周期逻辑；未接入业务链路的 SDK 模块只 include，不强行暴露。
 - Koin 模块挂载位置必须以当前项目实际 `initKoin`/`startKoin` 代码为准。本仓库当前观察到的位置是 `app/src/commonMain/kotlin/com/basic/app/App.kt` 的 `modules(...)`。
 
 ### 2.2 SPI 生命周期接入
@@ -344,7 +344,7 @@ actual fun init(runtimeParam: String?) {
 - 禁止在 `app/src/androidMain/.../MainActivity.kt` 添加 SDK 业务逻辑。
 - 禁止在 `app/src/iosMain/.../AppDelegate.kt` 或 `iosApp` Swift 入口添加 SDK 业务逻辑，除非是框架级生命周期分发本身。
 - 禁止手动修改 `iosApp/Podfile`。
-- 禁止在 `shared_common` 的 `ApplicationServiceImpl.kt` 堆叠多模块 SDK 逻辑。
+- 禁止在 `core/common` 的 `ApplicationServiceImpl.kt` 堆叠多模块 SDK 逻辑。
 - 禁止 `commonMain` 暴露平台原生类型。
 - 禁止 `commonMain` 初始化 API 暴露必须核心 key，例如 `appId`、`appKey`、`secret`。
 - 禁止把 Android key 复用为 iOS key，或反向复用。

@@ -25,8 +25,8 @@
 
 ### 2.2 构建配置注入 (Gradle & Settings)
 1. **build.gradle.kts**: 必须使用 [内置 Gradle 模板](#51-buildgradlekts-模板)。
-2. **settings.gradle.kts**: 自动添加 `include(":libs:<name>")`。
-3. **shared_common/build.gradle.kts**: 只有该能力需要对公共业务层可见时，才在 `commonMain`、`androidMain`、`iosMain` 依赖块中添加 `api(project(":libs:<name>"))`；未接入业务链路的 SDK 模块只 include，不强行暴露。
+2. **settings.gradle.kts**: 自动添加 `include("libs:<name>")`。
+3. **core/common/build.gradle.kts**: 只有该能力需要对公共业务层可见时，才在 `commonMain`、`androidMain`、`iosMain` 依赖块中添加 `api(projects.libs.<nameAccessor>)`；未接入业务链路的 SDK 模块只 include，不强行暴露。
 4. **Android 本地 SDK**: AAR/JAR 必须放在 `libs/<name>/libs/android/`，并使用模板中的 `compileOnly(fileTree(...))`。这是本项目框架规范，框架会处理最终依赖打包，AI 不得擅自改成 `implementation(files(...))`、`api(files(...))` 或复制到 app 模块。
 5. **iOS Info.plist 参数**: 模板默认引入 `com.basic.ios`。若 SDK 需要在 iOS `Info.plist` 添加 AppKey、AppId、URL Scheme 等参数，必须在当前 `libs/<name>/build.gradle.kts` 通过 `iosConfig { field(...) }` 声明，字段值统一从 `SDKKeyConfig` 读取，禁止直接硬编码到 `Info.plist`。
 
@@ -100,7 +100,7 @@ kotlin {
                 implementation(libs.koin.core)
                 implementation(libs.koin.annotations)
                 implementation(libs.koin.compose)
-                api(project(":shared_base"))
+                api(projects.core.base)
             }
         }
 
@@ -114,13 +114,13 @@ kotlin {
                         )
                     )
                 )
-                api(project(":shared_base"))
+                api(projects.core.base)
             }
         }
 
         iosMain {
             dependencies {
-                api(project(":shared_base"))
+                api(projects.core.base)
             }
         }
     }

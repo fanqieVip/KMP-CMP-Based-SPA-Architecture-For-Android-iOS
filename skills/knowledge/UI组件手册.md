@@ -55,7 +55,7 @@ class XxxScreen : BasicScreen() {
 ## 4. 常见布局适配
 - **处理 Bottom 遮挡**：通过 `LocalHazeScaffoldContentPadding.current` 获取并应用到内层列表。
 
-## 5. 基础 UI 组件 (shared_base)
+## 5. 基础 UI 组件 (core/base)
 
 ### 5.1 CenterTitleLayout (居中布局)
 - **职责**：确保中间部分绝对居中，且不与左右插槽重叠。
