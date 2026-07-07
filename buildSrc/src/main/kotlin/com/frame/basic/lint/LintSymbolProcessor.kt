@@ -5,6 +5,7 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
@@ -89,18 +90,23 @@ class LintSymbolProcessor(
         val isDialog = (dialogType?.isAssignableFrom(selfType) == true) || (nativeDialogType?.isAssignableFrom(selfType) == true)
         val isAbstract = modifiers.contains(Modifier.ABSTRACT)
 
-        // A. 校验属性成员 (重点修复点：支持委托属性与隐式类型)
+        // 1. 校验 API 类定义规则：检测到 Ktorfit 注解时，名字必须是以 Api 结尾
+        if (this.hasKtorfitAnnotations()) {
+            if (!className.endsWith("Api")) {
+                logger.error("架构红线 [Naming]: Ktorfit API 接口 [$className] 命名必须以 'Api' 结尾。", this)
+            }
+        }
+
+        // 2. 校验属性成员
         declarations.filterIsInstance<KSPropertyDeclaration>().forEach { property ->
             if (property.isLikelyKtorfitApi()) {
                 val propName = property.simpleName.asString()
-                // 1. 位置校验
                 if (!isRepository) {
                     logger.error(
                         "架构红线 [Isolation]: 类 [$className] 禁止持有网络 API 实例 [$propName]。所有网络请求必须封装在 Repository 类中（命名以Repository结尾 ）。",
                         property
                     )
                 }
-                // 2. 权限校验：必须显式声明 private
                 if (!property.modifiers.contains(Modifier.PRIVATE)) {
                     logger.error(
                         "架构红线 [Encapsulation]: Repository 内部的 API 实例 [$propName] 必须声明为 private。严禁将原始接口暴露给外部。",
@@ -110,7 +116,7 @@ class LintSymbolProcessor(
             }
         }
 
-        // B. 校验函数返回
+        // 3. 校验函数返回
         declarations.filterIsInstance<KSFunctionDeclaration>().forEach { function ->
             val returnType = function.returnType?.resolve()
             if (returnType?.isApiRelated() == true) {
@@ -126,39 +132,43 @@ class LintSymbolProcessor(
         checkOriginalRules(isScreen, isScreenModel, isDialog, isAbstract)
     }
 
+    private fun KSClassDeclaration.hasKtorfitAnnotations(): Boolean {
+        // 检查类本身
+        if (annotations.any { it.isKtorfitAnnotation() }) return true
+        // 检查类中定义的方法
+        return getAllFunctions().any { func ->
+            func.annotations.any { it.isKtorfitAnnotation() }
+        }
+    }
+
+    private fun KSAnnotation.isKtorfitAnnotation(): Boolean {
+        val fullName = annotationType.resolve().declaration.qualifiedName?.asString() ?: ""
+        val shortNameValue = shortName.asString()
+        return fullName.startsWith(KTORFIT_ANNOTATION_PACKAGE) || ktorfitAnnotations.contains(shortNameValue)
+    }
+
     private fun KSPropertyDeclaration.isLikelyKtorfitApi(): Boolean {
-        // 1. 检查属性本身的类型
         val directType = type.resolve()
         if (directType.isApiRelated()) return true
-
-        // 2. 检查属性名称后缀 (作为启发式兜底)
         if (simpleName.asString().endsWith("Api", ignoreCase = true)) return true
-
         return false
     }
 
     private fun KSType.isApiRelated(): Boolean {
         if (isKtorfitApiType()) return true
-        
-        // 3. 处理 Lazy<T> 包装
         if (declaration.simpleName.asString() == "Lazy") {
-            return arguments.any { it.type?.resolve()?.isKtorfitApiType() == true || it.type?.resolve()?.declaration?.simpleName?.asString()?.endsWith("Api", ignoreCase = true) == true }
+            return arguments.any { 
+                val innerType = it.type?.resolve()
+                innerType?.isKtorfitApiType() == true || innerType?.declaration?.simpleName?.asString()?.endsWith("Api", ignoreCase = true) == true 
+            }
         }
-        
         return false
     }
 
     private fun KSType.isKtorfitApiType(): Boolean {
         val decl = declaration as? KSClassDeclaration ?: return false
-        // 判定准则：名称以 Api 结尾，或者包含 Ktorfit 注解的方法
         if (decl.simpleName.asString().endsWith("Api", ignoreCase = true)) return true
-
-        return decl.getAllFunctions().any { func ->
-            func.annotations.any { annot ->
-                val fullName = annot.annotationType.resolve().declaration.qualifiedName?.asString() ?: ""
-                fullName.startsWith(KTORFIT_ANNOTATION_PACKAGE) || ktorfitAnnotations.contains(annot.shortName.asString())
-            }
-        }
+        return decl.hasKtorfitAnnotations()
     }
 
     private fun KSClassDeclaration.checkOriginalRules(isScreen: Boolean, isScreenModel: Boolean, isDialog: Boolean, isAbstract: Boolean) {
