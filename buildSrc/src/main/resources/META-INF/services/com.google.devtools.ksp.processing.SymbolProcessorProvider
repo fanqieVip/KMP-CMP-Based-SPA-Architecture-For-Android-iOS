@@ -1,1 +1,2 @@
 com.frame.basic.router.RouterSymbolProcessorProvider
+com.frame.basic.lint.LintSymbolProcessorProvider

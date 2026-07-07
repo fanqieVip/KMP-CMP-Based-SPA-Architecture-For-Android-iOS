@@ -21,9 +21,6 @@ import com.google.devtools.ksp.validate
 private const val ROUTER_ANNOTATION = "com.basic.base.router.Router"
 private const val PARAMS_ANNOTATION = "com.basic.base.router.Params"
 private const val SCREEN_TYPE = "io.github.hristogochev.vortex.screen.Screen"
-private const val SCREEN_MODEL_TYPE = "io.github.hristogochev.vortex.model.ScreenModel"
-private const val DIALOG_TYPE = "com.basic.base.ktx.Dialog"
-private const val NATIVE_DIALOG_TYPE = "com.basic.base.ui.NativeDialog"
 
 class RouterSymbolProcessor(
     private val environment: SymbolProcessorEnvironment
@@ -34,11 +31,6 @@ class RouterSymbolProcessor(
     override fun process(resolver: Resolver): List<KSAnnotated> {
         if (generated) {
             return emptyList()
-        }
-
-        // 1. 全量扫描所有类，执行架构红线检查
-        resolver.getAllFiles().forEach { file ->
-            file.declarations.filterIsInstance<KSClassDeclaration>().forEach { it.checkArchitectureRules() }
         }
 
         val symbols = resolver.getSymbolsWithAnnotation(ROUTER_ANNOTATION).toList()
@@ -101,56 +93,6 @@ class RouterSymbolProcessor(
             .firstOrNull { it.name?.asString() == "value" }
             ?.value as? String
             ?: ""
-    }
-
-    /**
-     * 架构红线检查：
-     * 1. Screen 构造器禁止出现任何 Function 参数 (因为要支持 URL 路由)
-     * 2. Dialog 构造器禁止使用 val/var 持有 Function (防止内存泄漏)
-     */
-    private fun KSClassDeclaration.checkArchitectureRules() {
-        // 递归检查内部类
-        declarations.filterIsInstance<KSClassDeclaration>().forEach { it.checkArchitectureRules() }
-
-        val isScreen = isInherFrom(SCREEN_TYPE)
-        val isScreenModel = isInherFrom(SCREEN_MODEL_TYPE)
-        val isDialog = isInherFrom(DIALOG_TYPE) || isInherFrom(NATIVE_DIALOG_TYPE)
-
-        if (isScreen || isScreenModel) {
-            val typeLabel = if (isScreen) "Screen" else "ScreenModel"
-            primaryConstructor?.parameters?.forEach { param ->
-                if (param.type.resolve().isFunctionType()) {
-                    logger.error(
-                        "架构红线 [Forbidden]: $typeLabel 子类 [${simpleName.asString()}] 构造器禁止包含函数参数。原因：$typeLabel 必须保证可序列化或生命周期安全，禁止持有外部 Lambda 以防内存泄漏。",
-                        param
-                    )
-                }
-            }
-        }
-
-        if (isDialog) {
-            primaryConstructor?.parameters?.forEach { param ->
-                if ((param.isVal || param.isVar) && param.type.resolve().isFunctionType()) {
-                    logger.error(
-                        "架构红线 [Memory Leak]: Dialog 子类 [${simpleName.asString()}] 构造参数 [${param.name?.asString()}] 不允许使用 val/var。请去掉关键字并改用 'by autoClear()' 委托，以防 Lambda 长期持有 Context 导致内存泄漏。",
-                        param
-                    )
-                }
-            }
-        }
-    }
-
-    private fun KSClassDeclaration.isInherFrom(superClassName: String): Boolean {
-        if (qualifiedName?.asString() == superClassName) return true
-        return superTypes.any {
-            val decl = it.resolve().declaration
-            if (decl is KSClassDeclaration) decl.isInherFrom(superClassName) else false
-        }
-    }
-
-    private fun KSType.isFunctionType(): Boolean {
-        val name = declaration.qualifiedName?.asString() ?: ""
-        return name.startsWith("kotlin.Function") || name.startsWith("kotlin.coroutines.SuspendFunction")
     }
 
     private fun KSValueParameter.toArgumentSpec(screenClassName: String, routePath: String): ArgumentSpec? {
