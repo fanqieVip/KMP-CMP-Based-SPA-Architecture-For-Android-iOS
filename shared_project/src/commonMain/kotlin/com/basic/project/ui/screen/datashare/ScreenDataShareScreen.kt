@@ -1,8 +1,5 @@
 package com.basic.project.ui.screen.datashare
 
-import com.basic.base.router.Router
-import com.basic.common.share.RouterConstant
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,12 +34,12 @@ import androidx.compose.ui.unit.sp
 import com.basic.base.base.rememberMainScreenModel
 import com.basic.base.ktx.HorizontalPagerLifecycle
 import com.basic.base.local.ScreenContext
+import com.basic.base.router.Router
 import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicScreenModel
 import com.basic.common.base.BasicTitleBar
-import io.github.hristogochev.vortex.model.ScreenModel
-import io.github.hristogochev.vortex.model.rememberScreenModel
+import com.basic.common.share.RouterConstant
 
 @Router(RouterConstant.DATA_SHARE_SCREEN)
 class ScreenDataShareScreen : BasicScreen() {
@@ -132,7 +129,7 @@ class ScreenDataShareScreen : BasicScreen() {
 @Composable
 fun ScreenDataShareInnerPage(tag: String) {
     val model = rememberMainScreenModel(tag) { ScreenDataShareInnerPageScreenModel() }
-    val shareModel = rememberScreenModel { ScreenDataShareSharedScreenModel() }
+    val shareModel = rememberMainScreenModel { ScreenDataShareSharedScreenModel() }
     Column(
         modifier = Modifier.fillMaxSize().padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
@@ -168,7 +165,7 @@ fun ScreenDataShareInnerPage(tag: String) {
 @Composable
 fun ScreenDataShareInnerPage2(tag: String) {
     val model = rememberMainScreenModel(tag) { ScreenDataShareInnerPageScreenModel() }
-    val shareModel = rememberScreenModel { ScreenDataShareSharedScreenModel() }
+    val shareModel = rememberMainScreenModel { ScreenDataShareSharedScreenModel() }
     Column(
         modifier = Modifier.fillMaxSize().padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
@@ -208,8 +205,13 @@ class ScreenDataShareInnerPageScreenModel : BasicScreenModel() {
     }
 }
 
-class ScreenDataShareSharedScreenModel : ScreenModel {
+class ScreenDataShareSharedScreenModel : BasicScreenModel() {
     var shareInputText by mutableStateOf("")
+    override fun onInit(context: ScreenContext) {
+    }
+
+    override fun onLoad(context: ScreenContext) {
+    }
 }
 
 class ScreenDataShareScreenModel : BasicScreenModel() {

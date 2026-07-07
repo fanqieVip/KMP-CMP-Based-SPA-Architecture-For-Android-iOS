@@ -109,5 +109,5 @@ class MyDialog(
 ### 6.3 最佳实践红线
 - ❌ **严禁**：在 `Dialog` 子类中直接定义 `val callback: () -> Unit`。
 - ✅ **强制**：使用 `private val callback by autoClear(initialBlock)`。
-- ✅ **作用域绑定**：尽可能将复杂的业务逻辑封装在 `ScreenModel` 中，利用 `rememberHostScreenModel` 共享模型，而不是通过层层 Lambda 传递。
+- ✅ **作用域绑定**：尽可能将复杂的业务逻辑封装在 `ScreenModel` 中，利用 `rememberHostMainScreenModel` 共享模型，而不是通过层层 Lambda 传递。
 

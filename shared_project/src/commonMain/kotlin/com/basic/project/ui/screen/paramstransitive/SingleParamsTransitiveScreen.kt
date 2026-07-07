@@ -20,7 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.basic.base.base.rememberMainScreenModel
 import com.basic.base.ktx.asCallback
+import com.basic.base.local.ScreenContext
 import com.basic.base.router.Params
 import com.basic.base.router.Router
 import com.basic.base.router.asRouter
@@ -28,10 +30,9 @@ import com.basic.base.router.routerParamsCallback
 import com.basic.base.router.routerParamsString
 import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicScreen
+import com.basic.common.base.BasicScreenModel
 import com.basic.common.base.BasicTitleBar
 import com.basic.common.share.RouterConstant
-import io.github.hristogochev.vortex.model.ScreenModel
-import io.github.hristogochev.vortex.model.rememberScreenModel
 import io.github.hristogochev.vortex.navigator.LocalNavigator
 import io.github.hristogochev.vortex.util.currentOrThrow
 
@@ -104,8 +105,7 @@ class SingleParamsTransitiveNextScreen(
                             .padding(horizontal = 10.dp, vertical = 10.dp)
                     )
                     val navigator = LocalNavigator.currentOrThrow
-                    val model =
-                        rememberScreenModel { SingleParamsTransitiveNextScreenModel(callbackId) }
+                    val model = rememberMainScreenModel { SingleParamsTransitiveNextScreenModel(callbackId) }
                     Button(modifier = Modifier.fillMaxWidth().height(50.dp), onClick = {
                         model.callback?.invoke(inputText)
                         navigator.pop()
@@ -118,6 +118,11 @@ class SingleParamsTransitiveNextScreen(
     }
 }
 
-class SingleParamsTransitiveNextScreenModel(callbackId: String?) : ScreenModel {
+class SingleParamsTransitiveNextScreenModel(callbackId: String?) : BasicScreenModel() {
     val callback = asCallback<(String) -> Unit>(callbackId)
+    override fun onInit(context: ScreenContext) {
+    }
+
+    override fun onLoad(context: ScreenContext) {
+    }
 }

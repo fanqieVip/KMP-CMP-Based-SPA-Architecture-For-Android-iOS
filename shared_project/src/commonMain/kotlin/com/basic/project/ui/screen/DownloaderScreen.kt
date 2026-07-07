@@ -1,8 +1,5 @@
 package com.basic.project.ui.screen
 
-import com.basic.base.router.Router
-import com.basic.common.share.RouterConstant
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,17 +14,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.basic.base.base.rememberMainScreenModel
 import com.basic.base.downloader.DownloadManager
 import com.basic.base.downloader.DownloadProgressState
 import com.basic.base.downloader.DownloadState
 import com.basic.base.downloader.DownloadTask
 import com.basic.base.ktx.launchScope
 import com.basic.base.local.ScreenContext
+import com.basic.base.router.Router
 import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicScreenModel
 import com.basic.common.base.BasicTitleBar
-import io.github.hristogochev.vortex.model.rememberScreenModel
+import com.basic.common.share.RouterConstant
 import io.github.hristogochev.vortex.model.screenModelScope
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.div
@@ -53,7 +52,7 @@ class DownloaderScreen : BasicScreen() {
                 BasicTitleBar("下载器")
             },
             center = {
-                val model = rememberScreenModel { DownloaderScreenModel() }
+                val model = rememberMainScreenModel { DownloaderScreenModel() }
                 Column(modifier = Modifier.fillMaxSize().padding(horizontal = 15.dp).padding(top = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("下载状态：${model.state}")
                     Text("下载进度：${model.progress}")

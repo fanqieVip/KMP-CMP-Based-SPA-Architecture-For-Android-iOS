@@ -38,9 +38,7 @@ import com.basic.base.base.rememberMainScreenModel
 import com.basic.base.getPlatform
 import com.basic.base.local.DefaultTraceInfoScope
 import com.benasher44.uuid.uuid4
-import io.github.hristogochev.vortex.model.ScreenModel
 import io.github.hristogochev.vortex.model.ScreenModelStore
-import io.github.hristogochev.vortex.model.rememberScreenModel
 import io.github.hristogochev.vortex.navigator.LocalScreenStateKey
 import io.github.hristogochev.vortex.util.multiplatformName
 import kotlin.properties.ReadWriteProperty
@@ -122,14 +120,15 @@ abstract class Dialog(
                         )
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = alignment) {
-                            Box(modifier = Modifier.fillMaxSize().clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                if (cancelAble) {
-                                    dismiss()
-                                }
-                            })
+                            Box(
+                                modifier = Modifier.fillMaxSize().clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    if (cancelAble) {
+                                        dismiss()
+                                    }
+                                })
                             CreateUIContent(visible)
                         }
                     }
@@ -180,11 +179,13 @@ abstract class Dialog(
     protected fun <T : Any> autoClear(initialValue: T? = null): ReadWriteProperty<Any?, T?> {
         return object : ReadWriteProperty<Any?, T?> {
             private var value: T? = initialValue
+
             init {
                 cleanupActions.add {
                     value = null
                 }
             }
+
             override fun getValue(thisRef: Any?, property: KProperty<*>): T? = value
             override fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T?) {
                 value = newValue
@@ -195,7 +196,7 @@ abstract class Dialog(
     /**
      * 自动清理所有autoClear代理的对象
      */
-    internal fun cleanUpAutoActions(){
+    internal fun cleanUpAutoActions() {
         cleanupActions.forEach { it.invoke() }
         cleanupActions.clear()
     }
@@ -237,7 +238,12 @@ class DialogController {
      * @param group 优先级弹窗所属分组
      */
     @MainThread
-    fun showPriority(priority: Int, dialog: Dialog, traceId: String? = null, group: String = DEFAULT_PRIORITY_GROUP) {
+    fun showPriority(
+        priority: Int,
+        dialog: Dialog,
+        traceId: String? = null,
+        group: String = DEFAULT_PRIORITY_GROUP
+    ) {
         dialog.priorityGroup = group
         var groupStack = priorityStack[group]
         if (groupStack == null) {
@@ -374,19 +380,6 @@ val LocalDialogController = staticCompositionLocalOf<DialogController> {
 
 val LocalHostScreenStateKey: ProvidableCompositionLocal<String> =
     staticCompositionLocalOf { "" }
-
-/**
- * 用于弹窗和宿主Screen共享ScreenModel
- * 注意：原生弹窗无效
- */
-@Composable
-inline fun <reified T : ScreenModel> rememberHostScreenModel(
-    tag: String? = null,
-    crossinline factory: @DisallowComposableCalls () -> T,
-): T {
-    val hostScreenKey = LocalHostScreenStateKey.current
-    return rememberScreenModel(hostScreenKey, tag, factory)
-}
 
 /**
  * 用于弹窗和宿主Screen共享MainScreenModel
