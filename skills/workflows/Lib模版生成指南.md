@@ -4,6 +4,8 @@
 
 ## 1. 命名与目录规范 (Naming Convention)
 
+- **模糊指令问询**: 当用户只说“新建一个 xxx 模块”“创建 xxx 模块”“初始化 xxx 模块”等，没有明确 `lib`、`libs`、SDK、三方平台接入等语义时，AI 必须先弹出对话框询问模块类型：`Lib 模块` 还是 `Project 模块`，不得直接按 Lib 创建。
+- **Lib 触发条件**: 只有用户明确提到 `lib_xxx`、`libs:<name>`、`libs/<name>`、三方 SDK、平台 SDK、统计/登录/支付/广告/归因等 SDK 适配语义时，才直接使用本指南。
 - **模块路径**: SDK 模块统一收敛到 `libs/<name>/`，Gradle path 为 `:libs:<name>`，不得继续在根目录平铺新增 `lib_*` 模块。
 - **模块命名**: `<name>` 必须取原 `lib_xxx` 模块名去掉 `lib_` 后的 `xxx`，并保留原大小写，例如 `lib_geyan` -> `libs/geyan`、`lib_openInstall` -> `libs/openInstall`。
 - **Android Namespace**: 低风险迁移与现有模块可继续使用 `com.basic.<suffix>`（如 `com.basic.geyan`）；新增模块默认与 `<name>` 保持语义一致，不得按“认证/统计/广告”等能力域另起目录名。
@@ -20,8 +22,9 @@
     - `src/commonMain/kotlin/com/basic/xxx/di/impl/`
     - `src/androidMain/kotlin/com/basic/xxx/di/impl/`
     - `src/iosMain/kotlin/com/basic/xxx/di/impl/`
-4. 创建基础清单：`src/androidMain/AndroidManifest.xml` (仅含基础 `manifest` 节点)。
-5. 创建基础混淆：`proguard-rules.pro` (仅含默认注释)。
+4. 创建模块 `.gitignore`，内容必须使用 [模块 .gitignore 模板](#54-模块-gitignore-模板)。
+5. 创建基础清单：`src/androidMain/AndroidManifest.xml` (仅含基础 `manifest` 节点)。
+6. 创建基础混淆：`proguard-rules.pro` (仅含默认注释)。
 
 ### 2.2 构建配置注入 (Gradle & Settings)
 1. **build.gradle.kts**: 必须使用 [内置 Gradle 模板](#51-buildgradlekts-模板)。
@@ -47,6 +50,7 @@
 ## 4. 常用指令 (AI Instructions)
 
 - **指令：`初始化 Lib 模块 <Name>`**：启动全自动生产线；执行前必须先按 SDK 名确定 `<name>`，迁移既有 `lib_xxx` 时必须使用原 `xxx`。
+- **指令：`新建 <Name> 模块`**：若未明确模块类型，必须先询问 `Lib 模块` 或 `Project 模块`，不得自行推断。
 
 ## 5. 标准模板库 (Standard Templates)
 
@@ -173,4 +177,11 @@ import org.koin.dsl.module
 val <suffix>Module = module {
     registerSPI<ApplicationService>{ applicationServiceImpl }
 }
+```
+
+### 5.4 模块 .gitignore 模板
+
+```gitignore
+/build
+/.gradle
 ```
