@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import com.basic.base.spi.withImpl
 import com.basic.base.utils.DateUtils
-import com.basic.common.di.service.ProjectService
+import com.basic.common.di.service.MainService
 import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicTitleBar
@@ -31,7 +31,7 @@ class ModuleCommunicationScreen: BasicScreen() {
             },
             center = {
                 Button(onClick = {
-                    withImpl<ProjectService>()?.sayHello("跨模块通信成功, ${DateUtils.getFormatTime(DateUtils.getNowTime())}")
+                    withImpl<MainService>()?.sayHello("跨模块通信成功, ${DateUtils.getFormatTime(DateUtils.getNowTime())}")
                 }) {
                     Text("sayHello", fontSize = 12.sp, color = Color.Black)
                 }

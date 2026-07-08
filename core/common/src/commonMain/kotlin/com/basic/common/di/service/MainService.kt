@@ -3,7 +3,7 @@ package com.basic.common.di.service
 /**
  * project模块spi协议
  */
-interface ProjectService {
+interface MainService {
     /**
      * 测试协议示例
      * @param text 文本内容
