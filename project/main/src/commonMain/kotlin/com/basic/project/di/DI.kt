@@ -8,7 +8,7 @@ import com.basic.project.di.impl.ProjectServiceImpl
 import com.basic.router.generated.mainRouteModule
 import org.koin.dsl.module
 
-val projectModule = module {
+val mainModule = module {
     includes(mainRouteModule)
     registerSPI<ApplicationService>{ ApplicationServiceImpl() }
     registerSPI<ProjectService>{ ProjectServiceImpl() }

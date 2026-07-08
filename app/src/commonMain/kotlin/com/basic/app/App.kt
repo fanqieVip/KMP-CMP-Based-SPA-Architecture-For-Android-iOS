@@ -6,9 +6,8 @@ import com.basic.base.local.PermissionController
 import com.basic.base.local.UIContainer
 import com.basic.common.base.BasicApp
 import com.basic.common.di.commonModule
-import com.basic.project.di.projectModule
+import com.basic.project.di.mainModule
 import com.basic.project.ui.SplashScreen
-import io.github.hristogochev.vortex.screen.Screen
 import org.koin.core.context.startKoin
 
 @Composable
@@ -18,7 +17,7 @@ fun App(screen: () -> BaseScreen = { SplashScreen() }, uiContainer: UIContainer,
 
 fun initKoin(){
     startKoin {
-        modules(commonModule, projectModule)
+        modules(commonModule, mainModule)
     }
 }
 
