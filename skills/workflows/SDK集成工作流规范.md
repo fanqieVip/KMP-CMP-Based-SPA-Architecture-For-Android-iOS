@@ -34,7 +34,7 @@ AI 执行三方 SDK 集成任务时，必须按以下六个阶段推进。阶段
 - 若为新增模块，先按 `Lib模版生成指南.md` 创建骨架，再继续 SDK 集成。
 
 按需读取：
-- `skills/knowledge/SDK集成案例手册.md`：需要参考既有 lib 模块经验时读取；读取后必须先按手册规则扫描当前项目，不能假设手册中的样例模块一定存在。
+- `skills/knowledge/SDK集成案例手册.md`：当目标 SDK 类型在手册中已有案例时读取，用于参考同类型 SDK 的 common API、用户操作流程、数据流转和模型设计；不得把案例当作当前项目已存在模块。
 - `skills/knowledge/架构api文档.md`：仅当需要确认 SPI、路由、网络、弹窗等 API 细节时检索读取，禁止全量加载。
 
 现状扫描建议：
@@ -44,17 +44,19 @@ find libs -maxdepth 2 -mindepth 2 -type d | sort
 rg -n "include\\(\"libs:|projects\\.libs\\.|registerSPI|ApplicationService|cocoapods|pod\\(" settings.gradle.kts core/common build.gradle.kts libs -g '*.kt' -g '*.kts' -g '*.xml'
 ```
 
-若当前项目没有任何既有 `libs/*` SDK 模块，AI 必须明确说明“当前项目暂无可复用 SDK 模块案例”，然后以模板与通用规范推进。
+若当前项目没有任何既有 `libs/*` SDK 模块，AI 必须明确说明“当前项目暂无既有 SDK 模块可取证”，然后以模板、通用规范、目标 SDK 文档和同类型案例推进。
 
 若读取了 `SDK集成案例手册.md`，必须在后续报告中输出：
 
 ```text
-[案例参考结论]
-- 当前项目可复用案例：有/无，模块名：
-- 物理证据已读取：
-- 可迁移模式：
-- 不可直接套用点：
-- 需要用户确认的差异：
+[同类型案例参考结论]
+- 目标 SDK 类型：
+- 已参考案例：
+- 可借鉴的 common API：
+- 可借鉴的用户操作/数据流转：
+- 可借鉴的数据模型：
+- 不能直接套用的点：
+- 仍需目标 SDK 文档确认的点：
 ```
 
 ### 1.2 阶段二：文档感知与物理签名获取
@@ -257,7 +259,7 @@ AI 必须输出 `[双端功能差异对齐报告]`：
 
 ### 2.1 模块边界
 - SDK 模块统一收敛在 `libs/<name>/`，Gradle path 统一为 `:libs:<name>`。
-- `<name>` 必须取原 `lib_xxx` 模块名去掉 `lib_` 后的 `xxx`，并保留原大小写，例如 `lib_geyan` -> `libs/geyan`、`lib_umeng` -> `libs/umeng`、`lib_openInstall` -> `libs/openInstall`、`lib_topon` -> `libs/topon`、`lib_pay` -> `libs/pay`；禁止按“认证/统计/广告/支付”等能力域重命名目录。
+- `<name>` 必须取原 `lib_xxx` 模块名去掉 `lib_` 后的 `xxx`，并保留原大小写，例如 `lib_demo` -> `libs/demo`、`lib_fooBar` -> `libs/fooBar`；禁止按“认证/统计/广告/支付”等能力域重命名目录。
 - 低风险迁移与现有模块可继续保留 namespace `com.basic.<suffix>`；新增模块默认与 `<name>` 保持语义一致。
 - Android SDK 文件放在 `libs/<name>/libs/android/` 或 Maven 依赖中。
 - iOS Pod 写在 `libs/<name>/build.gradle.kts` 的 `cocoapods` 内。

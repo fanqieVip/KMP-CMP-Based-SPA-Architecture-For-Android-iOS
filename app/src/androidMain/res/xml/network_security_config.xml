@@ -2,8 +2,8 @@
 <network-security-config>
     <base-config cleartextTrafficPermitted="true" />
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">test-c.bijieapp.com</domain>
-        <domain includeSubdomains="true">test-file.bijieapp.com</domain>
+        <domain includeSubdomains="true">test-c.xxx.com</domain>
+        <domain includeSubdomains="true">test-file.xxx.com</domain>
         <trust-anchors>
             <certificates src="user" />
             <certificates src="system" />
