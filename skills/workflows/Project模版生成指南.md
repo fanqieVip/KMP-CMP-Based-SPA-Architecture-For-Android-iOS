@@ -74,8 +74,6 @@
 
 - 禁止创建根目录平铺的 `project_xxx` 模块。
 - 禁止把 Project 模块建到 `libs/`、`core/` 或 `shared_*` 目录。
-- 禁止把 `Lib模版生成指南.md` 中的 SDK 专属规则套到 Project 模块，例如 `com.basic.ios`、`kotlinCocoapods`、SDK 文档归档、Pod 配置。
-- 禁止在 Project 模板中默认添加业务无关依赖；参考 `project/main` 时必须排除 `api(libs.permissions.microphone)`。
 - 禁止空头引用：修改 Gradle 或 app Koin 挂载前必须确保物理模块已创建。
 - 生成后必须至少执行 `:project:<name>:compileCommonMainKotlinMetadata`；若已自动接入 app，还必须执行 `:app:compileCommonMainKotlinMetadata`。
 
