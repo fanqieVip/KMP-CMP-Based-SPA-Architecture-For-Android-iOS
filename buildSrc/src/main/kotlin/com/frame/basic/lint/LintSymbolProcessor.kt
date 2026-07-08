@@ -37,7 +37,7 @@ class LintSymbolProcessor(
         if (scanned) return emptyList()
 
         val moduleName = environment.options["router.moduleName"] ?: ""
-        
+
         val screenType = resolver.getClassDeclarationByName(resolver.getKSNameFromString(SCREEN_TYPE))?.asStarProjectedType()
         val screenModelType = resolver.getClassDeclarationByName(resolver.getKSNameFromString(SCREEN_MODEL_TYPE))?.asStarProjectedType()
         val dialogType = resolver.getClassDeclarationByName(resolver.getKSNameFromString(DIALOG_TYPE))?.asStarProjectedType()
@@ -53,7 +53,7 @@ class LintSymbolProcessor(
             }
 
             val fileLines = File(filePath).readLines()
-            
+
             // 1. 导入检查
             checkImportRules(file, moduleName, fileLines, screenImportRegex, settingsImportRegex)
 
@@ -61,7 +61,8 @@ class LintSymbolProcessor(
             file.declarations.forEach { declaration ->
                 when (declaration) {
                     is KSClassDeclaration -> declaration.checkClassRules(screenType, screenModelType, dialogType, nativeDialogType, fileLines)
-                    is KSFunctionDeclaration -> declaration.checkFunctionRules()
+                    is KSFunctionDeclaration -> declaration.checkFunctionRules(fileLines = fileLines)
+                    is KSPropertyDeclaration -> declaration.checkTopLevelApiIsolationRule()
                 }
             }
         }
@@ -97,21 +98,29 @@ class LintSymbolProcessor(
     ) {
         if (classKind == ClassKind.ENUM_CLASS || classKind == ClassKind.ENUM_ENTRY) return
 
+        val className = simpleName.asString()
+
         // 递归检查成员
         declarations.forEach { declaration ->
             when (declaration) {
                 is KSClassDeclaration -> declaration.checkClassRules(screenType, screenModelType, dialogType, nativeDialogType, fileLines)
-                is KSFunctionDeclaration -> declaration.checkFunctionRules(modifiers.contains(Modifier.DATA))
+                is KSFunctionDeclaration -> declaration.checkFunctionRules(
+                    isDataClass = modifiers.contains(Modifier.DATA),
+                    parentClassName = className,
+                    fileLines = fileLines
+                )
                 is KSPropertyDeclaration -> declaration.checkPropertyRule(this, fileLines)
             }
         }
 
         val selfType = asStarProjectedType()
-        val className = simpleName.asString()
         val isScreen = screenType?.isAssignableFrom(selfType) == true
         val isScreenModel = screenModelType?.isAssignableFrom(selfType) == true
         val isDialog = (dialogType?.isAssignableFrom(selfType) == true) || (nativeDialogType?.isAssignableFrom(selfType) == true)
         val isAbstract = modifiers.contains(Modifier.ABSTRACT)
+
+        // 架构红线：Screen/ScreenModel/Dialog 构造参数禁止持有不合规函数引用。
+        checkConstructorFunctionParameterRules(className, isScreen, isScreenModel, isDialog)
 
         // A. 类 KDoc 校验
         val classDoc = docString
@@ -145,18 +154,55 @@ class LintSymbolProcessor(
         checkIsolationRules(className)
     }
 
+    private fun KSPropertyDeclaration.checkTopLevelApiIsolationRule() {
+        if (isLikelyKtorfitApi()) {
+            logger.error("架构红线 [Isolation]: 顶层属性 [${simpleName.asString()}] 禁止持有网络 API 实例，请封装到 *Repository 类或 object 中。", this)
+        }
+    }
+
+    private fun KSClassDeclaration.checkConstructorFunctionParameterRules(
+        className: String,
+        isScreen: Boolean,
+        isScreenModel: Boolean,
+        isDialog: Boolean
+    ) {
+        primaryConstructor?.parameters?.forEach { param ->
+            val paramName = param.name?.asString() ?: return@forEach
+            val isFunctionParameter = param.type.resolve().isFunctionType()
+
+            if (isScreen && isFunctionParameter) {
+                logger.error("架构红线 [Constructor]: Screen 子类 [$className] 的构造参数 [$paramName] 禁止使用函数类型。", param)
+            }
+
+            if (isScreenModel && isFunctionParameter) {
+                logger.error("架构红线 [Constructor]: ScreenModel 子类 [$className] 的构造参数 [$paramName] 禁止使用函数类型。", param)
+            }
+
+            if (isDialog && (param.isVal || param.isVar) && isFunctionParameter) {
+                logger.error("架构红线 [Constructor]: Dialog/NativeDialog 子类 [$className] 的构造参数属性 [$paramName] 禁止声明为函数属性，请去掉 val/var 并使用 by autoClear。", param)
+            }
+        }
+    }
+
     private fun KSPropertyDeclaration.checkPropertyRule(parent: KSClassDeclaration, fileLines: List<String>) {
         val isOverride = modifiers.contains(Modifier.OVERRIDE)
         val propName = simpleName.asString()
         val isConstructorParam = parent.primaryConstructor?.parameters?.any { it.name?.asString() == propName } == true
-        
+
         if (!isOverride && !isConstructorParam && !hasAnyComment(fileLines)) {
             logger.error("架构红线 [Documentation]: 成员变量 [$propName] 缺少注释 (/** */ 或 //)。", this)
         }
     }
 
-    private fun KSFunctionDeclaration.checkFunctionRules(isDataClass: Boolean = false) {
+    private fun KSFunctionDeclaration.checkFunctionRules(
+        isDataClass: Boolean = false,
+        parentClassName: String? = null,
+        fileLines: List<String>? = null
+    ) {
         val name = simpleName.asString()
+        if (fileLines != null) {
+            checkFunctionBodyApiIsolationRule(name, parentClassName, fileLines)
+        }
         if (modifiers.contains(Modifier.OVERRIDE) || name == "<init>") return
         if (isDataClass && (name == "copy" || name.startsWith("component") || name == "toString" || name == "hashCode" || name == "equals")) return
 
@@ -183,6 +229,46 @@ class LintSymbolProcessor(
         }
     }
 
+    private fun KSFunctionDeclaration.checkFunctionBodyApiIsolationRule(
+        functionName: String,
+        parentClassName: String?,
+        fileLines: List<String>
+    ) {
+        if (parentClassName?.endsWith("Repository") == true) return
+        val bodyRange = findFunctionBodyRange(fileLines) ?: return
+        val hasApiAccess = bodyRange.any { index ->
+            val line = fileLines[index].substringBefore("//")
+            localApiAccessRegex.containsMatchIn(line)
+        }
+        if (hasApiAccess) {
+            val owner = parentClassName?.let { "类 [$it] 的" } ?: "顶层"
+            logger.error("架构红线 [Isolation]: ${owner}方法 [$functionName] 禁止在函数体内创建或持有网络 API 实例，请封装到 *Repository 中。", this)
+        }
+    }
+
+    private fun KSFunctionDeclaration.findFunctionBodyRange(fileLines: List<String>): IntRange? {
+        val loc = location as? FileLocation ?: return null
+        val startIndex = loc.lineNumber - 1
+        if (startIndex !in fileLines.indices) return null
+
+        var foundBody = false
+        var depth = 0
+        val maxSignatureScanEnd = (startIndex + 80).coerceAtMost(fileLines.lastIndex)
+        for (index in startIndex..maxSignatureScanEnd) {
+            val line = fileLines[index]
+            val opens = line.count { it == '{' }
+            val closes = line.count { it == '}' }
+            if (!foundBody && opens > 0) {
+                foundBody = true
+            }
+            if (foundBody) {
+                depth += opens - closes
+                if (depth <= 0) return startIndex..index
+            }
+        }
+        return null
+    }
+
     private fun KSClassDeclaration.checkIsolationRules(className: String) {
         val isRepository = className.endsWith("Repository")
         declarations.filterIsInstance<KSPropertyDeclaration>().forEach { property ->
@@ -204,7 +290,7 @@ class LintSymbolProcessor(
         return false
     }
 
-    private fun KSClassDeclaration.hasKtorfitAnnotations(): Boolean = 
+    private fun KSClassDeclaration.hasKtorfitAnnotations(): Boolean =
         annotations.any { it.isKtorfitAnnotation() } || getAllFunctions().any { it.annotations.any { a -> a.isKtorfitAnnotation() } }
 
     private fun KSAnnotation.isKtorfitAnnotation(): Boolean {
@@ -222,4 +308,8 @@ class LintSymbolProcessor(
     private fun KSType.isKtorfitApiType(): Boolean = (declaration as? KSClassDeclaration)?.let { it.simpleName.asString().endsWith("Api", ignoreCase = true) || it.hasKtorfitAnnotations() } ?: false
 
     private fun KSType.isFunctionType(): Boolean = declaration.qualifiedName?.asString()?.let { it.startsWith("kotlin.Function") || it.startsWith("kotlin.coroutines.SuspendFunction") } ?: false
+
+    private companion object {
+        private val localApiAccessRegex = Regex("""\b(?:val|var)\s+\w*Api\b|create[A-Za-z0-9_]*Api\s*\(""")
+    }
 }
