@@ -110,7 +110,7 @@ interface ApplicationService {
 | 实现 | 位置 | 行为 |
 | --- | --- | --- |
 | `common.di.impl.ApplicationServiceImpl` | `core/common` | 调用 `common.Application.onCreate()`，Android 会启动 APK 环境定时校验。 |
-| `project.di.impl.ApplicationServiceImpl` | `shared_project` | App 创建时预加载 WebKit：`preloadWebkit("https://xxxx.com")`。 |
+| `project.di.impl.ApplicationServiceImpl` | `project/main` | App 创建时预加载 WebKit：`preloadWebkit("https://xxxx.com")`。 |
 
 ### `ApplicationProxyManager`
 
@@ -406,7 +406,7 @@ screen?.let { navigator.push(it) }
 生成产物示例：
 
 ```kotlin
-object SharedProjectRouteRegistry : RouteRegistry {
+object MainRouteRegistry : RouteRegistry {
     override fun routes(): List<RouteEntry> = listOf(
         RouteEntry("project/main") { request ->
             MainScreen(id = request.int("id"))
@@ -414,9 +414,9 @@ object SharedProjectRouteRegistry : RouteRegistry {
     )
 }
 
-val sharedProjectRouteModule: Module = module {
-    single<RouteRegistry>(qualifier = named("sharedProjectRouteRegistry")) {
-        SharedProjectRouteRegistry
+val mainRouteModule: Module = module {
+    single<RouteRegistry>(qualifier = named("mainRouteRegistry")) {
+        MainRouteRegistry
     }
 }
 ```
@@ -425,7 +425,7 @@ val sharedProjectRouteModule: Module = module {
 
 ```kotlin
 val projectModule = module {
-    includes(sharedProjectRouteModule)
+    includes(mainRouteModule)
 }
 ```
 
@@ -440,7 +440,7 @@ val projectModule = module {
 命令：
 
 ```bash
-./gradlew :shared_project:generateBuildRouter
+./gradlew :project:main:generateBuildRouter
 ```
 
 说明：
@@ -480,7 +480,7 @@ class MainScreen(
 | 项 | 内容 |
 | --- | --- |
 | 位置 | `core/common/src/commonMain/kotlin/com/basic/common/navigation/ProjectRouter.kt` |
-| 实现 | `shared_project/.../ProjectRouterImpl.kt` |
+| 实现 | `project/main/.../ProjectRouterImpl.kt` |
 | 作用 | 旧的跨模块页面工厂接口。新增页面路由优先使用 `@Router` + `asRouter(url)`。 |
 
 当前路由：
@@ -1376,7 +1376,7 @@ core/common/api/XxxApi.kt
   -> @GET/@POST...
 core/common/beans/XxxDto.kt
   -> @Serializable
-shared_project/repository/XxxRepository.kt
+project/main/repository/XxxRepository.kt
   -> ktorfit.createXxxApi()
 ScreenModel
   -> repository.call().throwFail()
@@ -1386,8 +1386,8 @@ ScreenModel
 
 ```text
 core/common/di/service/XxxService.kt
-shared_project/di/impl/XxxServiceImpl.kt
-shared_project/di/DI.kt registerSPI<XxxService> { XxxServiceImpl() }
+project/main/di/impl/XxxServiceImpl.kt
+project/main/di/DI.kt registerSPI<XxxService> { XxxServiceImpl() }
 caller -> withImpl<XxxService>()
 ```
 
@@ -1401,34 +1401,34 @@ core/base/src/iosMain/... actual API
 
 ## 18. Demo 示例 API 使用说明
 
-本章按 `shared_project` 中的 demo 页面反向整理 API。阅读 demo 时优先看这里，可以更快判断某个框架能力应该怎么接入。
+本章按 `project/main` 中的 demo 页面反向整理 API。阅读 demo 时优先看这里，可以更快判断某个框架能力应该怎么接入。
 
 ### Demo 到 API 映射
 
 | Demo 页面 | 关键 API | 位置 |
 | --- | --- | --- |
-| 跨模块通信 | `withImpl<ProjectService>()`、`toastShort()`、`DateUtils` | `shared_project/ui/ModuleCommunicationScreen.kt` |
-| 单页生命周期 | `LocalNavigator`、`navigator.push/popUntilRoot`、`rememberMainScreenModel`、`onVisible/onInvisible` | `shared_project/ui/screen/lifecycle/SinglePageScreen.kt` |
-| 嵌套生命周期 | `HorizontalPagerLifecycle`、`LocalPageLifecycleVisible`、`rememberMainScreenModel(tag)` | `shared_project/ui/screen/lifecycle/EmbeddedPageScreen.kt` |
-| 滑动嵌套生命周期 | `HorizontalPagerLifecycle`、`PagerState`、`animateScrollToPage` | `shared_project/ui/screen/lifecycle/EmbeddedSlidePageScreen.kt` |
-| 全局数据共享 | `ShareData.currentNo`、`MutableStateFlow.collectAsState()` | `shared_project/ui/screen/datashare/GlobalDataShareScreen.kt`、`SinglePageScreen.kt` |
-| Screen 内数据共享 | `rememberScreenModel`、`rememberMainScreenModel(tag)` | `shared_project/ui/screen/datashare/ScreenDataShareScreen.kt` |
-| 参数传递和页面回调 | `buildCallbackId`、`asCallback`、`rememberScreenModel` | `shared_project/ui/screen/paramstransitive/SingleParamsTransitiveScreen.kt` |
-| 基础交互 | `BasicInteraction`、`uiLoading/uiSuccess/uiError`、`showPopLoading` | `shared_project/ui/screen/interaction/BasicInteractionScreen.kt` |
-| 分页交互 | `PagingControl`、`RefreshState`、`BasicRefreshLazyListInteraction` | `shared_project/ui/screen/interaction/PagingInteractionScreen.kt` |
-| 混合交互 | `BasicHazeScaffold`、`CoordinatorLayout`、`rememberCoordinatorLayoutState` | `shared_project/ui/screen/interaction/MixInteractionScreen.kt` |
-| 网络请求 | `TestRepository`、`Data.throwFail()`、`launchScope.catch` | `shared_project/ui/screen/NetScreen.kt` |
-| 响应式磁盘数据 | `settings.asFlowString`、`settings.asFlowJson`、`setValue` | `shared_project/ui/screen/diskdata` |
-| 普通弹窗 | `LocalDialogController.current.showNow`、`BasicDialog.dismiss`、`onDismiss` | `shared_project/ui/screen/dialog/NormalDialogScreen.kt` |
-| 优先级弹窗 | `showPriority(priority, dialog, group)` | `shared_project/ui/screen/dialog/PriorityDialogScreen.kt` |
-| 原生弹窗 | `BasicNativeDialog`、`show(uiContainer)`、`LocalUIContainer` | `shared_project/ui/screen/dialog/NativeDialogScreen.kt` |
-| 权限系统 | `LocalPermissionController`、`providePermission`、`permissionState` | `shared_project/ui/screen/PermissionScreen.kt` |
-| FileKit 文件选择 | `FileKit.openFilePicker`、`absolutePath` | `shared_project/ui/screen/filesystem/filekit/FilePickerScreen.kt` |
-| FileKit 目录/相机 | `openDirectoryPicker`、`openCameraPicker` | `shared_project/ui/screen/filesystem/filekit` |
-| FileKit 读写 | `PlatformFile`、`createDirectories`、`writeString/readString` | `shared_project/ui/screen/filesystem/filekit/FileWriteReaderScreen.kt` |
-| 图库裁剪 | `FileKitType.Image`、`rememberImageCropper`、`crop`、`ImageCropperDialog` | `shared_project/ui/screen/filesystem/filekit/GalleryPickerScreen.kt` |
-| 下载器 | `DownloadManager.downloadAndGet`、`DownloadTask.state/progress`、`cancel` | `shared_project/ui/screen/DownloaderScreen.kt` |
-| WebView | `WebViewState`、`NativeWebView`、`registerJsBridge`、`evaluateJavaScripts`、`CanBackHandler` | `shared_project/ui/screen/WebviewScreen.kt` |
+| 跨模块通信 | `withImpl<ProjectService>()`、`toastShort()`、`DateUtils` | `project/main/ui/ModuleCommunicationScreen.kt` |
+| 单页生命周期 | `LocalNavigator`、`navigator.push/popUntilRoot`、`rememberMainScreenModel`、`onVisible/onInvisible` | `project/main/ui/screen/lifecycle/SinglePageScreen.kt` |
+| 嵌套生命周期 | `HorizontalPagerLifecycle`、`LocalPageLifecycleVisible`、`rememberMainScreenModel(tag)` | `project/main/ui/screen/lifecycle/EmbeddedPageScreen.kt` |
+| 滑动嵌套生命周期 | `HorizontalPagerLifecycle`、`PagerState`、`animateScrollToPage` | `project/main/ui/screen/lifecycle/EmbeddedSlidePageScreen.kt` |
+| 全局数据共享 | `ShareData.currentNo`、`MutableStateFlow.collectAsState()` | `project/main/ui/screen/datashare/GlobalDataShareScreen.kt`、`SinglePageScreen.kt` |
+| Screen 内数据共享 | `rememberScreenModel`、`rememberMainScreenModel(tag)` | `project/main/ui/screen/datashare/ScreenDataShareScreen.kt` |
+| 参数传递和页面回调 | `buildCallbackId`、`asCallback`、`rememberScreenModel` | `project/main/ui/screen/paramstransitive/SingleParamsTransitiveScreen.kt` |
+| 基础交互 | `BasicInteraction`、`uiLoading/uiSuccess/uiError`、`showPopLoading` | `project/main/ui/screen/interaction/BasicInteractionScreen.kt` |
+| 分页交互 | `PagingControl`、`RefreshState`、`BasicRefreshLazyListInteraction` | `project/main/ui/screen/interaction/PagingInteractionScreen.kt` |
+| 混合交互 | `BasicHazeScaffold`、`CoordinatorLayout`、`rememberCoordinatorLayoutState` | `project/main/ui/screen/interaction/MixInteractionScreen.kt` |
+| 网络请求 | `TestRepository`、`Data.throwFail()`、`launchScope.catch` | `project/main/ui/screen/NetScreen.kt` |
+| 响应式磁盘数据 | `settings.asFlowString`、`settings.asFlowJson`、`setValue` | `project/main/ui/screen/diskdata` |
+| 普通弹窗 | `LocalDialogController.current.showNow`、`BasicDialog.dismiss`、`onDismiss` | `project/main/ui/screen/dialog/NormalDialogScreen.kt` |
+| 优先级弹窗 | `showPriority(priority, dialog, group)` | `project/main/ui/screen/dialog/PriorityDialogScreen.kt` |
+| 原生弹窗 | `BasicNativeDialog`、`show(uiContainer)`、`LocalUIContainer` | `project/main/ui/screen/dialog/NativeDialogScreen.kt` |
+| 权限系统 | `LocalPermissionController`、`providePermission`、`permissionState` | `project/main/ui/screen/PermissionScreen.kt` |
+| FileKit 文件选择 | `FileKit.openFilePicker`、`absolutePath` | `project/main/ui/screen/filesystem/filekit/FilePickerScreen.kt` |
+| FileKit 目录/相机 | `openDirectoryPicker`、`openCameraPicker` | `project/main/ui/screen/filesystem/filekit` |
+| FileKit 读写 | `PlatformFile`、`createDirectories`、`writeString/readString` | `project/main/ui/screen/filesystem/filekit/FileWriteReaderScreen.kt` |
+| 图库裁剪 | `FileKitType.Image`、`rememberImageCropper`、`crop`、`ImageCropperDialog` | `project/main/ui/screen/filesystem/filekit/GalleryPickerScreen.kt` |
+| 下载器 | `DownloadManager.downloadAndGet`、`DownloadTask.state/progress`、`cancel` | `project/main/ui/screen/DownloaderScreen.kt` |
+| WebView | `WebViewState`、`NativeWebView`、`registerJsBridge`、`evaluateJavaScripts`、`CanBackHandler` | `project/main/ui/screen/WebviewScreen.kt` |
 
 ### 跨模块服务调用
 
@@ -1438,7 +1438,7 @@ Demo 使用 `ProjectService` 展示跨模块通信：
 withImpl<ProjectService>()?.sayHello("跨模块通信成功")
 ```
 
-服务定义在 `core/common/di/service/ProjectService.kt`，实现与注册在 `shared_project`：
+服务定义在 `core/common/di/service/ProjectService.kt`，实现与注册在 `project/main`：
 
 ```kotlin
 class ProjectServiceImpl : ProjectService {

@@ -5,11 +5,11 @@ import com.basic.base.spi.registerSPI
 import com.basic.common.di.service.ProjectService
 import com.basic.project.di.impl.ApplicationServiceImpl
 import com.basic.project.di.impl.ProjectServiceImpl
-import com.basic.router.generated.sharedProjectRouteModule
+import com.basic.router.generated.mainRouteModule
 import org.koin.dsl.module
 
 val projectModule = module {
-    includes(sharedProjectRouteModule)
+    includes(mainRouteModule)
     registerSPI<ApplicationService>{ ApplicationServiceImpl() }
     registerSPI<ProjectService>{ ProjectServiceImpl() }
 }

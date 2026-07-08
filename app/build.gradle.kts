@@ -78,17 +78,17 @@ kotlin {
                 "include" to listOf("**/*.jar", "**/*.aar")
             )))
             implementation(libs.coil.ktor.android)
-            api(projects.sharedProject)
+            api(projects.project.main)
         }
         commonMain.dependencies {
             implementation(libs.koin.core)
             implementation(libs.koin.annotations)
             implementation(libs.koin.compose)
             implementation(libs.compose.multiplatform.components)
-            api(projects.sharedProject)
+            api(projects.project.main)
         }
         iosMain.dependencies {
-            api(projects.sharedProject)
+            api(projects.project.main)
         }
     }
 }
