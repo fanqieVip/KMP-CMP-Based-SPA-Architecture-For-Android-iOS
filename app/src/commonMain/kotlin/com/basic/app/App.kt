@@ -6,8 +6,8 @@ import com.basic.base.local.PermissionController
 import com.basic.base.local.UIContainer
 import com.basic.common.base.BasicApp
 import com.basic.common.di.commonModule
-import com.basic.project.di.mainModule
-import com.basic.project.ui.SplashScreen
+import com.basic.main.di.mainModule
+import com.basic.main.ui.SplashScreen
 import org.koin.core.context.startKoin
 
 @Composable

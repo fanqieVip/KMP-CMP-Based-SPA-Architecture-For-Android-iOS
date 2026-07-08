@@ -30,7 +30,7 @@ object VmpConfig {
         "class com.basic.base.ApplicationProxyManager",
         "class com.basic.app.Application",
         "class com.basic.native.* { *; }",
-        "class com.basic.project.* { *; }",
+        "class com.basic.main.* { *; }",
         "class com.basic.common.* { *; }"
     )
 

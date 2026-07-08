@@ -300,7 +300,7 @@ project/<name>/
 - `buildSrc/src/main/kotlin/com/frame/basic/router/RouterSymbolProcessor.kt`：路由生成器。
 - `buildSrc/src/main/kotlin/com/frame/basic/lint/LintSymbolProcessor.kt`：架构红线。
 - `buildSrc/src/main/kotlin/com/frame/basic/plugin/IosConfigPlugin.kt`：iOS 配置聚合。
-- `project/main/src/commonMain/kotlin/com/basic/project/ui/`：业务页面示例。
+- `project/main/src/commonMain/kotlin/com/basic/main/ui/`：业务页面示例。
 
 读完这些点，基本就能看见这套工程的主干：它不是几个页面拼起来的 Demo，而是从入口、分层、路由、生命周期、构建到协作规范都成体系的移动端底座。
 

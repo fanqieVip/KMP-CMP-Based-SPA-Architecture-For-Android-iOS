@@ -17,7 +17,7 @@ plugins {
     id("com.basic.router")
     id("com.basic.lint")
 }
-val androidNameSpace = "com.basic.project"
+val androidNameSpace = "com.basic.main"
 kotlin {
     androidLibrary {
         namespace = androidNameSpace

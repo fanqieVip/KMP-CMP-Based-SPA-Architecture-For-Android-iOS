@@ -62,6 +62,7 @@ AI 必须对特定 UI 模式保持“业务敏感度”，禁止无脑复制工�
     - **进化机制/补丁规约/自维护** -> `workflows/AI-Skill自动升级指南.md`
     - **环境同步/IDE/构建/CocoaPods** -> `workflows/IDE环境同步指南.md` 或 `standards/Pod依赖使用指南与规范.md`
     - **SDK 集成流程/适配模块** -> `workflows/SDK集成工作流规范.md` 或 `workflows/Lib模版生成指南.md`
+    - **Project 项目模块生成** -> `workflows/Project模版生成指南.md`
     - **无法归类的新领域** -> 提议创建新的 `skills/Xxx.md`
 
 ### 4.2 拟定合并计划

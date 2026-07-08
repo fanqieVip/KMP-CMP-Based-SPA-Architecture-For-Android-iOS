@@ -11,8 +11,8 @@
   - 输入 `project_xxx` 时，模块名取去掉 `project_` 后的 `xxx`，例如 `project_pay` -> `project/pay`。
   - 输入 `project:<name>`、`project/<name>` 或明确的 `<name>` 时，保留 `<name>` 原大小写。
   - 输入 `project` 且未说明具体名字时，必须先询问模块名；不得默认覆盖或复用 `project/main`。
-- **Android Namespace**: 默认使用 `com.basic.<name>`；若 `<name>` 为 `main`，沿用 `com.basic.project`。
-- **源码路径**: 默认匹配 namespace，例如 `src/commonMain/kotlin/com/basic/<name>/`；`main` 模块默认使用 `com/basic/project/`。
+- **Android Namespace**: 默认使用 `com.basic.<name>`。
+- **源码路径**: 默认匹配 namespace，例如 `src/commonMain/kotlin/com/basic/<name>/`。
 - **命名问询规则**:
   - 名字明确时不得二次改名。
   - 名字不明确时只问一个问题：确认最终 `<name>`。
