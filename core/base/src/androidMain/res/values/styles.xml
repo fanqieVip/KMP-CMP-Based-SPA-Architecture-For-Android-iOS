@@ -44,4 +44,18 @@
         <item name="android:windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
     </style>
+
+    <!-- 右进右出动画 -->
+    <style name="base_slide_left_right_anim" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/base_slide_in_right</item>
+        <item name="android:activityOpenExitAnimation">@anim/base_slide_out_left</item>
+        <item name="android:activityCloseEnterAnimation">@anim/base_slide_in_left</item>
+        <item name="android:activityCloseExitAnimation">@anim/base_slide_out_right</item>
+    </style>
+
+    <!-- Activity通用主题 -->
+    <style name="base_activity_anim_theme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowAnimationStyle">@style/base_slide_left_right_anim</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
 </resources>

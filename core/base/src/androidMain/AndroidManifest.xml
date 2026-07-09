@@ -14,6 +14,6 @@
         <activity
             android:name="com.basic.base.local.NativeActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.NoActionBar"/>
+            android:theme="@style/base_activity_anim_theme"/>
     </application>
 </manifest>

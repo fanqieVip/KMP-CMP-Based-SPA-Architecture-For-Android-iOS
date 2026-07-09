@@ -355,7 +355,7 @@ expect fun UIContainer.push(screen: Screen)
 
 - `pop()`：关闭当前平台容器。Android 调用 `finish()`；iOS 优先从 `UINavigationController` pop，否则 dismiss。
 - `push(screen)`：创建新的原生宿主页面并在其中运行 `BaseApp(screen, uiContainer, permissionController)`。
-- Android 通过 `NativeActivity` 承载新的 `BaseApp`；iOS 查找最近的 `UINavigationController` 并 push `ComposeUIViewController`。
+- Android 通过 `NativeActivity` 承载新的 `BaseApp`，该 Activity 在 Manifest 中必须配置 `android:theme="@style/base_activity_anim_theme"`；iOS 查找最近的 `UINavigationController` 并 push `ComposeUIViewController`。
 
 使用边界：
 

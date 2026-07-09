@@ -16,6 +16,7 @@
 - **BasicDialog**：仅限 Compose 实现的轻量业务弹窗，生命周期跟随当前 `BaseScreen` 宿主。
 - **BasicNativeDialog**：用于需要脱离 Compose 弹窗栈、覆盖到原生层的弹窗，例如权限申请或需要强制覆盖导航栏的交互。
 - **UIContainer.push**：用于需要打开完整 `Screen`，且当前 Compose 单页宿主可能被三方 SDK 原生页面遮挡的场景，例如一键登录原生页上继续打开协议页、说明页或业务确认页。
+- **Android Activity 主题强制性**：新建 Android Activity（包括 `NativeActivity` 和业务专属 Activity）时，在 `AndroidManifest.xml` 中**必须**配置 `android:theme="@style/base_activity_anim_theme"`。这确保了原生 Activity 的进出场动画与 Compose Screen 的滑动动画（右进右出）完全一致，维持视觉连续性。
 - **禁止滥用原生宿主**：常规页面跳转必须优先使用 `navigator.push(Screen())`。`UIContainer.push(Screen())` 会创建独立宿主和独立导航栈，返回、参数传递和数据同步必须由业务明确处理。
 
 ## 2. 通用组件原子规约
