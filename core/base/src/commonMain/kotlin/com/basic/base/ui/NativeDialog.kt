@@ -33,16 +33,23 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import buildkonfig.BuildConfig_com_basic_base
+import com.basic.base.AutoSize
 import com.basic.base.Os
 import com.basic.base.getPlatform
 import com.basic.base.local.DefaultTraceInfoScope
+import com.basic.base.local.LocalAppState
 import com.basic.base.local.UIContainer
+import com.basic.base.local.appState
 import com.benasher44.uuid.uuid4
-import io.github.hristogochev.vortex.navigator.LocalScreenStateKey
 import io.github.hristogochev.vortex.util.multiplatformName
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
+/**
+ * 原生弹簧
+ * 注意：原生弹窗不在单页宿主上，而是单独开的一张页面实现的，纯粹用于简单的对话框一类的业务，时间响应只能用callback回调
+ */
 abstract class NativeDialog(
     private val alignment: Alignment = Alignment.Center,
     private val cancelAble: Boolean = true,
@@ -65,90 +72,92 @@ abstract class NativeDialog(
         if(dialogStateHostKey == null){
             dialogStateHostKey = "${NativeDialog::class.multiplatformName}:${this::class.multiplatformName}:${key}"
         }
-        CompositionLocalProvider(
-            LocalScreenStateKey provides dialogStateHostKey,
-        ) {
-            val visible = remember { MutableTransitionState(false) }
-            LaunchedEffect(visible.currentState, visible.targetState) {
-                if (visible.currentState == visible.targetState) {
-                    // 动画结束
-                    if (visible.currentState) {
-                        //进入动画结束 - 组件已完全显示
-                        onShow()
-                    } else {
-                        //退出动画结束 - 组件已完全隐藏
-                        if (!isShow) {
-                            onDismiss()
-                            onDismissCall()
-                            cleanUpAutoActions()
-                            //回退状态，方便重用
-                            isShow = true
-                        }
-                    }
-                } else {
-                    // 动画进行中
-                }
-            }
-            LaunchedEffect(isShow) {
-                visible.targetState = !visible.targetState
-            }
-            val keyboardController = LocalSoftwareKeyboardController.current
-            val focusManager = LocalFocusManager.current
-            val backgroundColor by animateColorAsState(
-                targetValue = if (isShow) shadowColor else Color.Transparent,
-                animationSpec = tween(200)
-            )
-            Box(
-                modifier = Modifier.run {
-                    when (getPlatform().os) {
-                        Os.ANDROID -> navigationBarsPadding()
-                        Os.IOS -> windowInsetsPadding(WindowInsets(0.dp))
-                    }
-                }.fillMaxSize().background(backgroundColor).pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = {
-                            focusManager.clearFocus()
-                            keyboardController?.hide()
-                        }
-                    )
-                }
+        AutoSize(designWidth = BuildConfig_com_basic_base.DESIGN_SIZE.toFloat()) {
+            CompositionLocalProvider(
+                LocalAppState provides appState
             ) {
-                val isIos = getPlatform().os == Os.IOS
-                if (!isIos) {
-                    Popup(
-                        onDismissRequest = {
-                            dismiss()
-                        },
-                        properties = PopupProperties(
-                            focusable = true,
-                            dismissOnBackPress = cancelAble,
-                            dismissOnClickOutside = false,
-                            clippingEnabled = false
+                val visible = remember { MutableTransitionState(false) }
+                LaunchedEffect(visible.currentState, visible.targetState) {
+                    if (visible.currentState == visible.targetState) {
+                        // 动画结束
+                        if (visible.currentState) {
+                            //进入动画结束 - 组件已完全显示
+                            onShow()
+                        } else {
+                            //退出动画结束 - 组件已完全隐藏
+                            if (!isShow) {
+                                onDismiss()
+                                onDismissCall()
+                                cleanUpAutoActions()
+                                //回退状态，方便重用
+                                isShow = true
+                            }
+                        }
+                    } else {
+                        // 动画进行中
+                    }
+                }
+                LaunchedEffect(isShow) {
+                    visible.targetState = !visible.targetState
+                }
+                val keyboardController = LocalSoftwareKeyboardController.current
+                val focusManager = LocalFocusManager.current
+                val backgroundColor by animateColorAsState(
+                    targetValue = if (isShow) shadowColor else Color.Transparent,
+                    animationSpec = tween(200)
+                )
+                Box(
+                    modifier = Modifier.run {
+                        when (getPlatform().os) {
+                            Os.ANDROID -> navigationBarsPadding()
+                            Os.IOS -> windowInsetsPadding(WindowInsets(0.dp))
+                        }
+                    }.fillMaxSize().background(backgroundColor).pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = {
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+                            }
                         )
-                    ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = alignment) {
-                            Box(modifier = Modifier.fillMaxSize().clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                if (cancelAble) {
-                                    dismiss()
-                                }
-                            })
+                    }
+                ) {
+                    val isIos = getPlatform().os == Os.IOS
+                    if (!isIos) {
+                        Popup(
+                            onDismissRequest = {
+                                dismiss()
+                            },
+                            properties = PopupProperties(
+                                focusable = true,
+                                dismissOnBackPress = cancelAble,
+                                dismissOnClickOutside = false,
+                                clippingEnabled = false
+                            )
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = alignment) {
+                                Box(modifier = Modifier.fillMaxSize().clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    if (cancelAble) {
+                                        dismiss()
+                                    }
+                                })
+                                CreateUIContent(visible)
+                            }
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize().clickable {
+                            if (cancelAble) {
+                                dismiss()
+                            }
+                        })
+                        Box(modifier = Modifier.align(alignment)) {
                             CreateUIContent(visible)
                         }
                     }
-                } else {
-                    Box(modifier = Modifier.fillMaxSize().clickable {
-                        if (cancelAble) {
-                            dismiss()
-                        }
-                    })
-                    Box(modifier = Modifier.align(alignment)) {
-                        CreateUIContent(visible)
-                    }
-                }
 
+                }
             }
         }
     }
