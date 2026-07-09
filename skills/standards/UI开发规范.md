@@ -44,6 +44,9 @@
 - **组件标准**：业务场景下的文本输入框**必须默认使用** `ComposeEditText`，严禁直接使用原生 `BasicTextField` 或 `TextField`。
 - **状态管理**：输入内容变更回调 `textChange` 必须映射到 `ScreenModel` 中的状态。
 
+### 2.6 Android 原生 UI (Non-Compose)
+- **尺寸转换收敛**：在编写 `Activity`、`View` 等原生代码时，严禁局部定义 `density` 或 `dp()`/`sp()` 转换函数。必须统一使用 `core:base` 模块提供的 `import com.basic.base.utils.dp` 和 `sp` 扩展。
+
 ## 3. 性能与资源安全
 
 - **WebView 释放**：`WebViewState` 必须持有在 `ScreenModel` 中，且必须在 `onDestroyed()` 中调用 `destroyed()`。
@@ -56,3 +59,4 @@
 - ❌ **禁止** 直接使用原生 `BasicTextField` 或 `TextField`（必须使用 `ComposeEditText`）。
 - ❌ **禁止** 严禁在任何布局中硬编码 `44.dp` / `statusBar` 等数值作为安全边距。
 - ❌ **禁止** 在 `onLoad` 中手动 catch 并处理分页错误（必须委托给 `PagingControl` 自动处理）。
+- ❌ **禁止** 在 Android 原生代码中编写重复的尺寸转换胶水代码（必须统一引用 `core:base` 中的 `SizeUtils` 扩展）。
