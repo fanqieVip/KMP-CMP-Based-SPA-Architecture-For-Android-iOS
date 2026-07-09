@@ -33,8 +33,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import buildkonfig.BuildConfig_com_basic_base
-import com.basic.base.AutoSize
 import com.basic.base.Os
 import com.basic.base.getPlatform
 import com.basic.base.local.DefaultTraceInfoScope
@@ -60,82 +58,84 @@ abstract class NativeDialog(
     internal var isShow by mutableStateOf(true)
     open val key: String = uuid4().toString()
     internal var dialogStateHostKey: String? = null
+
     /**
      * 链路来源
      */
     internal var fromTraceId: String? = null
     private val cleanupActions = mutableListOf<() -> Unit>()
+
     @Composable
     internal fun Content(
         onDismissCall: () -> Unit
     ) {
-        if(dialogStateHostKey == null){
+        if (dialogStateHostKey == null) {
             dialogStateHostKey = "${NativeDialog::class.multiplatformName}:${this::class.multiplatformName}:${key}"
         }
-        AutoSize(designWidth = BuildConfig_com_basic_base.DESIGN_SIZE.toFloat()) {
-            CompositionLocalProvider(
-                LocalAppState provides appState
-            ) {
-                val visible = remember { MutableTransitionState(false) }
-                LaunchedEffect(visible.currentState, visible.targetState) {
-                    if (visible.currentState == visible.targetState) {
-                        // 动画结束
-                        if (visible.currentState) {
-                            //进入动画结束 - 组件已完全显示
-                            onShow()
-                        } else {
-                            //退出动画结束 - 组件已完全隐藏
-                            if (!isShow) {
-                                onDismiss()
-                                onDismissCall()
-                                cleanUpAutoActions()
-                                //回退状态，方便重用
-                                isShow = true
-                            }
-                        }
+        CompositionLocalProvider(
+            LocalAppState provides appState
+        ) {
+            val visible = remember { MutableTransitionState(false) }
+            LaunchedEffect(visible.currentState, visible.targetState) {
+                if (visible.currentState == visible.targetState) {
+                    // 动画结束
+                    if (visible.currentState) {
+                        //进入动画结束 - 组件已完全显示
+                        onShow()
                     } else {
-                        // 动画进行中
-                    }
-                }
-                LaunchedEffect(isShow) {
-                    visible.targetState = !visible.targetState
-                }
-                val keyboardController = LocalSoftwareKeyboardController.current
-                val focusManager = LocalFocusManager.current
-                val backgroundColor by animateColorAsState(
-                    targetValue = if (isShow) shadowColor else Color.Transparent,
-                    animationSpec = tween(200)
-                )
-                Box(
-                    modifier = Modifier.run {
-                        when (getPlatform().os) {
-                            Os.ANDROID -> navigationBarsPadding()
-                            Os.IOS -> windowInsetsPadding(WindowInsets(0.dp))
+                        //退出动画结束 - 组件已完全隐藏
+                        if (!isShow) {
+                            onDismiss()
+                            onDismissCall()
+                            cleanUpAutoActions()
+                            //回退状态，方便重用
+                            isShow = true
                         }
-                    }.fillMaxSize().background(backgroundColor).pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = {
-                                focusManager.clearFocus()
-                                keyboardController?.hide()
-                            }
-                        )
                     }
-                ) {
-                    val isIos = getPlatform().os == Os.IOS
-                    if (!isIos) {
-                        Popup(
-                            onDismissRequest = {
-                                dismiss()
-                            },
-                            properties = PopupProperties(
-                                focusable = true,
-                                dismissOnBackPress = cancelAble,
-                                dismissOnClickOutside = false,
-                                clippingEnabled = false
-                            )
-                        ) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = alignment) {
-                                Box(modifier = Modifier.fillMaxSize().clickable(
+                } else {
+                    // 动画进行中
+                }
+            }
+            LaunchedEffect(isShow) {
+                visible.targetState = !visible.targetState
+            }
+            val keyboardController = LocalSoftwareKeyboardController.current
+            val focusManager = LocalFocusManager.current
+            val backgroundColor by animateColorAsState(
+                targetValue = if (isShow) shadowColor else Color.Transparent,
+                animationSpec = tween(200)
+            )
+            Box(
+                modifier = Modifier.run {
+                    when (getPlatform().os) {
+                        Os.ANDROID -> navigationBarsPadding()
+                        Os.IOS -> windowInsetsPadding(WindowInsets(0.dp))
+                    }
+                }.fillMaxSize().background(backgroundColor).pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                        }
+                    )
+                }
+            ) {
+                val isIos = getPlatform().os == Os.IOS
+                if (!isIos) {
+                    Popup(
+                        onDismissRequest = {
+                            dismiss()
+                        },
+                        properties = PopupProperties(
+                            focusable = true,
+                            dismissOnBackPress = cancelAble,
+                            dismissOnClickOutside = false,
+                            clippingEnabled = false
+                        )
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = alignment) {
+                            Box(
+                                modifier = Modifier.fillMaxSize().clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
                                 ) {
@@ -143,24 +143,24 @@ abstract class NativeDialog(
                                         dismiss()
                                     }
                                 })
-                                CreateUIContent(visible)
-                            }
-                        }
-                    } else {
-                        Box(modifier = Modifier.fillMaxSize().clickable {
-                            if (cancelAble) {
-                                dismiss()
-                            }
-                        })
-                        Box(modifier = Modifier.align(alignment)) {
                             CreateUIContent(visible)
                         }
                     }
-
+                } else {
+                    Box(modifier = Modifier.fillMaxSize().clickable {
+                        if (cancelAble) {
+                            dismiss()
+                        }
+                    })
+                    Box(modifier = Modifier.align(alignment)) {
+                        CreateUIContent(visible)
+                    }
                 }
+
             }
         }
     }
+
     @Composable
     private fun CreateUIContent(visibleState: MutableTransitionState<Boolean>) {
         AnimatedVisibility(
@@ -173,6 +173,7 @@ abstract class NativeDialog(
             }
         }
     }
+
     @Composable
     abstract fun CreateUI()
     fun dismiss() {
@@ -191,11 +192,13 @@ abstract class NativeDialog(
     protected fun <T : Any> autoClear(initialValue: T? = null): ReadWriteProperty<Any?, T?> {
         return object : ReadWriteProperty<Any?, T?> {
             private var value: T? = initialValue
+
             init {
                 cleanupActions.add {
                     value = null
                 }
             }
+
             override fun getValue(thisRef: Any?, property: KProperty<*>): T? = value
             override fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T?) {
                 value = newValue
@@ -206,7 +209,7 @@ abstract class NativeDialog(
     /**
      * 自动清理所有autoClear代理的对象
      */
-    internal fun cleanUpAutoActions(){
+    internal fun cleanUpAutoActions() {
         cleanupActions.forEach { it.invoke() }
         cleanupActions.clear()
     }

@@ -28,7 +28,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import buildkonfig.BuildConfig_com_basic_base
-import com.basic.base.AutoSize
 import com.basic.base.Os
 import com.basic.base.constant.VersionStatus
 import com.basic.base.di.service.UIConfigService
@@ -56,20 +55,18 @@ fun BaseApp(
     uiContainer: UIContainer,
     permissionController: PermissionController
 ) {
-    AutoSize(designWidth = BuildConfig_com_basic_base.DESIGN_SIZE.toFloat()) {
-        CompositionLocalProvider(
-            LocalAppState provides appState,
-            LocalPermissionController provides permissionController,
-            LocalUIContainer provides uiContainer,
-        ) {
-            MaterialTheme {
-                val uiConfig = remember { withImpl<UIConfigService>() }
-                if (uiConfig == null) {
+    CompositionLocalProvider(
+        LocalAppState provides appState,
+        LocalPermissionController provides permissionController,
+        LocalUIContainer provides uiContainer,
+    ) {
+        MaterialTheme {
+            val uiConfig = remember { withImpl<UIConfigService>() }
+            if (uiConfig == null) {
+                RootUIConfig(screen = screen, uiConfig = uiConfig)
+            } else {
+                uiConfig.RootUiConfig {
                     RootUIConfig(screen = screen, uiConfig = uiConfig)
-                } else {
-                    uiConfig.RootUiConfig {
-                        RootUIConfig(screen = screen, uiConfig = uiConfig)
-                    }
                 }
             }
         }

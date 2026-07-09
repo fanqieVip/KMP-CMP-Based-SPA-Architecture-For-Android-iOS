@@ -30,6 +30,7 @@ dependencyResolutionManagement {
             filter {
                 includeGroup("com.github.gzu-liyujiang")
                 includeGroup("com.github.getActivity")
+                includeGroup("com.github.JessYanCoding")
             }
         }
         exclusiveContent {
