@@ -4,7 +4,9 @@ import UIKit
 
 struct NainVC: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
-        return MainViewControllerKt.MainVC()
+        let composeVc = MainViewControllerKt.MainVC()
+        let nav = FullScreenNavigationController(rootViewController: composeVc)
+        return nav
     }
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }

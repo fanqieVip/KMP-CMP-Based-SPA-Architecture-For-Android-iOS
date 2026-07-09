@@ -54,4 +54,5 @@ object RouterConstant {
     const val DIALOG_NORMAL = "dialog/NormalDialogScreen" // 普通弹窗
     const val DIALOG_PRIORITY = "dialog/PriorityDialogScreen" // 优先级弹窗
     const val DIALOG_NATIVE = "dialog/NativeDialogScreen" // 原生弹窗
+    const val DIALOG_SCREEN = "dialog/NativeScreenScreen" // 原生Screen
 }

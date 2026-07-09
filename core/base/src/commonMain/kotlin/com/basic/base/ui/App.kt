@@ -32,7 +32,7 @@ import com.basic.base.AutoSize
 import com.basic.base.Os
 import com.basic.base.base.BaseScreen
 import com.basic.base.constant.VersionStatus
-import com.basic.base.di.service.ToastService
+import com.basic.base.di.service.UIConfigService
 import com.basic.base.getPlatform
 import com.basic.base.local.LocalAppState
 import com.basic.base.local.LocalPermissionController
@@ -62,46 +62,14 @@ fun BaseApp(
             LocalPermissionController provides permissionController,
             LocalUIContainer provides uiContainer,
         ) {
-            val keyboardController = LocalSoftwareKeyboardController.current
-            val focusManager = LocalFocusManager.current
             MaterialTheme {
-                Box(modifier = Modifier.run {
-                    when (getPlatform().os) {
-                        Os.ANDROID -> navigationBarsPadding()
-                        Os.IOS -> windowInsetsPadding(WindowInsets(0.dp))
+                val uiConfig = remember { withImpl<UIConfigService>() }
+                if (uiConfig == null) {
+                    RootUIConfig(screen = screen, uiConfig = uiConfig)
+                } else {
+                    uiConfig.RootUiConfig {
+                        RootUIConfig(screen = screen, uiConfig = uiConfig)
                     }
-                }.fillMaxSize().pointerInput(Unit) {
-                    //焦点移除后自动收起键盘
-                    detectTapGestures(
-                        onTap = {
-                            focusManager.clearFocus()
-                            keyboardController?.hide()
-                        }
-                    )
-                }) {
-                    Navigator(screen = screen(), disposeOnForgotten = false) { navigator ->
-                        if (getPlatform().os == Os.IOS) {
-                            val swipeSides = remember { listOf(0, 1) }
-                            CurrentScreenPredictiveBack(
-                                navigator = navigator,
-                                swipeSides = swipeSides,
-                                defaultPredictiveBackTransition = IOSSlideTransitionPredictiveBack,
-                                defaultOnScreenDisappearTransition = SlideTransition.Horizontal.Disappear,
-                                defaultOnScreenAppearTransition = SlideTransition.Horizontal.Appear
-                            )
-                        } else {
-                            CurrentScreen(
-                                navigator = navigator,
-                                defaultOnScreenAppearTransition = SlideTransition.Horizontal.Appear,
-                                defaultOnScreenDisappearTransition = SlideTransition.Horizontal.Disappear
-                            ) {
-                                it.Content()
-                            }
-                        }
-                    }
-                    BuildToast()
-                    AutoScreenOrientation()
-                    FpsMonitorOverlay()
                 }
             }
         }
@@ -109,13 +77,56 @@ fun BaseApp(
 }
 
 @Composable
-private fun BoxScope.BuildToast() {
+private fun RootUIConfig(screen: () -> BaseScreen, uiConfig: UIConfigService?) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    Box(modifier = Modifier.run {
+        when (getPlatform().os) {
+            Os.ANDROID -> navigationBarsPadding()
+            Os.IOS -> windowInsetsPadding(WindowInsets(0.dp))
+        }
+    }.fillMaxSize().pointerInput(Unit) {
+        //焦点移除后自动收起键盘
+        detectTapGestures(
+            onTap = {
+                focusManager.clearFocus()
+                keyboardController?.hide()
+            }
+        )
+    }) {
+        Navigator(screen = screen(), disposeOnForgotten = false) { navigator ->
+            if (getPlatform().os == Os.IOS) {
+                val swipeSides = remember { listOf(0, 1) }
+                CurrentScreenPredictiveBack(
+                    navigator = navigator,
+                    swipeSides = swipeSides,
+                    defaultPredictiveBackTransition = IOSSlideTransitionPredictiveBack,
+                    defaultOnScreenDisappearTransition = SlideTransition.Horizontal.Disappear,
+                    defaultOnScreenAppearTransition = SlideTransition.Horizontal.Appear
+                )
+            } else {
+                CurrentScreen(
+                    navigator = navigator,
+                    defaultOnScreenAppearTransition = SlideTransition.Horizontal.Appear,
+                    defaultOnScreenDisappearTransition = SlideTransition.Horizontal.Disappear
+                ) {
+                    it.Content()
+                }
+            }
+        }
+        BuildToast(uiConfig)
+        AutoScreenOrientation()
+        FpsMonitorOverlay()
+    }
+}
+
+@Composable
+private fun BoxScope.BuildToast(uiConfig: UIConfigService?) {
     val localAppState = LocalAppState.current
     val toastCountdown = localAppState.toastCountdown.value
     val toastText = localAppState.toastText.value
     val isVisible = toastCountdown > 0
-    val impl = remember { withImpl<ToastService>() }
-    impl?.toastUi(isVisible, toastText)()
+    uiConfig?.toastUi(isVisible, toastText)()
     if (isVisible) {
         LaunchedEffect(localAppState.toastUpdateTime.value) {
             delay(toastCountdown)

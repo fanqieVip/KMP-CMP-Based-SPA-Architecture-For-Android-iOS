@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
     <application>
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -10,5 +11,8 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <activity
+            android:name="com.basic.base.local.NativeActivity"
+            android:exported="true"/>
     </application>
 </manifest>

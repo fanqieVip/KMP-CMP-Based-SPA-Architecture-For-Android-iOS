@@ -28,7 +28,7 @@ enum class MainMenu(override val title: String, override val path: String) : Men
     FILE_SYSTEM("文件系统", RouterConstant.FILE_SYSTEM),
     SIMPLE_INTERACTION("基础交互", RouterConstant.SIMPLE_INTERACTION),
     NET("Ktor+Ktorfit框架", RouterConstant.NET),
-    DIALOG("弹窗", RouterConstant.DIALOG),
+    DIALOG("弹窗及原生页面", RouterConstant.DIALOG),
     WEBVIEW("WebView", RouterConstant.WEBVIEW),
     DOWNLOADER("下载器", RouterConstant.DOWNLOADER)
 }
@@ -84,7 +84,8 @@ enum class ScreenMenu(override val title: String, override val path: String) : M
     enum class Dialog(override val title: String, override val path: String) : MenuEnum {
         NORMAL_DIALOG("普通弹窗", RouterConstant.DIALOG_NORMAL),
         PRIORITY_DIALOG("优先级弹窗", RouterConstant.DIALOG_PRIORITY),
-        NATIVE_DIALOG("原生弹窗", RouterConstant.DIALOG_NATIVE)
+        NATIVE_DIALOG("原生弹窗", RouterConstant.DIALOG_NATIVE),
+        NATIVE_SCREEN("原生Screen", RouterConstant.DIALOG_SCREEN),
     }
 }
 

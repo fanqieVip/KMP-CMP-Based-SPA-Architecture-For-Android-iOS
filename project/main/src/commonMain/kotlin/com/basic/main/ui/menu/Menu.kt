@@ -17,8 +17,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.basic.base.local.LocalUIContainer
+import com.basic.base.local.push
 import com.basic.base.router.asRouter
 import com.basic.common.beans.MenuEnum
+import com.basic.common.beans.ScreenMenu
+import com.basic.main.ui.screen.dialog.NativeScreenScreen
 import io.github.hristogochev.vortex.navigator.LocalNavigator
 import io.github.hristogochev.vortex.util.currentOrThrow
 
@@ -46,8 +50,15 @@ fun CreateMenu(menus: List<MenuEnum>) {
 @Composable
 private fun MainItem(item: MenuEnum) {
     val navigator = LocalNavigator.currentOrThrow
+    val container = LocalUIContainer.current
     Column(modifier = Modifier.fillMaxWidth().height(50.dp).clickable {
-        item.path.asRouter()?.run { navigator.push(this) }
+        item.path.asRouter()?.run {
+            if (item == ScreenMenu.Dialog.NATIVE_SCREEN){
+                container.push { NativeScreenScreen() }
+            }else{
+                navigator.push(this)
+            }
+        }
     }, verticalArrangement = Arrangement.Center) {
         Text(
             text = item.title,

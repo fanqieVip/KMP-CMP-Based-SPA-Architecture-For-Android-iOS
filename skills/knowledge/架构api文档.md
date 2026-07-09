@@ -16,6 +16,7 @@
 - `ScreenRouter.push()`：推入新页面
 - `ScreenRouter.pop()`：弹出当前页面
 - `ScreenRouter.replace()`：替换当前页面
+- `UIContainer.push { Screen() }`：在新的原生宿主页面中打开 Compose Screen
 
 ### SPI API
 - `registerSPI()`：注册 SPI 服务实现
@@ -44,6 +45,7 @@
 
 ### 平台能力 API
 - `ApplicationService`：应用生命周期、DeepLink
+- `UIConfigService`：根 UI 配置与全局 Toast 样式
 - `PermissionController`：权限控制器
 - `expect/actual`：跨平台平台能力桥接
 
@@ -59,7 +61,7 @@
 | 签名 | `@Composable fun App(screen: () -> Screen = { SplashScreen() }, uiContainer: UIContainer, permissionController: PermissionController)` |
 | 作用 | KMP 共享 Compose UI 入口。 |
 | 输入 | 初始 `Screen`、平台 UI 容器、权限控制器。 |
-| 依赖 | `BasicApp -> BaseApp`。 |
+| 依赖 | 直接调用 `BaseApp`。 |
 
 示例：
 
@@ -111,6 +113,31 @@ interface ApplicationService {
 | --- | --- | --- |
 | `common.di.impl.ApplicationServiceImpl` | `core/common` | 调用 `common.Application.onCreate()`，Android 会启动 APK 环境定时校验。 |
 | `project.di.impl.ApplicationServiceImpl` | `project/main` | App 创建时预加载 WebKit：`preloadWebkit("https://xxxx.com")`。 |
+
+### `UIConfigService`
+
+| 项 | 内容 |
+| --- | --- |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/di/service/UIConfigService.kt` |
+| 作用 | 为 `BaseApp` 提供 common 层可替换的根 UI 配置和全局 Toast 样式。 |
+
+签名：
+
+```kotlin
+interface UIConfigService {
+    fun toastUi(isVisible: Boolean, text: String): @Composable BoxScope.() -> Unit
+
+    @Composable
+    fun RootUiConfig(content: @Composable () -> Unit) = content()
+}
+```
+
+规则：
+
+- `BaseApp` 会通过 `withImpl<UIConfigService>()` 获取实现；未注册时使用默认根 UI。
+- `toastUi` 用于统一全局 Toast 展示样式。
+- `RootUiConfig` 用于在 common 层包裹底层根 UI，例如全局主题、公共注入或根布局配置。
+- common 层不要再通过 `BasicApp` 包装 `BaseApp`；需要公共定制时注册 `UIConfigService`。
 
 ### `ApplicationProxyManager`
 
@@ -275,7 +302,7 @@ TraceInfoScope(newTraceId = "home_recommend_card") {
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/ktx/NavigatorKtx.kt` |
 | 作用 | 为 Vortex `Navigator` 增加带 `traceId` 的跳转 API。 |
 
 签名：
@@ -308,6 +335,33 @@ asRouter("project/detail")?.let { screen ->
     navigator.push(screen, traceId)
 }
 ```
+
+### `UIContainer`
+
+| 项 | 内容 |
+| --- | --- |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/local/LocalUIContainer.kt` |
+| 作用 | 表示当前平台 UI 容器，Android 为 `Activity`，iOS 为 `UIViewController`。 |
+
+签名：
+
+```kotlin
+expect class UIContainer
+expect fun UIContainer.pop()
+expect fun UIContainer.push(screen: () -> BaseScreen)
+```
+
+行为：
+
+- `pop()`：关闭当前平台容器。Android 调用 `finish()`；iOS 优先从 `UINavigationController` pop，否则 dismiss。
+- `push(screen)`：创建新的原生宿主页面并在其中运行 `BaseApp(screen, uiContainer, permissionController)`。
+- Android 通过 `NativeActivity` 承载新的 `BaseApp`；iOS 查找最近的 `UINavigationController` 并 push `ComposeUIViewController`。
+
+使用边界：
+
+- 普通业务页面跳转优先使用 `navigator.push(Screen())`。
+- 当单页模式下当前可见层是三方 SDK 原生页面，例如一键登录页，Compose 宿主在下层，普通 Screen 或 Compose 弹窗可能不可见；此时打开完整页面应使用 `LocalUIContainer.current.push { Screen() }`。
+- `UIContainer.push` 会产生独立宿主和独立导航栈，返回、数据同步和跨页面通信需要业务侧明确处理。
 
 ### `@Router`
 
@@ -1422,6 +1476,7 @@ core/base/src/iosMain/... actual API
 | 普通弹窗 | `LocalDialogController.current.showNow`、`BasicDialog.dismiss`、`onDismiss` | `project/main/ui/screen/dialog/NormalDialogScreen.kt` |
 | 优先级弹窗 | `showPriority(priority, dialog, group)` | `project/main/ui/screen/dialog/PriorityDialogScreen.kt` |
 | 原生弹窗 | `BasicNativeDialog`、`show(uiContainer)`、`LocalUIContainer` | `project/main/ui/screen/dialog/NativeDialogScreen.kt` |
+| 原生 Screen | `LocalUIContainer.current`、`UIContainer.push { NativeScreenScreen() }` | `project/main/ui/screen/dialog/NativeScreenScreen.kt` |
 | 权限系统 | `LocalPermissionController`、`providePermission`、`permissionState` | `project/main/ui/screen/PermissionScreen.kt` |
 | FileKit 文件选择 | `FileKit.openFilePicker`、`absolutePath` | `project/main/ui/screen/filesystem/filekit/FilePickerScreen.kt` |
 | FileKit 目录/相机 | `openDirectoryPicker`、`openCameraPicker` | `project/main/ui/screen/filesystem/filekit` |
@@ -1494,6 +1549,7 @@ CanBackHandler("webviewScreen") {
 规则：
 
 - 普通页面跳转优先使用 `navigator.push(Screen())`。
+- 单页模式下若当前 Compose 宿主被三方 SDK 原生页面遮挡，需要打开完整 Compose 页面时，使用 `LocalUIContainer.current.push { Screen() }`。
 - 跨模块页面工厂使用 `ProjectRouter`；具体页面入口由业务自行组织。
 - 页面需要拦截系统返回时，使用 `BaseScreen.CanBackHandler(key) { ... }`。
 
@@ -1884,6 +1940,7 @@ DemoNativeDialog {
 | --- | --- | --- |
 | `BasicDialog` | 当前 `BaseScreen` 的 `DialogController` | Compose 内普通业务弹窗。 |
 | `BasicNativeDialog` | Android `DialogFragment` / iOS `UIViewController` | 需要脱离 Screen 弹窗栈、使用平台原生弹窗容器时。 |
+| `UIContainer.push` | Android `NativeActivity` / iOS `UINavigationController` 新页面 | 需要脱离当前单页宿主并打开完整 Compose Screen 时。 |
 
 ### 权限 demo
 

@@ -16,28 +16,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.di.service.ToastService
+import com.basic.base.di.service.UIConfigService
 
 /**
- * ToastService的SPI实现类
+ * UIConfigService的SPI实现类
  */
-class ToastServiceImpl: ToastService {
+class UIConfigServiceImpl: UIConfigService {
     override fun toastUi(isVisible: Boolean, text: String): @Composable (BoxScope.() -> Unit) = {
         Box(
-            modifier = Modifier.Companion.align(Alignment.Companion.BottomCenter).fillMaxWidth()
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .wrapContentHeight()
         ) {
             AnimatedVisibility(visible = isVisible, enter = fadeIn(), exit = fadeOut()) {
                 Box(
-                    modifier = Modifier.Companion.fillMaxWidth()
-                        .align(Alignment.Companion.BottomCenter).background(Color.Companion.Black)
+                    modifier = Modifier.fillMaxWidth()
+                        .align(Alignment.BottomCenter).background(Color.Black)
                         .padding(10.dp)
                 ) {
                     Text(
                         text,
-                        color = Color.Companion.White,
+                        color = Color.White,
                         fontSize = 13.sp,
-                        modifier = Modifier.Companion.align(Alignment.Companion.Center)
+                        modifier = Modifier.align(Alignment.Center)
                             .fillMaxWidth()
                     )
                 }

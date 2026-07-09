@@ -76,6 +76,27 @@ class XxxScreen : BasicScreen() {
     - `enable` 状态切换（禁用时自动降级为 `Text` 展示）。
     - 支持 `String`、`AnnotatedString` 或 `TextFieldValue` 作为数据源。
 
+### 5.4 原生 Screen 宿主
+
+单页模式下，如果当前可见层是三方 SDK 的原生页面，普通 `navigator.push(...)` 和 Compose 弹窗仍会渲染在下层 Compose 宿主内，用户可能看不见。需要打开完整 Compose 页面时，使用 `LocalUIContainer.current.push { Screen() }` 创建新的原生宿主页面。
+
+```kotlin
+val uiContainer = LocalUIContainer.current
+
+Text(
+    text = "打开原生 Screen",
+    modifier = Modifier.click {
+        uiContainer.push { NativeScreenScreen() }
+    }
+)
+```
+
+选择规则：
+
+- 普通业务页面：优先使用 `navigator.push(Screen())`。
+- 原生弹窗容器：使用 `BasicNativeDialog().show(uiContainer)`。
+- 原生页面宿主：使用 `uiContainer.push { Screen() }`。
+
 ## 6. 弹窗与内存泄漏防护 (Dialog & Memory Leaks)
 
 ### 6.1 核心挑战
@@ -110,4 +131,3 @@ class MyDialog(
 - ❌ **严禁**：在 `Dialog` 子类中直接定义 `val callback: () -> Unit`。
 - ✅ **强制**：使用 `private val callback by autoClear(initialBlock)`。
 - ✅ **作用域绑定**：尽可能将复杂的业务逻辑封装在 `ScreenModel` 中，利用 `rememberHostMainScreenModel` 共享模型，而不是通过层层 Lambda 传递。
-
