@@ -8,41 +8,43 @@ import androidx.activity.viewModels
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import com.basic.base.base.BaseActivity
-import com.basic.base.base.BaseScreen
 import com.basic.base.ktx.getFunction
 import com.basic.base.ktx.putFunction
 import com.basic.base.ui.BaseApp
 import com.basic.base.utils.ActivityStackManager
-import kotlin.getValue
+import io.github.hristogochev.vortex.screen.Screen
 
 actual typealias UIContainer = Activity
 
 actual fun UIContainer.pop() {
     finish()
 }
-private class NativeActivity : BaseActivity() {
+
+internal class NativeActivity : BaseActivity() {
     private val viewModel by viewModels<NativeViewModel>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            BaseApp(
-                screen = { viewModel.startScreen!!.invoke() },
-                uiContainer = this,
-                permissionController = this
-            )
+        viewModel.startScreen?.invoke()?.let {
+            setContent {
+                BaseApp(
+                    screen = { it },
+                    uiContainer = this,
+                    permissionController = this
+                )
+            }
         }
     }
 }
 
-private class NativeViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
-    val startScreen = savedStateHandle.getFunction<() -> BaseScreen>("screen")
+internal class NativeViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
+    val startScreen = savedStateHandle.getFunction<() -> Screen>("screen")
 }
 
-actual fun UIContainer.push(screen: () -> BaseScreen) {
+actual fun UIContainer.push(screen: Screen) {
     ActivityStackManager.getTopFragmentActivity()?.let {
         it.startActivity(Intent(it, NativeActivity::class.java).apply {
             putFunction(it, "screen") {
-                screen()
+                screen
             }
         })
     }

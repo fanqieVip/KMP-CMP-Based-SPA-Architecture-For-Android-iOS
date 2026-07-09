@@ -2,9 +2,9 @@ package com.basic.base.local
 
 import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.window.ComposeUIViewController
-import com.basic.base.base.BaseScreen
 import com.basic.base.ui.BaseApp
 import dev.icerock.moko.permissions.ios.PermissionsController
+import io.github.hristogochev.vortex.screen.Screen
 import platform.UIKit.UINavigationController
 import platform.UIKit.UITabBarController
 import platform.UIKit.UIViewController
@@ -21,13 +21,11 @@ actual fun UIContainer.pop() {
     }
 }
 
-actual fun UIContainer.push(
-    screen: () -> BaseScreen
-) {
+actual fun UIContainer.push(screen: Screen) {
     val vc = ComposeUIViewController {
         val uiContainer = LocalUIViewController.current
         BaseApp(
-            screen = screen,
+            screen = { screen },
             uiContainer = uiContainer,
             permissionController = object : PermissionController {
                 override val permissionClient by lazy { PermissionsController() }

@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import buildkonfig.BuildConfig_com_basic_base
 import com.basic.base.AutoSize
 import com.basic.base.Os
-import com.basic.base.base.BaseScreen
 import com.basic.base.constant.VersionStatus
 import com.basic.base.di.service.UIConfigService
 import com.basic.base.getPlatform
@@ -46,13 +45,14 @@ import com.basic.base.vortex.CurrentScreen
 import com.basic.base.vortex.CurrentScreenPredictiveBack
 import com.basic.base.vortex.IOSSlideTransitionPredictiveBack
 import io.github.hristogochev.vortex.navigator.Navigator
+import io.github.hristogochev.vortex.screen.Screen
 import io.github.hristogochev.vortex.transitions.SlideTransition
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
 @Composable
 fun BaseApp(
-    screen: () -> BaseScreen,
+    screen: () -> Screen,
     uiContainer: UIContainer,
     permissionController: PermissionController
 ) {
@@ -77,7 +77,7 @@ fun BaseApp(
 }
 
 @Composable
-private fun RootUIConfig(screen: () -> BaseScreen, uiConfig: UIConfigService?) {
+private fun RootUIConfig(screen: () -> Screen, uiConfig: UIConfigService?) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     Box(modifier = Modifier.run {

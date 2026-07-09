@@ -16,7 +16,7 @@
 - `ScreenRouter.push()`：推入新页面
 - `ScreenRouter.pop()`：弹出当前页面
 - `ScreenRouter.replace()`：替换当前页面
-- `UIContainer.push { Screen() }`：在新的原生宿主页面中打开 Compose Screen
+- `UIContainer.push(Screen())`：在新的原生宿主页面中打开 Compose Screen
 
 ### SPI API
 - `registerSPI()`：注册 SPI 服务实现
@@ -348,7 +348,7 @@ asRouter("project/detail")?.let { screen ->
 ```kotlin
 expect class UIContainer
 expect fun UIContainer.pop()
-expect fun UIContainer.push(screen: () -> BaseScreen)
+expect fun UIContainer.push(screen: Screen)
 ```
 
 行为：
@@ -360,7 +360,7 @@ expect fun UIContainer.push(screen: () -> BaseScreen)
 使用边界：
 
 - 普通业务页面跳转优先使用 `navigator.push(Screen())`。
-- 当单页模式下当前可见层是三方 SDK 原生页面，例如一键登录页，Compose 宿主在下层，普通 Screen 或 Compose 弹窗可能不可见；此时打开完整页面应使用 `LocalUIContainer.current.push { Screen() }`。
+- 当单页模式下当前可见层是三方 SDK 原生页面，例如一键登录页，Compose 宿主在下层，普通 Screen 或 Compose 弹窗可能不可见；此时打开完整页面应使用 `LocalUIContainer.current.push(Screen())`。
 - `UIContainer.push` 会产生独立宿主和独立导航栈，返回、数据同步和跨页面通信需要业务侧明确处理。
 
 ### `@Router`
@@ -1476,7 +1476,7 @@ core/base/src/iosMain/... actual API
 | 普通弹窗 | `LocalDialogController.current.showNow`、`BasicDialog.dismiss`、`onDismiss` | `project/main/ui/screen/dialog/NormalDialogScreen.kt` |
 | 优先级弹窗 | `showPriority(priority, dialog, group)` | `project/main/ui/screen/dialog/PriorityDialogScreen.kt` |
 | 原生弹窗 | `BasicNativeDialog`、`show(uiContainer)`、`LocalUIContainer` | `project/main/ui/screen/dialog/NativeDialogScreen.kt` |
-| 原生 Screen | `LocalUIContainer.current`、`UIContainer.push { NativeScreenScreen() }` | `project/main/ui/screen/dialog/NativeScreenScreen.kt` |
+| 原生 Screen | `LocalUIContainer.current`、`UIContainer.push(NativeScreenScreen())` | `project/main/ui/screen/dialog/NativeScreenScreen.kt` |
 | 权限系统 | `LocalPermissionController`、`providePermission`、`permissionState` | `project/main/ui/screen/PermissionScreen.kt` |
 | FileKit 文件选择 | `FileKit.openFilePicker`、`absolutePath` | `project/main/ui/screen/filesystem/filekit/FilePickerScreen.kt` |
 | FileKit 目录/相机 | `openDirectoryPicker`、`openCameraPicker` | `project/main/ui/screen/filesystem/filekit` |
@@ -1549,7 +1549,7 @@ CanBackHandler("webviewScreen") {
 规则：
 
 - 普通页面跳转优先使用 `navigator.push(Screen())`。
-- 单页模式下若当前 Compose 宿主被三方 SDK 原生页面遮挡，需要打开完整 Compose 页面时，使用 `LocalUIContainer.current.push { Screen() }`。
+- 单页模式下若当前 Compose 宿主被三方 SDK 原生页面遮挡，需要打开完整 Compose 页面时，使用 `LocalUIContainer.current.push(Screen())`。
 - 跨模块页面工厂使用 `ProjectRouter`；具体页面入口由业务自行组织。
 - 页面需要拦截系统返回时，使用 `BaseScreen.CanBackHandler(key) { ... }`。
 

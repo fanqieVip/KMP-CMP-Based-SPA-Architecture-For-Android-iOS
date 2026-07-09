@@ -13,6 +13,7 @@
         </provider>
         <activity
             android:name="com.basic.base.local.NativeActivity"
-            android:exported="true"/>
+            android:exported="true"
+            android:theme="@android:style/Theme.Material.NoActionBar"/>
     </application>
 </manifest>

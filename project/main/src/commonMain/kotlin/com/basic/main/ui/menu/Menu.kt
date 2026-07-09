@@ -54,7 +54,7 @@ private fun MainItem(item: MenuEnum) {
     Column(modifier = Modifier.fillMaxWidth().height(50.dp).clickable {
         item.path.asRouter()?.run {
             if (item == ScreenMenu.Dialog.NATIVE_SCREEN){
-                container.push { NativeScreenScreen() }
+                container.push(NativeScreenScreen())
             }else{
                 navigator.push(this)
             }

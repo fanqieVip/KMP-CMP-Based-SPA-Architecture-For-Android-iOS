@@ -30,7 +30,7 @@ class NativeScreenScreen: BasicScreen() {
             },
             center = {
                 Text("这里是原生Screen, 在全新的宿主页面上", fontSize = 12.sp, color = Color.Black, modifier = Modifier.click{
-                    container.push { NativeScreenScreen() }
+                    container.push(NativeScreenScreen())
                 })
             }
         )
