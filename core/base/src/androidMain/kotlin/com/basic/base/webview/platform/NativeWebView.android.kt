@@ -2,7 +2,6 @@ package com.basic.base.webview.platform
 
 import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import com.basic.base.local.LocalUIContainer
@@ -21,15 +20,6 @@ actual fun NativeWebView(
             state.getOrCreate(uiContainer)
         }, modifier = modifier
     )
-    LaunchedEffect(state.loadingState) {
-        state.webView?.let {
-            state.apply {
-                canGoBack = it.canGoBack()
-                canGoForward = it.canGoForward()
-                currentUrl = it.url
-            }
-        }
-    }
 }
 
 actual fun preloadWebkit(domain: String?) {

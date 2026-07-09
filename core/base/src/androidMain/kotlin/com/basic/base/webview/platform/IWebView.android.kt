@@ -45,6 +45,11 @@ actual fun createWebView(uiContainer: UIContainer, state: WebViewState): IWebVie
             onReceivedError = { code, error ->
                 state.loadingState = LoadingState.Error(code, error)
             },
+            onHistoryChanged = { canGoBack, canGoForward, url ->
+                state.canGoBack = canGoBack
+                state.canGoForward = canGoForward
+                state.currentUrl = url
+            },
             onGeolocationPermissionsShowPrompt = { origin, callback ->
                 XXPermissions.with(uiContainer)
                     .permission(PermissionLists.getAccessFineLocationPermission())

@@ -30,6 +30,7 @@ import java.net.URL
  * @param onPageSuccess 加载成功回调
  * @param onReceivedError 加载失败回调
  * @param onReceivedDownload 请求下载文件回调
+ * @param onHistoryChanged 历史记录变化回调
  * @param onInterceptRequest 资源请求回调。如果不传则不拦截
  * @param onOverrideUrlLoading url请求拦截，返回true拦截，返回false不拦截
  * @param onGeolocationPermissionsShowPrompt H5定位权限申请回调
@@ -44,6 +45,7 @@ fun WebView.register(
     onPageSuccess: ((url: String?) -> Unit)? = null,
     onReceivedError: ((errorCode: Int, errorInfo: String?) -> Unit)? = null,
     onReceivedDownload: ((url: String) -> Unit)? = null,
+    onHistoryChanged: ((canGoBack: Boolean, canGoForward: Boolean, url: String?) -> Unit)? = null,
     onInterceptRequest: ((request: WebResourceRequest?, webResourceResponse: WebResourceResponse?) -> WebResourceResponse?)? = null,
     onOverrideUrlLoading: ((url: String) -> Boolean) = { false },
     onGeolocationPermissionsShowPrompt: ((origin: String?, callback: GeolocationPermissionsCallback?) -> Unit)? = { origin, callback -> callback?.invoke(origin, true, false) }
@@ -51,6 +53,22 @@ fun WebView.register(
     var isRedirect = true
     var isLoading = false
     var isError = false
+
+    fun updateHistoryState(view: WebView) {
+        val list = view.copyBackForwardList()
+        val currentIndex = list.currentIndex
+        var canBack = view.canGoBack()
+        // 特殊处理：如果是第一页由于重定向或参数变化产生的多条历史，过滤掉第一条，避免回退死循环
+        if (currentIndex == 1 && list.size == 2) {
+            val item0 = list.getItemAtIndex(0)?.url
+            val item1 = list.getItemAtIndex(1)?.url
+            if (item0 == item1 || (item0 != null && item1 != null && isLikelyRedirect(item0, item1))) {
+                canBack = false
+            }
+        }
+        onHistoryChanged?.invoke(canBack, view.canGoForward(), view.url)
+    }
+
     webChromeClient = object : WebChromeClient() {
         override fun onShowFileChooser(
             webView: WebView?,
@@ -70,9 +88,10 @@ fun WebView.register(
             super.onProgressChanged(view, newProgress)
             if (isLoading) {
                 if (newProgress < 100) {
-                    onProgressChanged?.invoke(newProgress/100f)
+                    onProgressChanged?.invoke(newProgress / 100f)
                 }
             }
+            view?.let { updateHistoryState(it) }
         }
 
         override fun onCreateWindow(
@@ -120,6 +139,12 @@ fun WebView.register(
             if (!isError) {
                 onPageSuccess?.invoke(url)
             }
+            view?.let { updateHistoryState(it) }
+        }
+
+        override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+            super.doUpdateVisitedHistory(view, url, isReload)
+            view?.let { updateHistoryState(it) }
         }
 
         override fun onReceivedError(
@@ -255,6 +280,13 @@ fun WebView.register(
         }
 
     }
+}
+
+private fun isLikelyRedirect(from: String, to: String): Boolean {
+    // 如果两个 URL 基本路径一致，或者包含 common 重定向特征
+    val path0 = from.split("?")[0].split("#")[0]
+    val path1 = to.split("?")[0].split("#")[0]
+    return path0 == path1 || from.contains("redirect") || to.contains("redirect")
 }
 
 /**
