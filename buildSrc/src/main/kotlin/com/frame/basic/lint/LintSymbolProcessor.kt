@@ -99,6 +99,7 @@ class LintSymbolProcessor(
         if (classKind == ClassKind.ENUM_CLASS || classKind == ClassKind.ENUM_ENTRY) return
 
         val className = simpleName.asString()
+        val isCompanionObject = isCompanionObjectDeclaration(fileLines)
 
         checkInitBlockApiIsolationRule(className, fileLines)
 
@@ -126,14 +127,16 @@ class LintSymbolProcessor(
 
         // A. 类 KDoc 校验
         val classDoc = docString
-        if (classDoc.isNullOrBlank()) {
-            logger.error("架构红线 [Documentation]: 类 [$className] 缺少 KDoc 类注释 (/** ... */)。", this)
-        } else {
-            // B. 构造参数属性 @param 校验
-            primaryConstructor?.parameters?.filter { it.isVal || it.isVar }?.forEach { param ->
-                val paramName = param.name?.asString() ?: ""
-                if (!classDoc.contains("@param $paramName")) {
-                    logger.error("架构红线 [Documentation]: 类 [$className] 的构造参数属性 [$paramName] 必须在类 KDoc 中通过 @param 标注。", param)
+        if (!isCompanionObject) {
+            if (classDoc.isNullOrBlank()) {
+                logger.error("架构红线 [Documentation]: 类 [$className] 缺少 KDoc 类注释 (/** ... */)。", this)
+            } else {
+                // B. 构造参数属性 @param 校验
+                primaryConstructor?.parameters?.filter { it.isVal || it.isVar }?.forEach { param ->
+                    val paramName = param.name?.asString() ?: ""
+                    if (!classDoc.contains("@param $paramName")) {
+                        logger.error("架构红线 [Documentation]: 类 [$className] 的构造参数属性 [$paramName] 必须在类 KDoc 中通过 @param 标注。", param)
+                    }
                 }
             }
         }
@@ -361,6 +364,16 @@ class LintSymbolProcessor(
         }
     }
 
+    private fun KSClassDeclaration.isCompanionObjectDeclaration(fileLines: List<String>): Boolean {
+        if (classKind != ClassKind.OBJECT) return false
+        val loc = location as? FileLocation ?: return false
+        val startIndex = (loc.lineNumber - 1).coerceAtLeast(0)
+        val endIndex = (startIndex + 3).coerceAtMost(fileLines.lastIndex)
+        return (startIndex..endIndex).any { index ->
+            companionObjectRegex.containsMatchIn(fileLines[index].substringBefore("//"))
+        }
+    }
+
     private fun KSPropertyDeclaration.hasAnyComment(fileLines: List<String>): Boolean {
         if (!docString.isNullOrBlank()) return true
         val loc = location as? FileLocation ?: return false
@@ -392,6 +405,7 @@ class LintSymbolProcessor(
     private fun KSType.isFunctionType(): Boolean = declaration.qualifiedName?.asString()?.let { it.startsWith("kotlin.Function") || it.startsWith("kotlin.coroutines.SuspendFunction") } ?: false
 
     private companion object {
+        private val companionObjectRegex = Regex("""\bcompanion\s+object\b""")
         private val initBlockRegex = Regex("""^\s*init\b""")
         private val localApiAccessRegex = Regex("""\b(?:val|var)\s+\w*Api\b|create[A-Za-z0-9_]*Api\s*\(""")
     }
