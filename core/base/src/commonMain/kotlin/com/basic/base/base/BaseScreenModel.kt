@@ -2,13 +2,11 @@ package com.basic.base.base
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisallowComposableCalls
-import androidx.lifecycle.compose.LifecycleResumeEffect
-import com.basic.base.ktx.LocalPageLifecycleVisible
+import com.basic.base.base.BaseScreen.Companion.LifecycleVisibleEffect
 import com.basic.base.ktx.PagingControl
 import com.basic.base.ktx.initPagingControl
 import com.basic.base.local.LocalContext
 import com.basic.base.local.ScreenContext
-import com.basic.base.vortex.LocalScreenActive
 import io.github.hristogochev.vortex.model.ScreenModel
 import io.github.hristogochev.vortex.model.rememberScreenModel
 import io.github.hristogochev.vortex.model.screenModelScope
@@ -81,8 +79,7 @@ inline fun <reified T : BaseScreenModel> rememberBaseScreenModel(
     tag: String? = null,
     crossinline factory: @DisallowComposableCalls () -> T
 ): T {
-    val screenStateKey =
-        LocalScreenStateKey.current ?: "rememberScreenModel called outside of a screen scope"
+    val screenStateKey = LocalScreenStateKey.current ?: "rememberScreenModel called outside of a screen scope"
     return rememberBaseScreenModel(screenStateKey, tag, factory)
 }
 
@@ -93,26 +90,13 @@ internal inline fun <reified T : BaseScreenModel> rememberBaseScreenModel(
     tag: String?,
     crossinline factory: @DisallowComposableCalls () -> T
 ): T {
-    return rememberScreenModel(holderKey, tag, factory).also {
+    return rememberScreenModel(holderKey, tag, factory).apply {
         val context = LocalContext.current
-        AutoUpdateVisibleState(onVisible = {
-            it.uiVisible(context)
-        }, onInvisible = {
-            it.uiInvisible(context)
-        })
-    }
-}
-
-@Composable
-fun AutoUpdateVisibleState(onVisible: () -> Unit, onInvisible: () -> Unit) {
-    val isActive = LocalScreenActive.current && LocalPageLifecycleVisible.current
-    LifecycleResumeEffect(LocalScreenStateKey.current, isActive) {
-        if (isActive) {
-            onVisible()
-        }
-        onPauseOrDispose {
-            if (isActive) {
-                onInvisible()
+        LifecycleVisibleEffect {
+            if (it) {
+                uiVisible(context)
+            } else {
+                uiInvisible(context)
             }
         }
     }

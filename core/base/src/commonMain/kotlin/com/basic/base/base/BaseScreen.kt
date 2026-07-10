@@ -10,12 +10,14 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.basic.base.ScreenOrientation
 import com.basic.base.ktx.CallbackFunctionModel
 import com.basic.base.ktx.Dialog
 import com.basic.base.ktx.DialogController
 import com.basic.base.ktx.LoadingDialog
 import com.basic.base.ktx.LocalDialogController
+import com.basic.base.ktx.LocalPageLifecycleVisible
 import com.basic.base.ktx.LocalPopLoadingState
 import com.basic.base.ktx.PopLoadingState
 import com.basic.base.ktx.launchScope
@@ -25,10 +27,12 @@ import com.basic.base.local.LocalPermissionController
 import com.basic.base.local.LocalUIContainer
 import com.basic.base.local.ScreenContext
 import com.basic.base.local.pop
+import com.basic.base.vortex.LocalScreenActive
 import io.github.hristogochev.vortex.model.ScreenModel
 import io.github.hristogochev.vortex.model.rememberScreenModel
 import io.github.hristogochev.vortex.model.screenModelScope
 import io.github.hristogochev.vortex.navigator.LocalNavigator
+import io.github.hristogochev.vortex.navigator.LocalScreenStateKey
 import io.github.hristogochev.vortex.screen.Screen
 import io.github.hristogochev.vortex.screen.ScreenDisposableEffect
 import io.github.hristogochev.vortex.screen.uniqueScreenKey
@@ -57,16 +61,36 @@ abstract class BaseScreen : Screen {
         @Composable
         fun CanBackHandler(key: String, handler: () -> Boolean) {
             (LocalNavigator.currentOrThrow.current as? BaseScreen)?.let { currentScreen ->
-                AutoUpdateVisibleState(
-                    onVisible = {
+                LifecycleVisibleEffect {
+                    if (it) {
                         currentScreen.canBackHandlers[key] = handler
-                    },
-                    onInvisible = {
+                    } else {
                         currentScreen.canBackHandlers.remove(key)
                     }
-                )
+                }
             }
         }
+
+        /**
+         * 生命周期可见性Effect
+         * @param onVisibleChange 可见性变化 true: 可见  false: 隐藏
+         */
+        @Composable
+        fun LifecycleVisibleEffect(onVisibleChange: (Boolean) -> Unit) {
+            val isActive = LocalScreenActive.current && LocalPageLifecycleVisible.current
+            LifecycleResumeEffect(LocalScreenStateKey.current, isActive) {
+                if (isActive) {
+                    onVisibleChange(true)
+                }
+                onPauseOrDispose {
+                    if (isActive) {
+                        onVisibleChange(false)
+                    }
+                }
+            }
+        }
+
+
     }
 
     //voyager混淆配置有问题，必须给key赋值，否则混淆后会丢失，导致数据存储异常
