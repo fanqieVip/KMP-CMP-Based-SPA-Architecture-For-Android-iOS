@@ -121,8 +121,8 @@ Universal Link、URL Scheme、前后台切换等 iOS Scene 回调会继续转交
 - 统一状态栏文字颜色、屏幕方向和默认背景。
 - 统一返回拦截。
 - 统一弹窗栈，包括普通弹窗、优先级弹窗、最高优先级弹窗。
-- 统一 `ScreenContext` 注入：导航、弹窗、权限、App 状态、平台 UI 容器。
-- 统一链路来源 `TraceInfo`，方便页面、弹窗、下级页面传递来源。
+- 统一 `ScreenContext`注入：导航、弹窗、权限、App 状态、平台 UI 容器。
+- 统一返回拦截。
 
 ### 2. BaseScreenModel 管生命周期，不让页面散写状态
 
@@ -198,11 +198,12 @@ iosApp/Configuration/iosConfig.xcconfig
 `project/main` 不是空壳，里面放了一组用来证明架构能力的页面：
 
 - Screen 栈管理与参数传递。
-- 页面回调和链路透传。
-- `BasicInteraction` 加载、空、错、成功状态。
-- 分页、刷新、Coordinator 嵌套滚动。
-- 普通弹窗、优先级弹窗、原生弹窗。
-- WebView 与 JSBridge。
+- 跨页面无内存泄漏回调。
+- 主交互规范组件。
+- 脚手架、分页、刷新、Coordinator 嵌套滚动等丰富组件。
+- 普通弹窗、优先级弹窗。
+- 原生弹窗、原生页面轻松堆叠，保持Compose风格且不惧遮挡
+- 自研WebView 与 JSBridge，安全使用，无重组问题。
 - 文件系统、图片/相机/目录选择。
 - 下载器。
 - 权限系统。
@@ -301,19 +302,15 @@ project/<name>/
 - `buildSrc/src/main/kotlin/com/frame/basic/plugin/IosConfigPlugin.kt`：iOS 配置聚合。
 - `project/main/src/commonMain/kotlin/com/basic/main/ui/`：业务页面示例。
 
-读完这些点，基本就能看见这套工程的主干：它不是几个页面拼起来的 Demo，而是从入口、分层、路由、生命周期、构建到协作规范都成体系的移动端底座。
+这些内置能力不是零散的功能演示，而是为了证明该架构在处理移动端“深水区”问题时的成熟度：
 
-## 工程视角
+- **内存与生命周期的硬约束**：通过 `BaseScreenModel` 与 `autoClear` 机制，彻底解决了 Compose 与 Native 交叉引用时的内存泄漏顽疾，这是很多 KMP 项目在进入复杂业务期后的头号杀手。
+- **混合渲染的工业级实现**：自研的 WebView 状态管理与原生弹窗容器，确保了在复杂的 Native/Compose 混合堆栈下，依然能保持 UI 的极致流畅与状态的物理对齐，不惧重组，不惧黑屏。
+- **三方 SDK 的“沙盒化”接入**：基于 SPI 与生命周期代理（ApplicationService），让 SDK 模块实现真正的即插即用，宿主入口 0 污染，这是支撑多团队、多业务线并行开发的基础。
+- **从“口头约定”到“编译期阻断”**：利用 `buildSrc` 内置的自定义 Lint 插件，将架构红线直接写进编译器。这不仅降低了代码评审的成本，更保证了即便团队人员流动，工程质量也能始终如一。
+- **AI 协同的工程记忆**：通过 `skills/` 层将架构资产从开发者大脑外化为 AI 可感知的规约，使 AI Agent 成为具备“架构直觉”的协作者，实现了从“搬砖工”到“副驾驶”的跨越。
 
-这个项目真正想表达的不是“会 KMP”，而是：
-
-- 能把跨端 UI、原生宿主、构建系统和平台回调打通。
-- 能把业务扩展点前置设计出来，而不是每接一个 SDK 就改宿主。
-- 能用编译期工具约束团队写法，减少靠代码评审兜底。
-- 能同时理解 Android 和 iOS 的工程现实：Manifest、Pod、Xcode Scheme、Info.plist、URL 回调、CInterop。
-- 能把 AI Agent 协作也纳入工程流程，用 `skills/` 维护开发规范、集成流程和知识补丁。
-
-一句话：这是一个偏工程系统视角的 KMP/CMP 工程，不是 Demo 视角的跨端页面集合。
+一句话：这套架构交付的不是一个 App，而是一套**可持续演进、天然抗腐蚀、且对 AI 友好的工程标准**。
 
 ## 文档地图
 

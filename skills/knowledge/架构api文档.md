@@ -230,113 +230,37 @@ BaseScreen.CanBackHandler(key = "form") {
 
 ### `BasicScreen`
 
-| 项 | 内容 |
-| --- | --- |
-| 位置 | `core/common/src/commonMain/kotlin/com/basic/common/base/BasicScreen.kt` |
-| 默认方向 | `ScreenOrientation.PORTRAIT` |
-| 默认背景 | `Color.White` |
-| 用途 | 业务页面推荐基类。 |
-
-### `LocalTraceInfo`
-
-| 项 | 内容 |
-| --- | --- |
-| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
-| 类型 | `ProvidableCompositionLocal<TraceInfo?>` |
-| 作用 | 在当前 Compose UI 子树中读取页面/弹窗链路上下文。 |
-
-常用读取：
-
-```kotlin
-val traceInfo = LocalTraceInfo.current
-val fromTraceId = traceInfo?.getFromTraceId()
-val transitiveTraceId = traceInfo?.getTransitiveTraceId()
-```
-
-规则：
-
-- `getFromTraceId()`：当前 UI 所属链路来源，主要用于埋点。
-- `getTransitiveTraceId()`：传给下级 Screen 或 Dialog 的链路；优先使用当前作用域的新链路，没有新链路时使用所属链路来源。
-- 根页面、普通页面、普通弹窗、原生弹窗都会由基础层包一层 `DefaultTraceInfoScope(fromTraceId, null)`。
-
-### `TraceInfo`
-
-| 项 | 内容 |
-| --- | --- |
-| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
-| 签名 | `data class TraceInfo(private val fromId: String?, private val currentId: String?)` |
-| 作用 | 保存当前 UI 的所属链路与当前作用域中新起的链路。 |
-
-API：
-
-| API | 返回 | 说明 |
-| --- | --- | --- |
-| `getFromTraceId()` | `String?` | 返回 `fromId`，用于当前页面/弹窗埋点。 |
-| `getTransitiveTraceId()` | `String?` | 返回 `currentId ?: fromId`，用于打开下级 UI 时继续传递链路。 |
-
-### `TraceInfoScope`
-
-| 项 | 内容 |
-| --- | --- |
-| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/local/LocalTraceInfo.kt` |
-| 签名 | `@Composable fun TraceInfoScope(newTraceId: String?, content: @Composable () -> Unit)` |
-| 作用 | 在当前 UI 内开启一段新链路作用域，并自动继承父级所属链路。 |
-
-示例：
-
-```kotlin
-TraceInfoScope(newTraceId = "home_recommend_card") {
-    val traceId = LocalTraceInfo.current?.getTransitiveTraceId()
-    Button(onClick = {
-        navigator.push(DetailScreen(), traceId)
-    }) {
-        Text("进入详情")
-    }
-}
-```
-
-说明：
-
-- `TraceInfoScope` 会把父级 `getFromTraceId()` 保存为新作用域的 `fromId`。
-- `newTraceId` 会保存为新作用域的 `currentId`。
-- 当前作用域内做埋点读取 `getFromTraceId()`；打开下级 Screen/Dialog 时读取 `getTransitiveTraceId()`。
-- `DefaultTraceInfoScope(fromTraceId, newTraceId, content)` 是基础层内部 API，业务侧不要直接使用。
-
-### `Navigator` 链路扩展
+### `Navigator` 扩展
 
 | 项 | 内容 |
 | --- | --- |
 | 位置 | `core/base/src/commonMain/kotlin/com/basic/base/ktx/NavigatorKtx.kt` |
-| 作用 | 为 Vortex `Navigator` 增加带 `traceId` 的跳转 API。 |
+| 作用 | 为 Vortex `Navigator` 增加跳转 API。 |
 
 签名：
 
 ```kotlin
-fun Navigator.push(screen: Screen, traceId: String?)
-fun Navigator.push(screens: List<Screen>, traceId: String?)
-fun Navigator.replace(screen: Screen, traceId: String?)
-fun Navigator.replaceAll(screen: Screen, traceId: String?)
-fun Navigator.replaceAll(screens: List<Screen>, traceId: String?)
-fun Navigator.replaceUntil(screen: Screen, traceId: String?, predicate: (Screen) -> Boolean)
+fun Navigator.push(screen: Screen)
+fun Navigator.push(screens: List<Screen>)
+fun Navigator.replace(screen: Screen)
+fun Navigator.replaceAll(screen: Screen)
+fun Navigator.replaceAll(screens: List<Screen>)
+fun Navigator.replaceUntil(screen: Screen, predicate: (Screen) -> Boolean)
 fun Navigator.replaceUntil(
     screens: List<Screen>,
-    traceId: String?,
     predicate: (Screen) -> Boolean
 )
 ```
 
 行为：
 
-- 目标 `screen` 是 `BaseScreen` 时，扩展会先写入 `screen.fromTraceId = traceId`。
-- 目标 `screen` 不是 `BaseScreen` 时，`traceId` 不会被消费，但仍会继续执行原始导航。
-- 写入来源后再调用原 Vortex `push/replace/replaceAll/replaceUntil`。
+- 内部调用原 Vortex `push/replace/replaceAll/replaceUntil`。
 
 推荐调用：
 
 ```kotlin
-val traceId = LocalTraceInfo.current?.getTransitiveTraceId()
 asRouter("project/detail")?.let { screen ->
-    navigator.push(screen, traceId)
+    navigator.push(screen)
 }
 ```
 
@@ -885,23 +809,14 @@ fun dismiss()
 
 | API | 作用 |
 | --- | --- |
-| `showNow(dialog, traceId = null)` | 展示普通弹窗，并可写入弹窗链路来源。 |
-| `showPriority(priority, dialog, traceId = null, group = "default")` | 展示优先级弹窗，并可写入弹窗链路来源；数值越小越优先。 |
-| `showMaxPriority(dialog, traceId = null)` | 展示最高优先级弹窗，并可写入弹窗链路来源。 |
+| `showNow(dialog)` | 展示普通弹窗。 |
+| `showPriority(priority, dialog, group = "default")` | 展示优先级弹窗；数值越小越优先。 |
+| `showMaxPriority(dialog)` | 展示最高优先级弹窗。 |
 | `clearAllStack()` | 清空所有弹窗。 |
 | `clearNormalStack()` | 清空普通弹窗。 |
 | `clearMaxPriorityStack()` | 清空最高优先级弹窗。 |
 | `clearAllPriorityStack()` | 清空全部优先级弹窗。 |
 | `clearPriorityStack(group)` | 清空指定优先级分组。 |
-
-链路传递示例：
-
-```kotlin
-val traceId = LocalTraceInfo.current?.getTransitiveTraceId()
-LocalDialogController.current.showNow(ConfirmDialog(), traceId)
-```
-
-弹窗渲染时，基础层会使用 `DefaultTraceInfoScope(fromTraceId, null)` 包裹 `Dialog.CreateUI()`，因此弹窗内部可以继续通过 `LocalTraceInfo.current` 读取和传递链路。
 
 ### `NativeDialog`
 
@@ -920,19 +835,10 @@ abstract fun CreateUI()
 // 防泄漏委托：弹窗销毁时自动清空引用
 protected fun <T : Any> autoClear(initialValue: T? = null): ReadWriteProperty<Any?, T?>
 
-fun show(uiContainer: UIContainer, traceId: String? = null)
+fun show(uiContainer: UIContainer)
 
 fun dismiss()
 ```
-
-链路传递示例：
-
-```kotlin
-val traceId = LocalTraceInfo.current?.getTransitiveTraceId()
-NativeConfirmDialog().show(LocalUIContainer.current, traceId)
-```
-
-`NativeDialog` 与普通 `Dialog` 一样，会在创建 UI 内容时注入 `DefaultTraceInfoScope(fromTraceId, null)`。
 
 ### `LoadingDialog`
 

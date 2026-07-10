@@ -36,7 +36,6 @@ import com.basic.base.Os
 import com.basic.base.base.BaseScreenModel
 import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.getPlatform
-import com.basic.base.local.DefaultTraceInfoScope
 import com.benasher44.uuid.uuid4
 import io.github.hristogochev.vortex.model.ScreenModelStore
 import io.github.hristogochev.vortex.navigator.LocalScreenStateKey
@@ -56,12 +55,6 @@ abstract class Dialog(
     internal var isShow by mutableStateOf(true)
     internal var dialogStateHostKey: String? = null
     private val cleanupActions = mutableListOf<() -> Unit>()
-
-    /**
-     * 链路来源
-     */
-    internal var fromTraceId: String? = null
-
     @Composable
     internal fun Content(isTop: Boolean) {
         val hostScreenKey =
@@ -154,9 +147,7 @@ abstract class Dialog(
             exit = exit,
             visibleState = visibleState
         ) {
-            DefaultTraceInfoScope(fromTraceId, null) {
-                CreateUI()
-            }
+            CreateUI()
         }
     }
 
@@ -220,20 +211,17 @@ class DialogController {
 
     /**
      * 弹出普通弹窗
-     * @param traceId 链路来源
      */
     @MainThread
-    fun showNow(dialog: Dialog, traceId: String? = null) {
+    fun showNow(dialog: Dialog) {
         if (noPriorityStack.indexOf(dialog) < 0) {
             dialog.isShow = true
-            dialog.fromTraceId = traceId
             noPriorityStack.add(dialog)
         }
     }
 
     /**
      * 弹出优先级弹窗
-     * @param traceId 链路来源
      * @param priority 优先级 值越小，优先级越高
      * @param group 优先级弹窗所属分组
      */
@@ -241,7 +229,6 @@ class DialogController {
     fun showPriority(
         priority: Int,
         dialog: Dialog,
-        traceId: String? = null,
         group: String = DEFAULT_PRIORITY_GROUP
     ) {
         dialog.priorityGroup = group
@@ -251,19 +238,16 @@ class DialogController {
             priorityStack[group] = groupStack
         }
         dialog.isShow = true
-        dialog.fromTraceId = traceId
         groupStack.add(PriorityDialog(priority, dialog))
     }
 
     /**
      * 弹出最高优先级弹窗
-     * @param traceId 链路来源
      */
     @MainThread
-    fun showMaxPriority(dialog: Dialog, traceId: String? = null) {
+    fun showMaxPriority(dialog: Dialog) {
         if (maxPriorityStack.indexOf(dialog) < 0) {
             dialog.isShow = true
-            dialog.fromTraceId = traceId
             maxPriorityStack.add(dialog)
         }
     }

@@ -35,7 +35,6 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.basic.base.Os
 import com.basic.base.getPlatform
-import com.basic.base.local.DefaultTraceInfoScope
 import com.basic.base.local.LocalAppState
 import com.basic.base.local.UIContainer
 import com.basic.base.local.appState
@@ -58,11 +57,6 @@ abstract class NativeDialog(
     internal var isShow by mutableStateOf(true)
     open val key: String = uuid4().toString()
     internal var dialogStateHostKey: String? = null
-
-    /**
-     * 链路来源
-     */
-    internal var fromTraceId: String? = null
     private val cleanupActions = mutableListOf<() -> Unit>()
 
     @Composable
@@ -168,9 +162,7 @@ abstract class NativeDialog(
             exit = exit,
             visibleState = visibleState
         ) {
-            DefaultTraceInfoScope(fromTraceId, null) {
-                CreateUI()
-            }
+            CreateUI()
         }
     }
 
@@ -216,10 +208,8 @@ abstract class NativeDialog(
 
     /**
      * 弹出原生弹窗
-     * @param traceId 链路来源
      */
-    fun show(uiContainer: UIContainer, traceId: String? = null) {
-        this.fromTraceId = traceId
+    fun show(uiContainer: UIContainer) {
         uiContainer.showNativeDialog(this)
     }
 }

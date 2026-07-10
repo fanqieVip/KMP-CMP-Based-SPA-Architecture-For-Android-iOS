@@ -16,11 +16,9 @@ import com.basic.base.ktx.Dialog
 import com.basic.base.ktx.DialogController
 import com.basic.base.ktx.LoadingDialog
 import com.basic.base.ktx.LocalDialogController
-import com.basic.base.ktx.LocalInteractionState
 import com.basic.base.ktx.LocalPopLoadingState
 import com.basic.base.ktx.PopLoadingState
 import com.basic.base.ktx.launchScope
-import com.basic.base.local.DefaultTraceInfoScope
 import com.basic.base.local.LocalAppState
 import com.basic.base.local.LocalContext
 import com.basic.base.local.LocalPermissionController
@@ -116,11 +114,6 @@ abstract class BaseScreen : Screen {
     internal var currentShowingPriorityDialog: Dialog? = null
 
     /**
-     * 链路来源
-     */
-    internal var fromTraceId: String? = null
-
-    /**
      * 触发返回动作
      * 执行所有backHandler拦截，只要有一个拦截都返回false
      * @return true：通过  false：拦截
@@ -180,9 +173,7 @@ abstract class BaseScreen : Screen {
                 CallbackFunctionModel(key)
             }
             Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
-                DefaultTraceInfoScope(fromTraceId, null) {
-                    CreateUI()
-                }
+                CreateUI()
                 DealDialog()
             }
         }
