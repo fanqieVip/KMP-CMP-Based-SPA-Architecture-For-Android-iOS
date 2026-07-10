@@ -18,4 +18,10 @@ interface UIConfigService {
      */
     @Composable
     fun RootUiConfig(content: @Composable () -> Unit) = content()
+
+    /**
+     * 全屏弹窗样式
+     */
+    @Composable
+    fun PopLoadingUi(text: String?)
 }

@@ -9,8 +9,9 @@
 - **路由注册**：必须使用 `@Router(path)` 注解，严禁硬编码跳转。
 - **组件标准**：标准页面必须使用 `BasicTitleBar`，严禁手动通过 `statusBarsPadding` 和硬编码高度拼接标题栏。
 - **状态分离**：
-    - 必须使用 `rememberMainScreenModel` 绑定模型。
+    - 必须使用 `rememberBaseScreenModel` 绑定模型。
     - 禁止在 Composable 函数内直接编写复杂的业务逻辑（如网络请求、数据库操作），全部下沉到 `ScreenModel`。
+    - 页面级加载/错误状态必须通过 `InteractionState` 管理，阻塞式加载必须通过 `PopLoadingState` 管理。
 
 ### 1.2 弹窗与原生宿主选择
 - **BasicDialog**：仅限 Compose 实现的轻量业务弹窗，生命周期跟随当前 `BaseScreen` 宿主。
@@ -58,5 +59,5 @@
 - ❌ **禁止** 直接使用 `Icon` 和 `IconButton` 组件。
 - ❌ **禁止** 直接使用原生 `BasicTextField` 或 `TextField`（必须使用 `ComposeEditText`）。
 - ❌ **禁止** 严禁在任何布局中硬编码 `44.dp` / `statusBar` 等数值作为安全边距。
-- ❌ **禁止** 在 `onLoad` 中手动 catch 并处理分页错误（必须委托给 `PagingControl` 自动处理）。
+- ❌ **禁止** 在数据加载逻辑中手动 catch 并处理分页错误（必须委托给 `PagingControl` 自动处理）。
 - ❌ **禁止** 在 Android 原生代码中编写重复的尺寸转换胶水代码（必须统一引用 `core:base` 中的 `SizeUtils` 扩展）。

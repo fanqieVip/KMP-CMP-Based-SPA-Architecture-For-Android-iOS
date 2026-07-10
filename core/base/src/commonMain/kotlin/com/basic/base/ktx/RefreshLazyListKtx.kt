@@ -164,7 +164,7 @@ data class RefreshState(
 }
 
 /**
- * 分页控制器，仅限与MainScreenModel绑定使用
+ * 分页控制器，仅限与BaseScreenModel绑定使用
  */
 interface PagingControl {
     val refreshState: RefreshState

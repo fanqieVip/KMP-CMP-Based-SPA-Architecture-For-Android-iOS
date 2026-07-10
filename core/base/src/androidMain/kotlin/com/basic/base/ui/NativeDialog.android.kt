@@ -15,7 +15,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -28,16 +27,20 @@ import io.github.hristogochev.vortex.model.ScreenModelStore
 
 internal val showNativeDialogMap = hashMapOf<String, NativeDialog>()
 internal actual fun UIContainer.showNativeDialog(dialog: NativeDialog) {
-    ActivityStackManager.getTopFragmentActivity()?.supportFragmentManager?.let {
-        val dialogContainer = AndroidNativeDialog().apply {
-            if (arguments == null) {
-                arguments = Bundle()
+    ActivityStackManager.getTopFragmentActivity()?.let { activity ->
+        if (!activity.isFinishing && !activity.isDestroyed){
+            val dialogContainer = AndroidNativeDialog().apply {
+                if (arguments == null) {
+                    arguments = Bundle()
+                }
+                val key = uuid4().toString()
+                showNativeDialogMap[key] = dialog
+                arguments?.putString(NativeDialogKey, key)
             }
-            val key = uuid4().toString()
-            showNativeDialogMap[key] = dialog
-            arguments?.putString(NativeDialogKey, key)
+            runCatching {
+                dialogContainer.show(activity.supportFragmentManager, null)
+            }
         }
-        dialogContainer.show(it, null)
     }
 }
 
@@ -82,7 +85,7 @@ internal class AndroidNativeDialog : DialogFragment() {
         (view as? ComposeView)?.setContent {
             nativeDialog?.Content(
                 onDismissCall = {
-                    dismiss()
+                    runCatching { dismiss() }
                 }
             )
         }

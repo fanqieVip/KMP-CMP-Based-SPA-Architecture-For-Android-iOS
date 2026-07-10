@@ -10,7 +10,7 @@
 class XxxScreen : BasicScreen() {
     @Composable
     override fun CreateUI() {
-        val model = rememberMainScreenModel { XxxScreenModel() }
+        val model = rememberBaseScreenModel { XxxScreenModel() }
         val pullDownProgress = model.refreshState.progress.collectAsState().value
         
         BasicHazeScaffold(
@@ -35,7 +35,7 @@ class XxxScreen : BasicScreen() {
 ```
 
 ## 2. 核心生命周期映射
-- `onInit` (初始化) -> `onLoad` (初次加载数据) -> `onVisible` (用户肉眼可见) -> `onInvisible` (不可见) -> `onDestroyed` (销毁)。
+- `onInit` (初始化) -> `onVisible` (用户肉眼可见) -> `onInvisible` (不可见) -> `onDestroyed` (销毁)。
 
 ## 3. 复杂组件实战
 
@@ -49,8 +49,8 @@ class XxxScreen : BasicScreen() {
 - **关键修饰符**：必须给列表加上 `Modifier.coordinatorMainScroll`。
 
 ### 3.3 交互状态托管 (BasicInteraction)
-- **多层嵌套策略**：外层负责骨架 Loading，内层列表刷新建议使用 `popLoading` (弹窗) 模式。
-- **状态同步**：加载完成必须调用 `uiSuccess(data.isEmpty())`。
+- **多层嵌套策略**：外层负责骨架 Loading，内层列表刷新建议使用 `PopLoadingState` (全屏等待框) 模式。
+- **状态同步**：加载完成必须调用 `interactionState.uiSuccess(data.isEmpty())`。
 
 ## 4. 常见布局适配
 - **处理 Bottom 遮挡**：通过 `LocalHazeScaffoldContentPadding.current` 获取并应用到内层列表。
@@ -130,4 +130,4 @@ class MyDialog(
 ### 6.3 最佳实践红线
 - ❌ **严禁**：在 `Dialog` 子类中直接定义 `val callback: () -> Unit`。
 - ✅ **强制**：使用 `private val callback by autoClear(initialBlock)`。
-- ✅ **作用域绑定**：尽可能将复杂的业务逻辑封装在 `ScreenModel` 中，利用 `rememberHostMainScreenModel` 共享模型，而不是通过层层 Lambda 传递。
+- ✅ **作用域绑定**：尽可能将复杂的业务逻辑封装在 `ScreenModel` 中，利用 `rememberHostScreenModel` 共享模型，而不是通过层层 Lambda 传递。

@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.ktx.HorizontalPagerLifecycle
 import com.basic.base.local.ScreenContext
 import com.basic.common.base.BasicHazeScaffold
@@ -67,7 +67,7 @@ class EmbeddedSlidePageScreen : BasicScreen() {
     @Composable
     private fun BuildInnerPage(modifier: Modifier = Modifier) {
         Box(modifier = modifier) {
-            val screenModel = rememberMainScreenModel { EmbeddedSlidePageScreenModel() }
+            val screenModel = rememberBaseScreenModel { EmbeddedSlidePageScreenModel() }
             val pagerState = rememberPagerState { screenModel.tabs.size }
             HorizontalPagerLifecycle(pagerState) {
                 EmbeddedInnerPage(screenModel.tabs[it])
@@ -87,7 +87,7 @@ class EmbeddedSlidePageScreen : BasicScreen() {
      */
     @Composable
     private fun BuildNavigationTab(modifier: Modifier = Modifier) {
-        val screenModel = rememberMainScreenModel { EmbeddedSlidePageScreenModel() }
+        val screenModel = rememberBaseScreenModel { EmbeddedSlidePageScreenModel() }
         val listState = rememberLazyListState()
         LazyRow(modifier = modifier.height(50.dp), state = listState) {
             items(screenModel.tabs) {
@@ -115,8 +115,5 @@ class EmbeddedSlidePageScreenModel : BasicScreenModel() {
     var current by mutableStateOf("order") // 当前选中的 Tab 标识
     val tabs = mutableStateListOf<String>("home", "order", "mine", "tom", "jack", "center", "side", "mini-program") // 所有可用的 Tab 列表
     override fun onInit(context: ScreenContext) {
-    }
-
-    override fun onLoad(context: ScreenContext) {
     }
 }

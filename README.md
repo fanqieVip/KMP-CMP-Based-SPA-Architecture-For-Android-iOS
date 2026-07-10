@@ -17,18 +17,18 @@
 
 ## 技术栈
 
-| 方向 | 选型 |
-| --- | --- |
-| 跨端 | Kotlin Multiplatform、Compose Multiplatform |
-| UI 架构 | Compose、Material3、Haze、Vortex Screen |
-| 导航 | 自研 `@Router` + KSP 生成路由表 |
-| 生命周期 | `BaseScreen` + `MainScreenModel` + 可见性分发 |
-| DI / SPI | Koin + `SPIRegisterCenter` |
-| 网络 | Ktor + Ktorfit + KtorMonitor |
-| 持久化 | Multiplatform Settings / DataStore 风格封装 |
-| 平台桥接 | `expect/actual`、Android 原生壳、iOS SwiftUI 壳 |
+| 方向 | 选型                                                       |
+| --- |----------------------------------------------------------|
+| 跨端 | Kotlin Multiplatform、Compose Multiplatform               |
+| UI 架构 | Compose、Material3、Haze、Vortex Screen                     |
+| 导航 | 自研 `@Router` + KSP 生成路由表                                 |
+| 生命周期 | `BaseScreen` + `BaseScreenModel` + 可见性分发                 |
+| DI / SPI | Koin + `SPIRegisterCenter`                               |
+| 网络 | Ktor + Ktorfit + KtorMonitor                             |
+| 持久化 | Multiplatform Settings / DataStore 风格封装                  |
+| 平台桥接 | `expect/actual`、Android 原生壳、iOS SwiftUI 壳                |
 | 构建治理 | Gradle Kotlin DSL、buildSrc 插件、BuildKonfig、CocoaPods 自动汇总 |
-| AI 协作 | `AGENTS.md` + `skills/` 分层规范 |
+| AI 协作 | `AGENTS.md` + `skills/` 分层规范                             |
 
 ## 当前模块
 
@@ -124,12 +124,11 @@ Universal Link、URL Scheme、前后台切换等 iOS Scene 回调会继续转交
 - 统一 `ScreenContext` 注入：导航、弹窗、权限、App 状态、平台 UI 容器。
 - 统一链路来源 `TraceInfo`，方便页面、弹窗、下级页面传递来源。
 
-### 2. MainScreenModel 管生命周期，不让页面散写状态
+### 2. BaseScreenModel 管生命周期，不让页面散写状态
 
-`rememberMainScreenModel` 会把 `ScreenModel` 和页面可见性绑定起来，提供：
+`rememberBaseScreenModel` 会把 `ScreenModel` 和页面可见性绑定起来，提供：
 
 - `onInit()`：只调用一次。
-- `onLoad()`：初始化后自动加载，可用于错误/空页面重试。
 - `onVisible()` / `onInvisible()` / `onDestroyed()`：适配页面显示生命周期。
 - `uiLoading()` / `uiSuccess()` / `uiError()`：驱动 `BasicInteraction`。
 - `PagingControl`：分页模型被自动初始化。
@@ -294,7 +293,7 @@ project/<name>/
 
 - `app/src/commonMain/kotlin/com/basic/app/App.kt`：共享入口与模块组装。
 - `core/base/src/commonMain/kotlin/com/basic/base/base/BaseScreen.kt`：页面基类、弹窗栈、上下文注入。
-- `core/base/src/commonMain/kotlin/com/basic/base/base/MainScreenModel.kt`：页面生命周期和交互状态。
+- `core/base/src/commonMain/kotlin/com/basic/base/base/BaseScreenModel.kt`：页面生命周期和交互状态。
 - `core/base/src/commonMain/kotlin/com/basic/base/ApplicationProxyManager.kt`：应用生命周期代理。
 - `core/base/src/commonMain/kotlin/com/basic/base/router/Router.kt`：路由注解和协议。
 - `buildSrc/src/main/kotlin/com/frame/basic/router/RouterSymbolProcessor.kt`：路由生成器。

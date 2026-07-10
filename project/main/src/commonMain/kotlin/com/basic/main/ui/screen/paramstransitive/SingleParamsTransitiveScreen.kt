@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.ktx.asCallback
 import com.basic.base.local.ScreenContext
 import com.basic.base.router.Params
@@ -113,7 +113,7 @@ class SingleParamsTransitiveNextScreen(
                             .padding(horizontal = 10.dp, vertical = 10.dp)
                     )
                     val navigator = LocalNavigator.currentOrThrow
-                    val model = rememberMainScreenModel { SingleParamsTransitiveNextScreenModel(callbackId) }
+                    val model = rememberBaseScreenModel { SingleParamsTransitiveNextScreenModel(callbackId) }
                     Button(modifier = Modifier.fillMaxWidth().height(50.dp), onClick = {
                         model.callback?.invoke(inputText)
                         navigator.pop()
@@ -133,8 +133,5 @@ class SingleParamsTransitiveNextScreen(
 class SingleParamsTransitiveNextScreenModel(callbackId: String?) : BasicScreenModel() {
     val callback = asCallback<(String) -> Unit>(callbackId) // 页面回传回调
     override fun onInit(context: ScreenContext) {
-    }
-
-    override fun onLoad(context: ScreenContext) {
     }
 }

@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.local.ScreenContext
 import com.basic.base.utils.DateUtils
 import com.basic.common.base.BasicHazeScaffold
@@ -69,7 +69,7 @@ class SinglePageScreen(
                     }) {
                         Text("增加全局数据序号", fontSize = 12.sp, color = Color.Black)
                     }
-                    val screenModel = rememberMainScreenModel { SinglePageScreenModel() }
+                    val screenModel = rememberBaseScreenModel { SinglePageScreenModel() }
                     LazyColumn(modifier = Modifier.fillMaxWidth(), state = rememberLazyListState()) {
                         items(screenModel.lifecycleChangeHis) {
                             Text("${it.first} 当前生命周期：${it.second}", fontSize = 15.sp, color = Color.Black)
@@ -87,9 +87,6 @@ class SinglePageScreen(
 class SinglePageScreenModel : BasicScreenModel() {
     val lifecycleChangeHis = mutableStateListOf<Pair<String, String>>() // 生命周期变更历史
     override fun onInit(context: ScreenContext) {
-    }
-
-    override fun onLoad(context: ScreenContext) {
     }
 
     override fun onVisible(context: ScreenContext) {

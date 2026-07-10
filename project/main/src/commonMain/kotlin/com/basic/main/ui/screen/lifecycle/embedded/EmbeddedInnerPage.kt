@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.local.ScreenContext
 import com.basic.base.ui.LocalHazeScaffoldContentPadding
 import com.basic.base.utils.DateUtils
@@ -33,7 +33,7 @@ import io.github.hristogochev.vortex.util.currentOrThrow
  * @param screenModel 页面状态模型
  */
 @Composable
-fun EmbeddedInnerPage(title: String, screenModel: EmbeddedInnerPageScreenModel = rememberMainScreenModel(title) { EmbeddedInnerPageScreenModel() }){
+fun EmbeddedInnerPage(title: String, screenModel: EmbeddedInnerPageScreenModel = rememberBaseScreenModel(title) { EmbeddedInnerPageScreenModel() }){
     val scaffoldContentPadding = LocalHazeScaffoldContentPadding.current
     Column(modifier = Modifier.fillMaxSize().padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(title, color = Color.Black, fontSize = 30.sp)
@@ -61,9 +61,6 @@ fun EmbeddedInnerPage(title: String, screenModel: EmbeddedInnerPageScreenModel =
 class EmbeddedInnerPageScreenModel : BasicScreenModel() {
     val lifecycleChangeHis = mutableStateListOf<Pair<String, String>>() // 生命周期变更历史记录
     override fun onInit(context: ScreenContext) {
-    }
-
-    override fun onLoad(context: ScreenContext) {
     }
 
     override fun onVisible(context: ScreenContext) {

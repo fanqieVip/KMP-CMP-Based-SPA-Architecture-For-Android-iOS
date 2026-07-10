@@ -119,7 +119,7 @@ interface ApplicationService {
 | 项 | 内容 |
 | --- | --- |
 | 位置 | `core/base/src/commonMain/kotlin/com/basic/base/di/service/UIConfigService.kt` |
-| 作用 | 为 `BaseApp` 提供 common 层可替换的根 UI 配置和全局 Toast 样式。 |
+| 作用 | 为 `BaseApp` 提供 common 层可替换的根 UI 配置、全局 Toast 样式以及全屏加载样式。 |
 
 签名：
 
@@ -129,6 +129,9 @@ interface UIConfigService {
 
     @Composable
     fun RootUiConfig(content: @Composable () -> Unit) = content()
+
+    @Composable
+    fun PopLoadingUi(text: String?)
 }
 ```
 
@@ -137,6 +140,7 @@ interface UIConfigService {
 - `BaseApp` 会通过 `withImpl<UIConfigService>()` 获取实现；未注册时使用默认根 UI。
 - `toastUi` 用于统一全局 Toast 展示样式。
 - `RootUiConfig` 用于在 common 层包裹底层根 UI，例如全局主题、公共注入或根布局配置。
+- `PopLoadingUi` 用于定义全屏加载遮罩的视觉样式。
 - common 层不要再通过 `BasicApp` 包装 `BaseApp`；需要公共定制时注册 `UIConfigService`。
 
 ### `ApplicationProxyManager`
@@ -581,13 +585,13 @@ class MainScreen(
 | `priorityDialog()` | `PriorityDialogScreen` |
 | `nativeDialog()` | `NativeDialogScreen` |
 
-## 5. ScreenModel 与交互 API
+## 5. ScreenModel 与状态 API
 
-### `MainScreenModel`
+### `BaseScreenModel`
 
 | 项 | 内容 |
 | --- | --- |
-| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/base/MainScreenModel.kt` |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/base/BaseScreenModel.kt` |
 | 父类型 | `ScreenModel` |
 | 推荐业务别名 | `BasicScreenModel` |
 
@@ -595,19 +599,35 @@ class MainScreen(
 
 ```kotlin
 abstract fun onInit(context: ScreenContext)
-abstract fun onLoad(context: ScreenContext)
 open fun onVisible(context: ScreenContext)
 open fun onInvisible(context: ScreenContext)
 open fun onDestroyed()
 ```
 
-UI 状态：
+### `InteractionState`
+
+| 项 | 内容 |
+| --- | --- |
+| 作用 | 管理页面主交互状态（加载中、成功、空态、错误）。 |
+
+常用 API：
 
 ```kotlin
 suspend fun uiLoading(text: String?)
 suspend fun uiSuccess(empty: Boolean = false)
-suspend fun uiError(code: Int, error: String?)
-suspend fun showPopLoading(info: String?)
+suspend fun uiError(code: Int?, error: String?)
+```
+
+### `PopLoadingState`
+
+| 项 | 内容 |
+| --- | --- |
+| 作用 | 管理全屏阻塞式加载遮罩状态。 |
+
+常用 API：
+
+```kotlin
+suspend fun showPopLoading(info: String? = null)
 suspend fun dismissPopLoading()
 ```
 
@@ -617,7 +637,7 @@ suspend fun dismissPopLoading()
 | --- | --- |
 | 位置 | `core/base/src/commonMain/kotlin/com/basic/base/ktx/RefreshLazyListKtx.kt` |
 | 类型 | `interface PagingControl` |
-| 作用 | 为任意 `MainScreenModel`/`BasicScreenModel` 增加刷新与分页控制能力。 |
+| 作用 | 为任意 `BaseScreenModel`/`BasicScreenModel` 增加刷新与分页控制能力。 |
 
 核心 API：
 
@@ -631,7 +651,7 @@ suspend fun pagingOver(isOver: Boolean)
 接入方式：
 
 ```kotlin
-class XxxScreenModel : BasicScreenModel(), PagingControl {
+class XxxScreenModel : BaseScreenModel(), PagingControl {
     override val refreshState = RefreshState(
         enablePullUp = true,
         enablePullDown = true
@@ -649,17 +669,27 @@ class XxxScreenModel : BasicScreenModel(), PagingControl {
 
 运行机制：
 
-- `BasicScreenModel` 继承自 `MainScreenModel`，页面首次可见时会走 `onInit/onLoad`。
-- `MainScreenModel` 在首次可见初始化完成后，如果发现当前模型实现了 `PagingControl`，会自动调用内部 `initPagingControl(screenModelScope)`。
+- `BasicScreenModel` 继承自 `BaseScreenModel`，页面首次可见时会走 `onInit`。
+- `BaseScreenModel` 在首次可见初始化完成后，如果发现当前模型实现了 `PagingControl`，会自动调用内部 `initPagingControl(screenModelScope)`。
 - `initPagingControl` 监听 `refreshState.state`，当状态变为 `PULL_DOWN_REFRESHING` 时调用 `pagingFirst()`，变为 `PULL_UP_REFRESHING` 时调用 `pagingMore()`。
 - `pagingFirst()` 和 `pagingMore()` 执行结束后，框架会把 `refreshState.state` 恢复为 `IDLE`。
 - 业务通过 `pagingOver(true)` 标记没有更多数据，通过 `pagingOver(false)` 标记仍可继续分页。
 
-### `rememberMainScreenModel`
+### `rememberBaseScreenModel`
 
 ```kotlin
 @Composable
-inline fun <reified T : MainScreenModel> rememberMainScreenModel(
+inline fun <reified T : BaseScreenModel> rememberBaseScreenModel(
+    tag: String? = null,
+    crossinline factory: () -> T
+): T
+```
+
+### `rememberHostScreenModel`
+
+```kotlin
+@Composable
+inline fun <reified T : BaseScreenModel> rememberHostScreenModel(
     tag: String? = null,
     crossinline factory: () -> T
 ): T
@@ -668,7 +698,14 @@ inline fun <reified T : MainScreenModel> rememberMainScreenModel(
 行为：
 
 - 绑定 Vortex 当前 ScreenStateKey。
-- 自动根据页面可见性调用 `onInit/onLoad/onVisible/onInvisible`。
+- 自动根据页面可见性调用 `onInit/onVisible/onInvisible`。
+
+### `rememberInteractionState`
+
+```kotlin
+@Composable
+fun rememberInteractionState(tag: String? = null): InteractionState
+```
 
 ### `ScreenContext`
 
@@ -679,14 +716,15 @@ inline fun <reified T : MainScreenModel> rememberMainScreenModel(
 | `appState` | `AppState` | 全局 App 状态。 |
 | `permissionController` | `PermissionController` | 权限控制器。 |
 | `uiContainer` | `UIContainer` | Android Activity 或 iOS UIViewController。 |
+| `popLoadingController` | `PopLoadingState` | 全屏加载控制器。 |
 
 ### `BasicInteraction`
 
 | 项 | 内容 |
 | --- | --- |
 | 位置 | `core/common/src/commonMain/kotlin/com/basic/common/base/BasicInteraction.kt` |
-| 签名 | `@Composable fun BasicInteraction(screenModel: MainScreenModel, ... content: BoxScope.(Modifier) -> Unit)` |
-| 作用 | 统一处理加载态、错误态、空态、弹窗 loading。 |
+| 签名 | `@Composable fun BasicInteraction(state: InteractionState, onRefresh: (context: ScreenContext)-> Unit, ... content: BoxScope.(Modifier) -> Unit)` |
+| 作用 | 配合 `InteractionState` 统一处理加载态、错误态、空态。 |
 
 ## 6. 网络 API
 
@@ -955,7 +993,7 @@ inline fun <reified T : Any> Settings.asFlowJson(key: String, initialValue: T? =
 生命周期约束：
 
 - `WebViewState` 不要直接创建在 Composable 内，也不要只依赖 `remember { ... }` 保存。Compose 重组、条件分支切换、slot 重新进入、父布局重建等场景都可能让原生 WebView 重新创建，造成 URL 重新加载、JSBridge 重复注册、历史栈丢失或资源泄漏。
-- 推荐在 `BasicScreenModel` / `MainScreenModel` 中声明 `val webviewState = WebViewState(scope = screenModelScope)`。
+- 推荐在 `BasicScreenModel` / `BaseScreenModel` 中声明 `val webviewState = WebViewState(scope = screenModelScope)`。
 - 在 `onInit(context)` 中执行首次 `loadUrl(url)`，避免每次 Compose 重组重复加载。
 - 在 `onDestroyed()` 中调用 `webviewState.destroyed()`，释放原生 WebView 并清空 JSBridge。
 - 这个模式适用于所有 KMP 中承载原生 UI 的控件：原生控件状态、控制器、回调注册和资源释放都应归属 `ScreenModel`，Composable 只负责展示和事件转发。
@@ -968,9 +1006,6 @@ class WebviewScreenModel : BasicScreenModel() {
 
     override fun onInit(context: ScreenContext) {
         webviewState.loadUrl(url)
-    }
-
-    override fun onLoad(context: ScreenContext) {
     }
 
     override fun onDestroyed() {
@@ -1051,7 +1086,7 @@ fun destroyed()
 使用方式：
 
 ```kotlin
-val model = rememberMainScreenModel { WebviewScreenModel() }
+val model = rememberBaseScreenModel { WebviewScreenModel() }
 
 NativeWebView(
     modifier = Modifier.fillMaxSize().background(Color.White),
@@ -1418,7 +1453,7 @@ iosApp/Configuration/iosConfig.xcconfig
 
 ```text
 BasicScreen subclass
-  -> optional BasicScreenModel
+  -> optional BaseScreenModel
   -> ProjectRouter method
   -> ProjectRouterImpl method
 ```
@@ -1462,13 +1497,13 @@ core/base/src/iosMain/... actual API
 | Demo 页面 | 关键 API | 位置 |
 | --- | --- | --- |
 | 跨模块通信 | `withImpl<ProjectService>()`、`toastShort()`、`DateUtils` | `project/main/ui/ModuleCommunicationScreen.kt` |
-| 单页生命周期 | `LocalNavigator`、`navigator.push/popUntilRoot`、`rememberMainScreenModel`、`onVisible/onInvisible` | `project/main/ui/screen/lifecycle/SinglePageScreen.kt` |
-| 嵌套生命周期 | `HorizontalPagerLifecycle`、`LocalPageLifecycleVisible`、`rememberMainScreenModel(tag)` | `project/main/ui/screen/lifecycle/EmbeddedPageScreen.kt` |
+| 单页生命周期 | `LocalNavigator`、`navigator.push/popUntilRoot`、`rememberBaseScreenModel`、`onVisible/onInvisible` | `project/main/ui/screen/lifecycle/SinglePageScreen.kt` |
+| 嵌套生命周期 | `HorizontalPagerLifecycle`、`LocalPageLifecycleVisible`、`rememberBaseScreenModel(tag)` | `project/main/ui/screen/lifecycle/EmbeddedPageScreen.kt` |
 | 滑动嵌套生命周期 | `HorizontalPagerLifecycle`、`PagerState`、`animateScrollToPage` | `project/main/ui/screen/lifecycle/EmbeddedSlidePageScreen.kt` |
 | 全局数据共享 | `ShareData.currentNo`、`MutableStateFlow.collectAsState()` | `project/main/ui/screen/datashare/GlobalDataShareScreen.kt`、`SinglePageScreen.kt` |
-| Screen 内数据共享 | `rememberScreenModel`、`rememberMainScreenModel(tag)` | `project/main/ui/screen/datashare/ScreenDataShareScreen.kt` |
+| Screen 内数据共享 | `rememberScreenModel`、`rememberBaseScreenModel(tag)` | `project/main/ui/screen/datashare/ScreenDataShareScreen.kt` |
 | 参数传递和页面回调 | `buildCallbackId`、`asCallback`、`rememberScreenModel` | `project/main/ui/screen/paramstransitive/SingleParamsTransitiveScreen.kt` |
-| 基础交互 | `BasicInteraction`、`uiLoading/uiSuccess/uiError`、`showPopLoading` | `project/main/ui/screen/interaction/BasicInteractionScreen.kt` |
+| 基础交互 | `BasicInteraction`、`InteractionState`、`PopLoadingState` | `project/main/ui/screen/interaction/BasicInteractionScreen.kt` |
 | 分页交互 | `PagingControl`、`RefreshState`、`BasicRefreshLazyListInteraction` | `project/main/ui/screen/interaction/PagingInteractionScreen.kt` |
 | 混合交互 | `BasicHazeScaffold`、`CoordinatorLayout`、`rememberCoordinatorLayoutState` | `project/main/ui/screen/interaction/MixInteractionScreen.kt` |
 | 网络请求 | `TestRepository`、`Data.throwFail()`、`launchScope.catch` | `project/main/ui/screen/NetScreen.kt` |
@@ -1558,18 +1593,18 @@ CanBackHandler("webviewScreen") {
 单页生命周期 demo：
 
 ```kotlin
-val screenModel = rememberMainScreenModel { SinglePageScreenModel() }
+val screenModel = rememberBaseScreenModel { SinglePageScreenModel() }
 
-class SinglePageScreenModel : BasicScreenModel() {
+class SinglePageScreenModel : BaseScreenModel() {
     override fun onVisible(context: ScreenContext) {}
     override fun onInvisible(context: ScreenContext) {}
 }
 ```
 
-`rememberMainScreenModel` 会自动把页面可见性映射到模型生命周期。生命周期顺序：
+`rememberBaseScreenModel` 会自动把页面可见性映射到模型生命周期。生命周期顺序：
 
 ```text
-首次可见: onInit -> onLoad -> onVisible
+首次可见: onInit -> onVisible
 离开页面: onInvisible
 再次可见: onVisible
 销毁页面: onDestroyed
@@ -1581,7 +1616,7 @@ class SinglePageScreenModel : BasicScreenModel() {
 fun EmbeddedInnerPage(
     title: String,
     screenModel: EmbeddedInnerPageScreenModel =
-        rememberMainScreenModel(title) { EmbeddedInnerPageScreenModel() }
+        rememberBaseScreenModel(title) { EmbeddedInnerPageScreenModel() }
 )
 ```
 
@@ -1589,7 +1624,7 @@ fun EmbeddedInnerPage(
 
 - `tag` 相同会复用同一个 ScreenModel。
 - `tag` 不同会为同一个宿主 Screen 内的不同区域创建独立模型。
-- 嵌套 pager 使用 `HorizontalPagerLifecycle` 后，只有当前页的 `LocalPageLifecycleVisible` 为 `true`，因此内页 `MainScreenModel` 可正确收到 `onVisible/onInvisible`。
+- 嵌套 pager 使用 `HorizontalPagerLifecycle` 后，只有当前页的 `LocalPageLifecycleVisible` 为 `true`，因此内页 `BaseScreenModel` 可正确收到 `onVisible/onInvisible`。
 
 ### Pager 生命周期 API
 
@@ -1641,13 +1676,13 @@ ShareData.currentNo.value += 1
 Screen 内共享使用 `rememberScreenModel` 的 holder key：
 
 ```kotlin
-val model = rememberMainScreenModel(tag) { ScreenDataShareInnerPageScreenModel() }
+val model = rememberBaseScreenModel(tag) { ScreenDataShareInnerPageScreenModel() }
 val shareModel = rememberScreenModel { ScreenDataShareSharedScreenModel() }
 ```
 
 差异：
 
-- `rememberMainScreenModel(tag)`：相同 tag 共享，不同 tag 隔离，并参与 `MainScreenModel` 生命周期。
+- `rememberBaseScreenModel(tag)`：相同 tag 共享，不同 tag 隔离，并参与 `BaseScreenModel` 生命周期。
 - `rememberScreenModel { ... }`：不传 tag 时，在当前 ScreenModelStore 内共享实例，适合 Screen 内共享状态。
 - 全局共享状态不绑定 Screen 生命周期，需要自行控制内存和事件消费。
 
@@ -1685,11 +1720,16 @@ navigator.pop()
 
 ### 基础交互 demo
 
-页面包一层 `BasicInteraction(model)`：
+页面包一层 `BasicInteraction(interactionState)`：
 
 ```kotlin
-val model = rememberMainScreenModel { BasicInteractionScreenModel() }
-BasicInteraction(model) { modifier ->
+val interactionState = rememberInteractionState()
+val model = rememberBaseScreenModel { XxxScreenModel(interactionState) }
+val context = LocalContext.current
+
+BasicInteraction(interactionState, onRefresh = {
+    model.refresh(context)
+}) { modifier ->
     // 成功状态下显示的业务内容
 }
 ```
@@ -1698,40 +1738,41 @@ BasicInteraction(model) { modifier ->
 
 ```kotlin
 screenModelScope.launchScope {
-    uiLoading("加载中...")
+    interactionState.uiLoading("加载中...")
     delay(2000)
-    uiSuccess()
+    interactionState.uiSuccess()
 }.catch { code, error, _ ->
-    uiError(code, error)
+    interactionState.uiError(code, error)
 }
 ```
 
 空页面：
 
 ```kotlin
-uiSuccess(empty = true)
+interactionState.uiSuccess(empty = true)
 ```
 
-弹窗 loading：
+全屏弹窗 loading：
 
 ```kotlin
-showPopLoading("提交中...")
-dismissPopLoading()
+val popLoadingState = LocalPopLoadingState.current
+popLoadingState.showPopLoading("提交中...")
+popLoadingState.dismissPopLoading()
 ```
 
 默认行为：
 
 - `uiLoading`：显示 `BasicLoading`。
-- `uiError`：显示 `BasicError`，点击重试默认调用 `screenModel.onLoad(context)`。
+- `uiError`：显示 `BasicError`，点击重试默认触发业务重试逻辑。
 - `uiSuccess(true)`：显示空态 UI。
-- `showPopLoading`：通过 `LoadingDialog.showMaxPriority` 展示最高优先级 loading。
+- `showPopLoading`：展示最高优先级全屏 loading。
 
 ### 分页与刷新 demo
 
-模型使用普通 `BasicScreenModel`，再实现 `PagingControl` 协议：
+模型使用普通 `BaseScreenModel`，再实现 `PagingControl` 协议：
 
 ```kotlin
-class PagingInteractionScreenModel : BasicScreenModel(), PagingControl {
+class PagingInteractionScreenModel : BaseScreenModel(), PagingControl {
     val data = mutableStateListOf<Int>()
     override val refreshState = RefreshState(
         enablePullUp = true,
@@ -1740,19 +1781,11 @@ class PagingInteractionScreenModel : BasicScreenModel(), PagingControl {
 
     override suspend fun pagingFirst() {}
     override suspend fun pagingMore() {}
-}
-```
 
-首次加载仍然通常在 `onLoad` 中主动执行 `pagingFirst()`：
-
-```kotlin
-override fun onLoad(context: ScreenContext) {
-    screenModelScope.launchScope {
-        uiLoading("加载中...")
-        pagingFirst()
-        uiSuccess()
-    }.catch { code, error, _ ->
-        uiError(code, error)
+    override fun onInit(context: ScreenContext) {
+        screenModelScope.launchScope {
+            // 首次加载逻辑
+        }
     }
 }
 ```
@@ -1853,7 +1886,7 @@ scope.launchScope {
 
 - Repository 返回 `Data<T>`，页面或模型调用 `.throwFail()` 转成业务异常。
 - `launchScope.catch` 会统一接收 `ApiException` 和 Ktor `ResponseException`。
-- 如果是页面主数据加载，推荐放到 `MainScreenModel.onLoad` 并配合 `BasicInteraction`。
+- 如果是页面主数据加载，推荐配合 `InteractionState` 与 `BasicInteraction`。
 
 ### 响应式磁盘存储 demo
 
@@ -1948,7 +1981,7 @@ DemoNativeDialog {
 
 ```kotlin
 val controller = LocalPermissionController.current
-val model = rememberMainScreenModel { PermissionScreenModel() }
+val model = rememberBaseScreenModel { PermissionScreenModel() }
 ```
 
 查询权限：

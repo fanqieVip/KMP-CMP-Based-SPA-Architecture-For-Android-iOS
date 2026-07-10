@@ -33,8 +33,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.basic.base.Os
-import com.basic.base.base.MainScreenModel
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.BaseScreenModel
+import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.getPlatform
 import com.basic.base.local.DefaultTraceInfoScope
 import com.benasher44.uuid.uuid4
@@ -382,14 +382,14 @@ val LocalHostScreenStateKey: ProvidableCompositionLocal<String> =
     staticCompositionLocalOf { "" }
 
 /**
- * 用于弹窗和宿主Screen共享MainScreenModel
+ * 用于弹窗和宿主Screen共享ScreenModel
  * 注意：原生弹窗无效
  */
 @Composable
-inline fun <reified T : MainScreenModel> rememberHostMainScreenModel(
+inline fun <reified T : BaseScreenModel> rememberHostScreenModel(
     tag: String? = null,
     crossinline factory: @DisallowComposableCalls () -> T
 ): T {
     val hostScreenKey = LocalHostScreenStateKey.current
-    return rememberMainScreenModel(hostScreenKey, tag, factory)
+    return rememberBaseScreenModel(hostScreenKey, tag, factory)
 }

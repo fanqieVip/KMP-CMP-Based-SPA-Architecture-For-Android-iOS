@@ -15,10 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
+import com.basic.base.ktx.InteractionState
 import com.basic.base.ktx.PagingControl
 import com.basic.base.ktx.RefreshState
 import com.basic.base.ktx.launchScope
+import com.basic.base.ktx.rememberInteractionState
+import com.basic.base.local.LocalContext
 import com.basic.base.local.ScreenContext
 import com.basic.base.router.Router
 import com.basic.common.base.BasicHazeScaffold
@@ -43,7 +46,8 @@ class PagingInteractionScreen : BasicScreen() {
     @OptIn(ExperimentalTime::class)
     @Composable
     override fun CreateUI() {
-        val model = rememberMainScreenModel { PagingInteractionScreenModel() }
+        val interactionState = rememberInteractionState()
+        val model = rememberBaseScreenModel { PagingInteractionScreenModel(interactionState) }
         val pullDownProgress = model.refreshState.progress.collectAsState().value
         BasicHazeScaffold(
             modifier = Modifier.fillMaxSize(),
@@ -52,7 +56,10 @@ class PagingInteractionScreen : BasicScreen() {
                 BasicTitleBar("分页交互")
             },
             center = {
-                BasicInteraction(model) { modifier ->
+                val context = LocalContext.current
+                BasicInteraction(interactionState, onRefresh = {
+                    model.refresh(context)
+                }) { modifier ->
                     val childScrollState = rememberLazyListState()
                     val data = model.data
                     BasicRefreshLazyListInteraction(
@@ -80,22 +87,28 @@ class PagingInteractionScreen : BasicScreen() {
 
 /**
  * 分页交互状态模型
+ * @param interactionState 主交互状态
  */
-class PagingInteractionScreenModel() : BasicScreenModel(), PagingControl {
+class PagingInteractionScreenModel(val interactionState: InteractionState) : BasicScreenModel(),
+    PagingControl {
     // 数据列表
     val data = mutableStateListOf<Int>()
 
     override fun onInit(context: ScreenContext) {
-        // 初始化逻辑
+        refresh(context)
     }
 
-    override fun onLoad(context: ScreenContext) {
+    /**
+     * 刷新数据
+     * @param context
+     */
+    fun refresh(context: ScreenContext) {
         screenModelScope.launchScope {
-            uiLoading("加载中...")
+            interactionState.uiLoading("加载中...")
             pagingFirst()
-            uiSuccess()
+            interactionState.uiSuccess()
         }.catch { code, error, e ->
-            uiError(code, error)
+            interactionState.uiError(code, error)
         }
     }
 

@@ -2,6 +2,7 @@ package com.basic.base.local
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.basic.base.ktx.DialogController
+import com.basic.base.ktx.PopLoadingState
 import io.github.hristogochev.vortex.navigator.Navigator
 
 data class ScreenContext(
@@ -14,7 +15,9 @@ data class ScreenContext(
     //app权限控制器
     val permissionController: PermissionController,
     //ui容器，ios：UIViewController  android: Activity
-    val uiContainer: UIContainer
+    val uiContainer: UIContainer,
+    //全屏加载框控制器
+    val popLoadingController: PopLoadingState
 )
 
 val LocalContext = staticCompositionLocalOf<ScreenContext> {

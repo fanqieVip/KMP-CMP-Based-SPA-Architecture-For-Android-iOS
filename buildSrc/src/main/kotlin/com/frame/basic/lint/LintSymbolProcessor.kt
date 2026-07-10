@@ -78,7 +78,7 @@ class LintSymbolProcessor(
             trimmed.isEmpty() || trimmed.startsWith("package") || trimmed.startsWith("import") || trimmed.startsWith("/") || trimmed.startsWith("*") || trimmed.startsWith("@")
         }.forEach { line ->
             if (line.contains(FORBIDDEN_REMEMBER_METHOD)) {
-                logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 rememberScreenModel。请统一使用 rememberMainScreenModel。", file)
+                logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 rememberScreenModel。请统一使用 rememberBaseScreenModel。", file)
             }
             if (screenRegex.containsMatchIn(line)) {
                 logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 Screen 作为基类。请统一继承项目封装的 BaseScreen。", file)

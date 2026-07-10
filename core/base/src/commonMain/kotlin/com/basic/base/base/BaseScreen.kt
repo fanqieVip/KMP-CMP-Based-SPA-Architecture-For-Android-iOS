@@ -14,7 +14,12 @@ import com.basic.base.ScreenOrientation
 import com.basic.base.ktx.CallbackFunctionModel
 import com.basic.base.ktx.Dialog
 import com.basic.base.ktx.DialogController
+import com.basic.base.ktx.LoadingDialog
 import com.basic.base.ktx.LocalDialogController
+import com.basic.base.ktx.LocalInteractionState
+import com.basic.base.ktx.LocalPopLoadingState
+import com.basic.base.ktx.PopLoadingState
+import com.basic.base.ktx.launchScope
 import com.basic.base.local.DefaultTraceInfoScope
 import com.basic.base.local.LocalAppState
 import com.basic.base.local.LocalContext
@@ -24,12 +29,16 @@ import com.basic.base.local.ScreenContext
 import com.basic.base.local.pop
 import io.github.hristogochev.vortex.model.ScreenModel
 import io.github.hristogochev.vortex.model.rememberScreenModel
+import io.github.hristogochev.vortex.model.screenModelScope
 import io.github.hristogochev.vortex.navigator.LocalNavigator
 import io.github.hristogochev.vortex.screen.Screen
 import io.github.hristogochev.vortex.screen.ScreenDisposableEffect
 import io.github.hristogochev.vortex.screen.uniqueScreenKey
 import io.github.hristogochev.vortex.util.BackHandler
 import io.github.hristogochev.vortex.util.currentOrThrow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.withContext
 import kotlin.jvm.Transient
 
 /**
@@ -151,22 +160,27 @@ abstract class BaseScreen : Screen {
         }
         CompositionLocalProvider(
             LocalDialogController provides dialogProviderModel.dialogController,
+            LocalPopLoadingState provides dialogProviderModel.popLoadingState,
             LocalContext provides ScreenContext(
                 dialogController = dialogProviderModel.dialogController,
                 navigatorController = LocalNavigator.currentOrThrow,
                 appState = LocalAppState.current,
                 permissionController = LocalPermissionController.current,
-                uiContainer = LocalUIContainer.current
+                uiContainer = LocalUIContainer.current,
+                popLoadingController = dialogProviderModel.popLoadingState
             )
         ) {
-            rememberMainScreenModel {
-                ScreenProviderModel(statusBarTextIsDark = statusBarTextIsDark, orientation = orientation)
+            rememberBaseScreenModel {
+                ScreenProviderModel(
+                    statusBarTextIsDark = statusBarTextIsDark,
+                    orientation = orientation
+                )
             }
             rememberScreenModel {
                 CallbackFunctionModel(key)
             }
             Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
-                DefaultTraceInfoScope(fromTraceId, null){
+                DefaultTraceInfoScope(fromTraceId, null) {
                     CreateUI()
                 }
                 DealDialog()
@@ -212,13 +226,43 @@ abstract class BaseScreen : Screen {
 }
 
 internal class DialogStackModel : ScreenModel {
+    override fun onDispose() {
+        super.onDispose()
+        //避免全局loading弹窗状态不恢复，以后就无法显示
+        if (LoadingDialog.isShow) {
+            LoadingDialog.isShow = false
+        }
+    }
+
     /**
      * 弹窗栈
      */
     val dialogController = DialogController()
+
+    /**
+     * 全屏弹窗loading状态
+     */
+    val popLoadingState = PopLoadingState()
+
+    init {
+        screenModelScope.launchScope {
+            popLoadingState.uiPopLoading.collectLatest {
+                withContext(Dispatchers.Main) {
+                    if (!it) {
+                        LoadingDialog.dismiss()
+                    } else {
+                        LoadingDialog.show(dialogController, popLoadingState.popLoadingText ?: "")
+                    }
+                }
+            }
+        }
+    }
 }
 
-internal class ScreenProviderModel(private val statusBarTextIsDark: Boolean, private val orientation: ScreenOrientation) : MainScreenModel() {
+internal class ScreenProviderModel(
+    private val statusBarTextIsDark: Boolean,
+    private val orientation: ScreenOrientation
+) : BaseScreenModel() {
     override fun onVisible(context: ScreenContext) {
         super.onVisible(context)
         context.appState.statusBarTextIsDark(statusBarTextIsDark)
@@ -226,8 +270,5 @@ internal class ScreenProviderModel(private val statusBarTextIsDark: Boolean, pri
     }
 
     override fun onInit(context: ScreenContext) {
-    }
-
-    override fun onLoad(context: ScreenContext) {
     }
 }

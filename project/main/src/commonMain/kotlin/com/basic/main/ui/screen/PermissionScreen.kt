@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.ktx.launchScope
 import com.basic.base.local.LocalPermissionController
 import com.basic.base.local.PermissionController
@@ -60,7 +60,7 @@ class PermissionScreen : BasicScreen() {
                         Text(text, fontSize = 15.sp, color = Color.White, modifier = Modifier.align(Alignment.Center))
                     }
                     val controller = LocalPermissionController.current
-                    val model = rememberMainScreenModel { PermissionScreenModel() }
+                    val model = rememberBaseScreenModel { PermissionScreenModel() }
                     Text("麦克风权限状态：${model.permissionState.collectAsState().value.name}", fontSize = 14.sp, color = Color.Black)
                     Button(modifier = Modifier.width(150.dp).height(50.dp), onClick = {
                         model.applyPermission(controller)
@@ -80,9 +80,6 @@ class PermissionScreenModel() : BasicScreenModel() {
     val permissionState = MutableStateFlow(PermissionController.State.NOT_DETERMINED) // 权限状态 Flow
 
     override fun onInit(context: ScreenContext) {
-    }
-
-    override fun onLoad(context: ScreenContext) {
         screenModelScope.launchScope {
             permissionState.value = context.permissionController.permissionState(Permission.RECORD_AUDIO)
         }

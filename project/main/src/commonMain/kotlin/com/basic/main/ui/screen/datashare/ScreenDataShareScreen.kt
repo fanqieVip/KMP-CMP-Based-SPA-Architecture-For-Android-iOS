@@ -31,7 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.ktx.HorizontalPagerLifecycle
 import com.basic.base.local.ScreenContext
 import com.basic.base.router.Router
@@ -77,7 +77,7 @@ class ScreenDataShareScreen : BasicScreen() {
      */
     @Composable
     private fun ColumnScope.BuildInnerPage() {
-        val screenModel = rememberMainScreenModel { ScreenDataShareScreenModel() }
+        val screenModel = rememberBaseScreenModel { ScreenDataShareScreenModel() }
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             val pagerState = rememberPagerState { screenModel.tabs.size }
             HorizontalPagerLifecycle(pagerState, userScrollEnabled = false) {
@@ -102,7 +102,7 @@ class ScreenDataShareScreen : BasicScreen() {
      */
     @Composable
     private fun BuildNavigationTab() {
-        val screenModel = rememberMainScreenModel { ScreenDataShareScreenModel() }
+        val screenModel = rememberBaseScreenModel { ScreenDataShareScreenModel() }
         Column(
             modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars)
         ) {
@@ -141,8 +141,8 @@ class ScreenDataShareScreen : BasicScreen() {
  */
 @Composable
 fun ScreenDataShareInnerPage(tag: String) {
-    val model = rememberMainScreenModel(tag) { ScreenDataShareInnerPageScreenModel() }
-    val shareModel = rememberMainScreenModel { ScreenDataShareSharedScreenModel() }
+    val model = rememberBaseScreenModel(tag) { ScreenDataShareInnerPageScreenModel() }
+    val shareModel = rememberBaseScreenModel { ScreenDataShareSharedScreenModel() }
     Column(
         modifier = Modifier.fillMaxSize().padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
@@ -181,8 +181,8 @@ fun ScreenDataShareInnerPage(tag: String) {
  */
 @Composable
 fun ScreenDataShareInnerPage2(tag: String) {
-    val model = rememberMainScreenModel(tag) { ScreenDataShareInnerPageScreenModel() }
-    val shareModel = rememberMainScreenModel { ScreenDataShareSharedScreenModel() }
+    val model = rememberBaseScreenModel(tag) { ScreenDataShareInnerPageScreenModel() }
+    val shareModel = rememberBaseScreenModel { ScreenDataShareSharedScreenModel() }
     Column(
         modifier = Modifier.fillMaxSize().padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
@@ -221,8 +221,6 @@ fun ScreenDataShareInnerPage2(tag: String) {
 class ScreenDataShareInnerPageScreenModel : BasicScreenModel() {
     var selfInputText by mutableStateOf("") // 页面私有输入内容
     override fun onInit(context: ScreenContext) {}
-    override fun onLoad(context: ScreenContext) {
-    }
 }
 
 /**
@@ -231,9 +229,6 @@ class ScreenDataShareInnerPageScreenModel : BasicScreenModel() {
 class ScreenDataShareSharedScreenModel : BasicScreenModel() {
     var shareInputText by mutableStateOf("") // 跨页面共享的输入内容
     override fun onInit(context: ScreenContext) {
-    }
-
-    override fun onLoad(context: ScreenContext) {
     }
 }
 
@@ -244,8 +239,5 @@ class ScreenDataShareScreenModel : BasicScreenModel() {
     var current by mutableStateOf("order") // 当前选中的 Tab
     val tabs = mutableStateListOf<String>("home", "order") // 所有的 Tab 列表
     override fun onInit(context: ScreenContext) {
-    }
-
-    override fun onLoad(context: ScreenContext) {
     }
 }

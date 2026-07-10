@@ -1,8 +1,5 @@
 package com.basic.main.ui.screen
 
-import com.basic.base.router.Router
-import com.basic.common.share.RouterConstant
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +18,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basic.base.ScreenOrientation
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
+import com.basic.base.ktx.rememberInteractionState
 import com.basic.base.local.ScreenContext
+import com.basic.base.router.Router
 import com.basic.base.utils.logDebug
 import com.basic.base.webview.platform.NativeWebView
 import com.basic.base.webview.state.LoadingState
@@ -34,6 +33,7 @@ import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicScreenModel
 import com.basic.common.base.BasicTitleBar
 import com.basic.common.base.TitleBarLeftCore
+import com.basic.common.share.RouterConstant
 import com.basic.main.ui.screen.lifecycle.SinglePageScreen
 import io.github.hristogochev.vortex.model.screenModelScope
 import io.github.hristogochev.vortex.navigator.LocalNavigator
@@ -52,7 +52,8 @@ class WebviewScreen : BasicScreen() {
     @Composable
     override fun CreateUI() {
 //        val statusBarHeight = with(LocalDensity.current) { WindowInsets.systemBars.getTop(LocalDensity.current).toDp() }.value.toInt()
-        val model = rememberMainScreenModel { WebviewScreenModel() }
+        val interactionState = rememberInteractionState()
+        val model = rememberBaseScreenModel { WebviewScreenModel() }
         val scope = rememberCoroutineScope()
         val pageController = LocalNavigator.currentOrThrow
         LaunchedEffect(Unit){
@@ -85,7 +86,7 @@ class WebviewScreen : BasicScreen() {
                 },
                 center = {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        BasicInteraction(model, onError = { modifier, code, error ->
+                        BasicInteraction(interactionState, onRefresh = {},onError = { modifier, code, error ->
                             BasicError(modifier, code, error) {
                                 scope.launch { model.webviewState.reload() }
                             }
@@ -122,9 +123,9 @@ class WebviewScreen : BasicScreen() {
                                 }
                                 LaunchedEffect(loadingState) {
                                     if (loadingState is LoadingState.Error) {
-                                        model.uiError(loadingState.code, loadingState.error)
+                                        interactionState.uiError(loadingState.code, loadingState.error)
                                     } else {
-                                        model.uiSuccess()
+                                        interactionState.uiSuccess()
                                     }
                                 }
                             }
@@ -153,9 +154,6 @@ class WebviewScreenModel : BasicScreenModel() {
     val webviewState = WebViewState(scope = screenModelScope)
     override fun onInit(context: ScreenContext) {
         webviewState.loadUrl(url)
-    }
-
-    override fun onLoad(context: ScreenContext) {
     }
 
     override fun onDestroyed() {

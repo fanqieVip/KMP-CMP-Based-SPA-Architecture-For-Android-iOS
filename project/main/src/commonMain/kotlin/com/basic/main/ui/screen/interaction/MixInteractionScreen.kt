@@ -27,13 +27,16 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.ktx.CoordinatorLayout
+import com.basic.base.ktx.InteractionState
 import com.basic.base.ktx.PagingControl
 import com.basic.base.ktx.RefreshState
 import com.basic.base.ktx.launchScope
 import com.basic.base.ktx.rememberCoordinatorLayoutState
+import com.basic.base.ktx.rememberInteractionState
 import com.basic.base.ktx.visible
+import com.basic.base.local.LocalContext
 import com.basic.base.local.ScreenContext
 import com.basic.base.router.Router
 import com.basic.common.base.BasicHazeScaffold
@@ -56,7 +59,8 @@ import kotlinx.coroutines.withContext
 class MixInteractionScreen : BasicScreen() {
     @Composable
     override fun CreateUI() {
-        val model = rememberMainScreenModel { MixInteractionScreenModel() }
+        val interactionState = rememberInteractionState()
+        val model = rememberBaseScreenModel { MixInteractionScreenModel(interactionState) }
         val pullDownProgress = model.refreshState.progress.collectAsState().value
         var titlebarHeightPx by remember { mutableStateOf(0) }
         val density = LocalDensity.current
@@ -95,7 +99,10 @@ class MixInteractionScreen : BasicScreen() {
                 }
             },
             center = {
-                BasicInteraction(model) { modifier ->
+                val context = LocalContext.current
+                BasicInteraction(interactionState, onRefresh = {
+                    model.refresh(context)
+                }) { modifier ->
                     val refreshState = model.refreshState
                     val coordinatorState = rememberCoordinatorLayoutState()
                     val scope = rememberCoroutineScope()
@@ -209,20 +216,26 @@ class MixInteractionScreen : BasicScreen() {
 
 /**
  * 混合交互演示Model
+ * @param interactionState 主交互状态
  */
-class MixInteractionScreenModel : BasicScreenModel(), PagingControl {
+class MixInteractionScreenModel(val interactionState: InteractionState) : BasicScreenModel(), PagingControl {
     val data = mutableStateListOf<Int>() // 数据列表
 
     override fun onInit(context: ScreenContext) {
+        refresh(context)
     }
 
-    override fun onLoad(context: ScreenContext) {
+    /**
+     * 刷新数据
+     * @param context
+     */
+    fun refresh(context: ScreenContext) {
         screenModelScope.launchScope {
-            uiLoading("加载中...")
+            interactionState.uiLoading("加载中...")
             pagingFirst()
-            uiSuccess()
+            interactionState.uiSuccess()
         }.catch { code, error, e ->
-            uiError(code, error)
+            interactionState.uiError(code, error)
         }
     }
 

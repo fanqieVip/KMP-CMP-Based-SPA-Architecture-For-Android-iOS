@@ -1,8 +1,5 @@
 package com.basic.main.ui.screen.interaction
 
-import com.basic.base.router.Router
-import com.basic.common.share.RouterConstant
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,17 +13,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.ktx.ApiException
+import com.basic.base.ktx.InteractionState
 import com.basic.base.ktx.launchScope
+import com.basic.base.ktx.rememberInteractionState
 import com.basic.base.local.LocalContext
 import com.basic.base.local.ScreenContext
+import com.basic.base.router.Router
 import com.basic.base.utils.toastShort
 import com.basic.common.base.BasicHazeScaffold
 import com.basic.common.base.BasicInteraction
 import com.basic.common.base.BasicScreen
 import com.basic.common.base.BasicScreenModel
 import com.basic.common.base.BasicTitleBar
+import com.basic.common.share.RouterConstant
 import io.github.hristogochev.vortex.model.screenModelScope
 import kotlinx.coroutines.delay
 
@@ -43,12 +44,18 @@ class BasicInteractionScreen : BasicScreen() {
                 BasicTitleBar("基础交互")
             },
             center = {
-                val model = rememberMainScreenModel { BasicInteractionScreenModel() }
+                val interactionState = rememberInteractionState()
+                val model = rememberBaseScreenModel { BasicInteractionScreenModel(interactionState) }
                 val context = LocalContext.current
-                BasicInteraction(model) { modifier ->
-                    Column(modifier = modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                BasicInteraction(interactionState, onRefresh = {
+                    model.refresh(context)
+                }) { modifier ->
+                    Column(
+                        modifier = modifier.padding(horizontal = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
                         Button(modifier = Modifier.fillMaxWidth().height(60.dp), onClick = {
-                            model.onLoad(context)
+                            model.refresh(context)
                         }) {
                             Text("加载成功", color = Color.Black, fontSize = 14.sp)
                         }
@@ -63,7 +70,7 @@ class BasicInteractionScreen : BasicScreen() {
                             Text("没有数据", color = Color.Black, fontSize = 14.sp)
                         }
                         Button(modifier = Modifier.fillMaxWidth().height(60.dp), onClick = {
-                            model.submitAnyData()
+                            model.submitAnyData(context)
                         }) {
                             Text("提交数据", color = Color.Black, fontSize = 14.sp)
                         }
@@ -76,13 +83,18 @@ class BasicInteractionScreen : BasicScreen() {
 
 /**
  * 基础交互状态模型
+ * @param interactionState 主交互状态
  */
-class BasicInteractionScreenModel : BasicScreenModel() {
+class BasicInteractionScreenModel(val interactionState: InteractionState) : BasicScreenModel() {
     override fun onInit(context: ScreenContext) {
-
+        refresh(context)
     }
 
-    override fun onLoad(context: ScreenContext) {
+    /**
+     * 刷新数据
+     * @param context
+     */
+    fun refresh(context: ScreenContext) {
         loadAnyDataSuccess()
     }
 
@@ -91,9 +103,9 @@ class BasicInteractionScreenModel : BasicScreenModel() {
      */
     fun loadAnyDataSuccess() {
         screenModelScope.launchScope() {
-            uiLoading("加载中...")
+            interactionState.uiLoading("加载中...")
             delay(2000)
-            uiSuccess()
+            interactionState.uiSuccess()
         }
     }
 
@@ -102,11 +114,11 @@ class BasicInteractionScreenModel : BasicScreenModel() {
      */
     fun loadAnyDataError() {
         screenModelScope.launchScope {
-            uiLoading("加载中...")
+            interactionState.uiLoading("加载中...")
             delay(2000)
             throw ApiException(-1, "请求超时，请重试")
         }.catch { code, error, _ ->
-            uiError(code, error)
+            interactionState.uiError(code, error)
         }
     }
 
@@ -115,22 +127,23 @@ class BasicInteractionScreenModel : BasicScreenModel() {
      */
     fun loadAnyDataEmpty() {
         screenModelScope.launchScope {
-            uiLoading("加载中...")
+            interactionState.uiLoading("加载中...")
             delay(2000)
-            uiSuccess(true)
+            interactionState.uiSuccess(true)
         }.catch { code, error, _ ->
-            uiError(code, error)
+            interactionState.uiError(code, error)
         }
     }
 
     /**
      * 模拟提交数据
+     * @param context 上下文
      */
-    fun submitAnyData() {
+    fun submitAnyData(context: ScreenContext) {
         screenModelScope.launchScope {
-            showPopLoading("提交中...")
+            context.popLoadingController.showPopLoading("提交中...")
             delay(2000)
-            dismissPopLoading()
+            context.popLoadingController.dismissPopLoading()
             toastShort("提交成功")
         }
     }

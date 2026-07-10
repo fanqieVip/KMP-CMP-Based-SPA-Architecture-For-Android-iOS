@@ -26,7 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.ktx.HorizontalPagerLifecycle
 import com.basic.base.local.ScreenContext
 import com.basic.common.base.BasicHazeScaffold
@@ -66,7 +66,7 @@ class EmbeddedPageScreen : BasicScreen() {
      */
     @Composable
     private fun BuildInnerPage(modifier: Modifier = Modifier) {
-        val screenModel = rememberMainScreenModel { EmbeddedPageScreenModel() }
+        val screenModel = rememberBaseScreenModel { EmbeddedPageScreenModel() }
         Box(modifier = modifier) {
             val pagerState = rememberPagerState { screenModel.tabs.size }
             HorizontalPagerLifecycle(pagerState, userScrollEnabled = false){
@@ -84,7 +84,7 @@ class EmbeddedPageScreen : BasicScreen() {
      */
     @Composable
     private fun BuildNavigationTab(modifier: Modifier = Modifier) {
-        val screenModel = rememberMainScreenModel { EmbeddedPageScreenModel() }
+        val screenModel = rememberBaseScreenModel { EmbeddedPageScreenModel() }
         Row(modifier = modifier.height(50.dp)) {
             screenModel.tabs.forEach {
                 Box(
@@ -113,8 +113,5 @@ class EmbeddedPageScreenModel : BasicScreenModel() {
     var current by mutableStateOf("order") // 当前选中的页面标识
     val tabs = mutableStateListOf<String>("home", "order", "mine") // 页面列表
     override fun onInit(context: ScreenContext) {
-    }
-
-    override fun onLoad(context: ScreenContext) {
     }
 }

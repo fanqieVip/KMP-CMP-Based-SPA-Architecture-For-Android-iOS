@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basic.base.base.rememberMainScreenModel
+import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.downloader.DownloadManager
 import com.basic.base.downloader.DownloadProgressState
 import com.basic.base.downloader.DownloadState
@@ -52,7 +52,7 @@ class DownloaderScreen : BasicScreen() {
                 BasicTitleBar("下载器")
             },
             center = {
-                val model = rememberMainScreenModel { DownloaderScreenModel() }
+                val model = rememberBaseScreenModel { DownloaderScreenModel() }
                 Column(modifier = Modifier.fillMaxSize().padding(horizontal = 15.dp).padding(top = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("下载状态：${model.state}")
                     Text("下载进度：${model.progress}")
@@ -119,8 +119,5 @@ class DownloaderScreenModel : BasicScreenModel() {
         screenModelScope.launchScope {
             task?.cancel()
         }
-    }
-
-    override fun onLoad(context: ScreenContext) {
     }
 }
