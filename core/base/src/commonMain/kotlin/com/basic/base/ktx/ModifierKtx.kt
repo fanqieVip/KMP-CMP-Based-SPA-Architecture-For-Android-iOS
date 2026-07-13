@@ -11,6 +11,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
@@ -47,9 +49,12 @@ fun Modifier.click(
     interactionSource: MutableInteractionSource? = null,
     indication: Indication? = null,
     clickIntervalMillis: Long = 500L,
+    hideKeyboard: Boolean = true,
     onClick: () -> Unit
 ): Modifier = composed {
     var lastClickTime by remember { mutableLongStateOf(0L) }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     clickable(
         enabled = enabled,
         onClickLabel = onClickLabel,
@@ -60,6 +65,10 @@ fun Modifier.click(
         val now = Clock.System.now().toEpochMilliseconds()
         if (now - lastClickTime >= clickIntervalMillis) {
             lastClickTime = now
+            if (hideKeyboard) {
+                focusManager.clearFocus()
+                keyboardController?.hide()
+            }
             onClick()
         }
     }
