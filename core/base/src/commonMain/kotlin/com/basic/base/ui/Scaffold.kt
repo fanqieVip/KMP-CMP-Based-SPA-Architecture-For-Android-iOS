@@ -145,18 +145,38 @@ fun HazeScaffold(
         if (topAlignedHazeEffectDistance.isSpecified && topAlignedHazeEffectDistance > 0.dp) {
             topAlignedHazeEffectDistance.toPx()
         } else {
-            state.topMeasuredHeightPx
+            if (topCenterAlignment == HazeScaffoldTopCenterAlignment.BOTTOM && !state.minTopHeightPx.isNaN() && state.minTopHeightPx > 0f) {
+                state.minTopHeightPx
+            } else {
+                state.topMeasuredHeightPx
+            }
         }
     }
+    val topTravelPx = state.topTravelPx
     val topSurfaceAlpha = when (topCenterAlignment) {
         HazeScaffoldTopCenterAlignment.TOP -> {
             if (topAlignedHazeEffectDistancePx > 0f) {
                 (state.topScrollOffsetPx / topAlignedHazeEffectDistancePx).coerceIn(0f, 1f)
             } else {
-                0f
+                if (state.topScrollOffsetPx > 0f) 1f else 0f
             }
         }
-        HazeScaffoldTopCenterAlignment.BOTTOM -> 1f
+        HazeScaffoldTopCenterAlignment.BOTTOM -> {
+            if (useLegacySurfaceModifiers) {
+                1f
+            } else {
+                if (topAlignedHazeEffectDistancePx > 0f && topTravelPx > 0f && topTravelPx < Float.MAX_VALUE) {
+                    val startOffset = (topTravelPx - topAlignedHazeEffectDistancePx).coerceAtLeast(0f)
+                    ((state.topScrollOffsetPx - startOffset) / topAlignedHazeEffectDistancePx).coerceIn(0f, 1f)
+                } else {
+                    if (topAlignedHazeEffectDistancePx > 0f) {
+                        (state.topOverlapPx / topAlignedHazeEffectDistancePx).coerceIn(0f, 1f)
+                    } else {
+                        if (state.topOverlapPx > 0f) 1f else 0f
+                    }
+                }
+            }
+        }
     }
     val nestedScrollConnection = remember(state, canConsumeScrollUp, canConsumeScrollDown, topCenterAlignment) {
         object : NestedScrollConnection {
@@ -235,6 +255,11 @@ fun HazeScaffold(
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
                     .height(with(density) { state.topCurrentHeightPx.toDp() })
+                    .then(
+                        if (!useLegacySurfaceModifiers && topCenterAlignment == HazeScaffoldTopCenterAlignment.BOTTOM) {
+                            legacyTopModifier(Modifier)
+                        } else Modifier
+                    )
                     .then(
                         if (minTopHeight.isSpecified) {
                             Modifier.draggable(
@@ -433,7 +458,7 @@ class HazeScaffoldState internal constructor() : HazeScaffoldScope {
         topOffsetPx = (topOffsetPx - deltaY).coerceIn(0f, travel)
     }
 
-    private val topTravelPx: Float
+    internal val topTravelPx: Float
         get() {
             val compressionTravel = if (minTopHeightPx.isNaN()) 0f else (topHeightPx - minTopHeightPx).coerceAtLeast(0f)
             val overlapTravel = if (minTopHeightPx.isNaN()) {
