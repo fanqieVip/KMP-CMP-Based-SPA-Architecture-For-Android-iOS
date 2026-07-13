@@ -1,9 +1,30 @@
 package com.basic.base.ktx
 
-import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.takeWhile
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.flow.produceIn
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.TimeSource
+
+/**
+ * 在 timeout 限制内等待下一条 Flow 数据。返回 null 表示超时，ChannelResult.closed 表示 Flow 已结束。
+ */
+private suspend fun <T> nextFlowResult(
+    flowResult: suspend () -> kotlinx.coroutines.channels.ChannelResult<T>,
+    deadline: TimeSource.Monotonic.ValueTimeMark?,
+    timeout: Long
+): kotlinx.coroutines.channels.ChannelResult<T>? {
+    if (timeout <= 0L || deadline == null) {
+        return flowResult()
+    }
+    val remaining = timeout - deadline.elapsedNow().inWholeMilliseconds
+    if (remaining <= 0L) {
+        return null
+    }
+    return withTimeoutOrNull(remaining) {
+        flowResult()
+    }
+}
 
 /**
  * 满足条件后执行then且不再收集数据（即不满足条件不执行，满足条件仅执行一次）
@@ -15,28 +36,35 @@ suspend fun <T> Flow<T>.takeOnce(
     timeout: Long = 0L,
     then: suspend (T?) -> Unit
 ) {
-    if (timeout > 0) {
+    coroutineScope {
+        val deadline = if (timeout > 0L) TimeSource.Monotonic.markNow() else null
+        val channel = produceIn(this)
+        var hasResult = false
+        var result: T? = null
+        var isTimeout = false
         try {
-            withTimeout(timeout) {
-                takeWhile {
-                    val isOver = predicate(it)
-                    if (isOver) {
-                        then(it)
-                    }
-                    !isOver
-                }.collect {}
+            while (true) {
+                val channelResult = nextFlowResult(channel::receiveCatching, deadline, timeout)
+                if (channelResult == null) {
+                    isTimeout = true
+                    break
+                }
+                if (channelResult.isClosed) {
+                    break
+                }
+                val value = channelResult.getOrThrow()
+                if (predicate(value)) {
+                    hasResult = true
+                    result = value
+                    break
+                }
             }
-        } catch (_: TimeoutCancellationException) {
-            then(null)
+        } finally {
+            channel.cancel()
         }
-    } else {
-        takeWhile {
-            val isOver = predicate(it)
-            if (isOver) {
-                then(it)
-            }
-            !isOver
-        }.collect {}
+        if (hasResult || isTimeout) {
+            then(result)
+        }
     }
 }
 
@@ -50,23 +78,32 @@ suspend fun <T> Flow<T>.takeUntil(
     timeout: Long = 0L,
     then: suspend (T?) -> Unit
 ) {
-    if (timeout > 0) {
+    coroutineScope {
+        val deadline = if (timeout > 0L) TimeSource.Monotonic.markNow() else null
+        val channel = produceIn(this)
+        var isTimeout = false
         try {
-            withTimeout(timeout) {
-                takeWhile {
-                    val isOver = predicate(it)
-                    then(it)
-                    !isOver
-                }.collect {}
+            while (true) {
+                val channelResult = nextFlowResult(channel::receiveCatching, deadline, timeout)
+                if (channelResult == null) {
+                    isTimeout = true
+                    break
+                }
+                if (channelResult.isClosed) {
+                    break
+                }
+                val value = channelResult.getOrThrow()
+                val isOver = predicate(value)
+                then(value)
+                if (isOver) {
+                    break
+                }
             }
-        } catch (_: TimeoutCancellationException) {
+        } finally {
+            channel.cancel()
+        }
+        if (isTimeout) {
             then(null)
         }
-    } else {
-        takeWhile {
-            val isOver = predicate(it)
-            then(it)
-            !isOver
-        }.collect {}
     }
 }

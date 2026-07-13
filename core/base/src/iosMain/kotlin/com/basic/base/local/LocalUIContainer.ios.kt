@@ -13,15 +13,28 @@ import platform.UIKit.navigationController
 actual typealias UIContainer = UIViewController
 
 actual fun UIContainer.pop() {
-    val nav = navigationController
+    val nav = findNearestNavigationController()
     if (nav != null && nav.viewControllers.size > 1) {
         nav.popViewControllerAnimated(true)
-    } else {
-        dismissViewControllerAnimated(true, null)
+        return
     }
+
+    if (presentingViewController != null) {
+        dismissViewControllerAnimated(true, null)
+        return
+    }
+
+    if (nav?.presentingViewController != null) {
+        nav.dismissViewControllerAnimated(true, null)
+        return
+    }
+
+    nav?.view?.removeFromSuperview()
 }
 
-actual fun UIContainer.push(screen: Screen) {
+actual fun UIContainer.push(
+    screen: Screen
+) {
     val vc = ComposeUIViewController {
         val uiContainer = LocalUIViewController.current
         BaseApp(
