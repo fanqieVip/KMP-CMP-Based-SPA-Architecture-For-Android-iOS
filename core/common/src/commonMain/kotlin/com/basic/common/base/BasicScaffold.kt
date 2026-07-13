@@ -9,6 +9,7 @@ import com.basic.base.ui.HazeRule
 import com.basic.base.ui.HazeScaffold
 import com.basic.base.ui.HazeScaffoldScope
 import com.basic.base.ui.HazeScaffoldState
+import com.basic.base.ui.HazeScaffoldTopCenterAlignment
 import com.basic.base.ui.defaultHazeScaffoldSurfaceModifier
 import com.basic.base.ui.rememberHazeScaffoldState
 import dev.chrisbanes.haze.HazeState
@@ -29,6 +30,8 @@ import dev.chrisbanes.haze.HazeState
  * @param maxTopOverlap 顶部最大重叠距离
  * @param minTopHeight 顶部最小高度
  * @param topAlignment 顶部对齐方式
+ * @param topCenterAlignment top 与 center 的顶部对齐方式
+ * @param topAlignedHazeEffectDistance 顶部对齐时，毛玻璃跟随上滑距离生效的距离；无效时取 top 实际高度
  * @param top 顶部内容
  * @param center 中间内容
  * @param bottom 底部内容
@@ -49,6 +52,8 @@ fun BasicHazeScaffold(
     maxTopOverlap: Dp = Dp.Unspecified,
     minTopHeight: Dp = Dp.Unspecified,
     topAlignment: androidx.compose.ui.Alignment.Vertical = androidx.compose.ui.Alignment.Bottom,
+    topCenterAlignment: HazeScaffoldTopCenterAlignment = HazeScaffoldTopCenterAlignment.BOTTOM,
+    topAlignedHazeEffectDistance: Dp = Dp.Unspecified,
     top: @Composable HazeScaffoldScope.() -> Unit = {},
     center: @Composable HazeScaffoldScope.() -> Unit,
     bottom: @Composable HazeScaffoldScope.() -> Unit = {},
@@ -66,6 +71,8 @@ fun BasicHazeScaffold(
         maxTopOverlap = maxTopOverlap,
         minTopHeight = minTopHeight,
         topAlignment = topAlignment,
+        topCenterAlignment = topCenterAlignment,
+        topAlignedHazeEffectDistance = topAlignedHazeEffectDistance,
         top = top,
         center = center,
         bottom = bottom,

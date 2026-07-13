@@ -59,6 +59,16 @@ enum class HazeRule {
 }
 
 /**
+ * Top 与 center 的顶部对齐方式
+ */
+enum class HazeScaffoldTopCenterAlignment {
+    /** Center 的顶部与 Top 的顶部对齐 */
+    TOP,
+    /** Center 的顶部与 Top 的底部对齐 */
+    BOTTOM
+}
+
+/**
  * 脚手架组件
  * @param topSurfaceModifier top区毛玻璃效果
  * @param bottomSurfaceModifier bottom 区毛玻璃效果
@@ -70,6 +80,8 @@ enum class HazeRule {
  * @param maxTopOverlap 最大允许的顶部重叠高度(Dp.Unspecified时为全重叠)
  * @param minTopHeight 最小允许的顶部高度(Dp.Unspecified时为保持高度不变)
  * @param topAlignment top区对齐方式
+ * @param topCenterAlignment top 与 center 的顶部对齐方式
+ * @param topAlignedHazeEffectDistance 顶部对齐时，毛玻璃跟随上滑距离生效的距离；无效时取 top 实际高度
  */
 @Composable
 fun HazeScaffold(
@@ -85,6 +97,8 @@ fun HazeScaffold(
     maxTopOverlap: Dp = Dp.Unspecified,
     minTopHeight: Dp = Dp.Unspecified,
     topAlignment: Alignment.Vertical = Alignment.Bottom,
+    topCenterAlignment: HazeScaffoldTopCenterAlignment = HazeScaffoldTopCenterAlignment.BOTTOM,
+    topAlignedHazeEffectDistance: Dp = Dp.Unspecified,
     top: @Composable HazeScaffoldScope.() -> Unit = {},
     center: @Composable HazeScaffoldScope.() -> Unit,
     bottom: @Composable HazeScaffoldScope.() -> Unit = {},
@@ -127,9 +141,29 @@ fun HazeScaffold(
             )
         }
     }
-    val nestedScrollConnection = remember(state, canConsumeScrollUp, canConsumeScrollDown) {
+    val topAlignedHazeEffectDistancePx = with(density) {
+        if (topAlignedHazeEffectDistance.isSpecified && topAlignedHazeEffectDistance > 0.dp) {
+            topAlignedHazeEffectDistance.toPx()
+        } else {
+            state.topMeasuredHeightPx
+        }
+    }
+    val topSurfaceAlpha = when (topCenterAlignment) {
+        HazeScaffoldTopCenterAlignment.TOP -> {
+            if (topAlignedHazeEffectDistancePx > 0f) {
+                (state.topScrollOffsetPx / topAlignedHazeEffectDistancePx).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+        }
+        HazeScaffoldTopCenterAlignment.BOTTOM -> 1f
+    }
+    val nestedScrollConnection = remember(state, canConsumeScrollUp, canConsumeScrollDown, topCenterAlignment) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (topCenterAlignment == HazeScaffoldTopCenterAlignment.TOP) {
+                    return Offset.Zero
+                }
                 val consumedY = when {
                     // 向上滑动时，外层优先消费（先压缩/重叠）
                     available.y < 0f && canConsumeScrollUp() -> state.dispatchScrollDelta(available.y)
@@ -139,6 +173,17 @@ fun HazeScaffold(
             }
 
             override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (topCenterAlignment == HazeScaffoldTopCenterAlignment.TOP) {
+                    when {
+                        consumed.y < 0f && canConsumeScrollUp() -> state.observeScrollDelta(consumed.y)
+                        consumed.y > 0f && canConsumeScrollDown() -> state.observeScrollDelta(consumed.y)
+                    }
+                    when {
+                        available.y < 0f && canConsumeScrollUp() -> state.observeScrollDelta(available.y)
+                        available.y > 0f && canConsumeScrollDown() -> state.observeScrollDelta(available.y)
+                    }
+                    return Offset.Zero
+                }
                 // 向下滑动时，内部先消费，内部不消费后，外层再消费（后恢复高度）
                 return if (available.y > 0f && canConsumeScrollDown()) {
                     Offset(0f, state.dispatchScrollDelta(available.y))
@@ -164,7 +209,11 @@ fun HazeScaffold(
                     modifier = Modifier
                         .fillMaxSize()
                         .layout { measurable, constraints ->
-                            val topInset = state.topVisibleHeightPx.roundToInt().coerceIn(0, constraints.maxHeight)
+                            val topInset = when (topCenterAlignment) {
+                                HazeScaffoldTopCenterAlignment.TOP -> 0
+                                HazeScaffoldTopCenterAlignment.BOTTOM ->
+                                    state.topVisibleHeightPx.roundToInt().coerceIn(0, constraints.maxHeight)
+                            }
                             val adjustedConstraints = constraints.copy(
                                 minHeight = (constraints.minHeight - topInset).coerceAtLeast(0),
                                 maxHeight = (constraints.maxHeight - topInset).coerceAtLeast(0)
@@ -199,6 +248,7 @@ fun HazeScaffold(
                     .graphicsLayer { clip = true },
                 hazeState = hazeState,
                 surfaceModifier = resolvedTopSurfaceModifier,
+                surfaceLayerModifier = Modifier.graphicsLayer { alpha = topSurfaceAlpha },
                 content = {
                     val resolvedTopAlignment = if (topAlignment == Alignment.Top) Alignment.Top else Alignment.Bottom
                     Box(
@@ -232,11 +282,20 @@ private fun HazeScaffoldSurface(
     modifier: Modifier,
     hazeState: HazeState,
     surfaceModifier: (Modifier, HazeState) -> Modifier,
+    surfaceLayerModifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     Box(
-        modifier = surfaceModifier(modifier, hazeState)
+        modifier = modifier
     ) {
+        Box(
+            modifier = surfaceModifier(
+                Modifier
+                    .matchParentSize()
+                    .then(surfaceLayerModifier),
+                hazeState
+            )
+        )
         content()
     }
 }
@@ -299,6 +358,12 @@ class HazeScaffoldState internal constructor() : HazeScaffoldScope {
             else -> topOffsetPx / travel
         }
 
+    internal val topMeasuredHeightPx: Float
+        get() = topHeightPx
+
+    internal val topScrollOffsetPx: Float
+        get() = topOffsetPx
+
     override val expansionProgress: Float
         get() = 1f - progress
 
@@ -359,6 +424,13 @@ class HazeScaffoldState internal constructor() : HazeScaffoldScope {
         val next = (previous - deltaY).coerceIn(0f, travel)
         topOffsetPx = next
         return previous - next
+    }
+
+    internal fun observeScrollDelta(deltaY: Float) {
+        val travel = topTravelPx
+        if (travel <= 0f || deltaY == 0f) return
+
+        topOffsetPx = (topOffsetPx - deltaY).coerceIn(0f, travel)
     }
 
     private val topTravelPx: Float
