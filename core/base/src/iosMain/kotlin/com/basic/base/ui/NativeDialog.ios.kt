@@ -27,6 +27,7 @@ internal actual fun UIContainer.showNativeDialog(dialog: NativeDialog) {
     }) {
         Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets(0.dp))){
             dialog.Content(
+                uiContainer = this@showNativeDialog,
                 onDismissCall = {
                     dialog.dialogStateHostKey?.let {
                         ScreenModelStore.dispose(it)

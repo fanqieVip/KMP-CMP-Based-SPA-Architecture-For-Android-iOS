@@ -84,6 +84,7 @@ internal class AndroidNativeDialog : DialogFragment() {
         val nativeDialog = viewModel.key?.run { showNativeDialogMap[this] }
         (view as? ComposeView)?.setContent {
             nativeDialog?.Content(
+                uiContainer = requireActivity(),
                 onDismissCall = {
                     runCatching { dismiss() }
                 }

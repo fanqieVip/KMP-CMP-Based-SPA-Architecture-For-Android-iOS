@@ -36,6 +36,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.basic.base.Os
 import com.basic.base.getPlatform
 import com.basic.base.local.LocalAppState
+import com.basic.base.local.LocalUIContainer
 import com.basic.base.local.UIContainer
 import com.basic.base.local.appState
 import com.benasher44.uuid.uuid4
@@ -61,12 +62,14 @@ abstract class NativeDialog(
 
     @Composable
     internal fun Content(
+        uiContainer: UIContainer,
         onDismissCall: () -> Unit
     ) {
         if (dialogStateHostKey == null) {
             dialogStateHostKey = "${NativeDialog::class.multiplatformName}:${this::class.multiplatformName}:${key}"
         }
         CompositionLocalProvider(
+            LocalUIContainer provides uiContainer,
             LocalAppState provides appState
         ) {
             val visible = remember { MutableTransitionState(false) }
