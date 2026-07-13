@@ -33,6 +33,19 @@ AI 应在满足以下“三维感知”条件之一时，主动申请更新补�
 **申请更新的动作范式：**
 > “感知到 [类别] 知识缺位。我建议在 `skills/patches/` 下新建毫秒级隔离补丁 `patch_{Name}_{Timestamp}_{Desc}.md` 以固化该模式，是否同意？”
 
+### 2.1 当前项目约束索引
+
+`skills/project-constraints/` 是当前项目专属约束目录，用于存放不适合归入通用 workflows、standards、knowledge 或 patches 的项目级协作边界。
+
+读取规则：
+- 开始新任务并加载本指南后，若存在 `skills/project-constraints/README.md`，必须同步读取该文件。
+- 仅当任务明确涉及某个项目约束子文档时，才按需读取对应 Markdown；禁止无差别全量加载目录内所有文件。
+
+写入规则：
+- 当 AI 发现需要打补丁或沉淀新规则时，除非开发者明确说明写入当前项目约束，否则不得写入 `skills/project-constraints/`。
+- 未获明确授权时，AI 只能在对话中提示发现了可沉淀规则，并等待开发者确认。
+- AI 在对话中作出的流程性承诺、执行边界承诺或后续行为规则承诺，也属于可触发补丁审计的约束来源；若开发者明确指出需要写入文档，必须先判断归属：通用 AI 自升级规则写入本指南，项目专属边界写入 `skills/project-constraints/`。
+
 ## 3. 语义间隙感知 (Semantic Gap Awareness)
 
 AI 必须对特定 UI 模式保持“业务敏感度”，禁止无脑复制工具生成的 CSS：
@@ -63,6 +76,7 @@ AI 必须对特定 UI 模式保持“业务敏感度”，禁止无脑复制工�
     - **环境同步/IDE/构建/CocoaPods** -> `workflows/IDE环境同步指南.md` 或 `standards/Pod依赖使用指南与规范.md`
     - **SDK 集成流程/适配模块** -> `workflows/SDK集成工作流规范.md` 或 `workflows/Lib模版生成指南.md`
     - **Project 项目模块生成** -> `workflows/Project模版生成指南.md`
+    - **当前项目专属协作边界/临时约束/非通用约束** -> `project-constraints/README.md` 或 `project-constraints/*.md`
     - **无法归类的新领域** -> 提议创建新的 `skills/Xxx.md`
 
 ### 4.2 拟定合并计划
