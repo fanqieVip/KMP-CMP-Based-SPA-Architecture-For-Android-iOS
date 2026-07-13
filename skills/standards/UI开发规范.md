@@ -12,11 +12,13 @@
     - 必须使用 `rememberBaseScreenModel` 绑定模型。
     - 禁止在 Composable 函数内直接编写复杂的业务逻辑（如网络请求、数据库操作），全部下沉到 `ScreenModel`。
     - 页面级加载/错误状态必须通过 `InteractionState` 管理，阻塞式加载必须通过 `PopLoadingState` 管理。
+- **子组件作用域**：仅服务于单个 `Screen` / `Dialog` 的 Compose 子组件，必须定义在对应类的作用域内；只有被多个页面复用、具备独立通用语义的组件，才允许提升为顶层函数或公共组件。
 
 ### 1.2 弹窗与原生宿主选择
 - **BasicDialog**：仅限 Compose 实现的轻量业务弹窗，生命周期跟随当前 `BaseScreen` 宿主。
 - **BasicNativeDialog**：用于需要脱离 Compose 弹窗栈、覆盖到原生层的弹窗，例如权限申请或需要强制覆盖导航栏的交互。
 - **UIContainer.push**：用于需要打开完整 `Screen`，且当前 Compose 单页宿主可能被三方 SDK 原生页面遮挡的场景，例如一键登录原生页上继续打开协议页、说明页或业务确认页。
+- **原生宿主能力边界**：跑在原生宿主里的 `Screen` 与普通 `Screen` 没有本质区别，除关闭页面等宿主生命周期操作需要特殊处理外，吐司、loading、弹窗等交互仍必须按 Compose 页面实现。没有明确原生宿主覆盖诉求时，禁止使用 `nativeToast`、`UIContainer.showPopLoading(...)`、`UIContainer.dismissPopLoading()`、`BasicNativeDialog` / `NativeDialog`；必须优先使用 `toastShort` / `toastLong`、`PopLoadingState.showPopLoading()` / `dismissPopLoading()`、`BasicDialog`。
 - **Android Activity 主题强制性**：新建 Android Activity（包括 `NativeActivity` 和业务专属 Activity）时，在 `AndroidManifest.xml` 中**必须**配置 `android:theme="@style/base_activity_anim_theme"`。这确保了原生 Activity 的进出场动画与 Compose Screen 的滑动动画（右进右出）完全一致，维持视觉连续性。
 - **禁止滥用原生宿主**：常规页面跳转必须优先使用 `navigator.push(Screen())`。`UIContainer.push(Screen())` 会创建独立宿主和独立导航栈，返回、参数传递和数据同步必须由业务明确处理。
 
