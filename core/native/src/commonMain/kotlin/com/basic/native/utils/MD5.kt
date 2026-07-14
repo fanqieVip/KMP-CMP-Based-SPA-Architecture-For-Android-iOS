@@ -168,9 +168,5 @@ internal object MD5 {
 
 // 简单的字符串转字节数组扩展（避免使用 encodeToByteArray 可能的问题）
 fun String.toBytes(): ByteArray {
-    val result = ByteArray(this.length)
-    for (i in this.indices) {
-        result[i] = this[i].code.toByte()
-    }
-    return result
+    return encodeToByteArray()
 }
