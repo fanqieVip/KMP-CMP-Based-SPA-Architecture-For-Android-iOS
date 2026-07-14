@@ -35,6 +35,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.basic.base.Os
 import com.basic.base.getPlatform
+import com.basic.base.ktx.click
 import com.basic.base.local.LocalAppState
 import com.basic.base.local.LocalUIContainer
 import com.basic.base.local.UIContainer
@@ -165,7 +166,9 @@ abstract class NativeDialog(
             exit = exit,
             visibleState = visibleState
         ) {
-            CreateUI()
+            Box(modifier = Modifier.click {}) {
+                CreateUI()
+            }
         }
     }
 

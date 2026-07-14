@@ -147,7 +147,9 @@ abstract class Dialog(
             exit = exit,
             visibleState = visibleState
         ) {
-            CreateUI()
+            Box(modifier = Modifier.click {}) {
+                CreateUI()
+            }
         }
     }
 
