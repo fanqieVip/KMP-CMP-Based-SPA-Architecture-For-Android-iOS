@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -326,6 +327,90 @@ fun AnnotatedString.Builder.appendLinkText(text: String, style: SpanStyle = Span
         )
     })
 }
+
+/**
+ * 构建稳定的可点击富文本，避免直接依赖 Text + LinkAnnotation 的点击命中。
+ *
+ * @param modifier 外层布局修饰符。
+ * @param style 文本整体样式。
+ * @param content 富文本构建内容。
+ */
+@Composable
+fun LinkText(
+    modifier: Modifier = Modifier,
+    style: TextStyle = TextStyle(),
+    content: LinkTextBuilder.() -> Unit
+) {
+    val builder = LinkTextBuilder()
+    builder.content()
+    val linkText = builder.build()
+    ClickableText(
+        text = linkText.text,
+        modifier = modifier,
+        style = style,
+        onClick = { offset ->
+            linkText.actions.forEach { (tag, action) ->
+                if (linkText.text.getStringAnnotations(tag = tag, start = offset, end = offset).isNotEmpty()) {
+                    action()
+                    return@ClickableText
+                }
+            }
+        }
+    )
+}
+
+/**
+ * 可点击富文本构建器。
+ */
+class LinkTextBuilder internal constructor() {
+    private val builder = AnnotatedString.Builder()
+    private val actions = linkedMapOf<String, () -> Unit>()
+
+    /**
+     * 追加普通文本。
+     *
+     * @param text 普通文本内容。
+     */
+    fun append(text: String) {
+        builder.append(text)
+    }
+
+    /**
+     * 追加可点击文本。
+     *
+     * @param text 可点击文本内容。
+     * @param style 可点击文本样式。
+     * @param click 点击回调。
+     */
+    fun appendLinkText(
+        text: String,
+        style: SpanStyle = SpanStyle(color = Color(0xFF008FFF)),
+        click: () -> Unit
+    ) {
+        val tag = "link_${actions.size}"
+        actions[tag] = click
+        builder.pushStringAnnotation(tag = tag, annotation = tag)
+        builder.pushStyle(style)
+        builder.append(text)
+        builder.pop()
+        builder.pop()
+    }
+
+    internal fun build(): LinkTextValue {
+        return LinkTextValue(builder.toAnnotatedString(), actions.toMap())
+    }
+}
+
+/**
+ * 可点击富文本内容和事件集合。
+ *
+ * @param text 富文本内容。
+ * @param actions 可点击区域事件集合。
+ */
+class LinkTextValue internal constructor(
+    val text: AnnotatedString,
+    val actions: Map<String, () -> Unit>
+)
 
 private fun String.isDigitsOnly(): Boolean {
     for (char in this) {
