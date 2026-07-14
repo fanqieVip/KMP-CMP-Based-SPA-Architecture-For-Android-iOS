@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -23,11 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
@@ -309,24 +306,6 @@ fun ComposeEditText(
     )
 }
 
-
-/**
- * 添加可点击的文字
- * @receiver AnnotatedString.Builder
- * @param text String
- * @param style SpanStyle
- * @param click Function0<Unit>
- */
-fun AnnotatedString.Builder.appendLinkText(text: String, style: SpanStyle = SpanStyle(color = Color(0xFF008FFF)), click: () -> Unit) {
-    append(buildAnnotatedString {
-        append(text)
-        addLink(
-            LinkAnnotation.Clickable(text, TextLinkStyles(style = style)) {
-                click.invoke()
-            }, 0, text.length
-        )
-    })
-}
 
 /**
  * 构建稳定的可点击富文本，避免直接依赖 Text + LinkAnnotation 的点击命中。
