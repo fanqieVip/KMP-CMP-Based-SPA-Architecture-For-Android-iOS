@@ -172,6 +172,7 @@ iosApp/Configuration/iosConfig.xcconfig
 
 - Screen 必须继承项目基类，不能直接继承 Vortex `Screen`。
 - Screen / ScreenModel 构造参数禁止函数类型，避免 URL 序列化和生命周期引用问题。
+- Screen 子类（含抽象类）的成员变量（包括构造器属性）如果字段本身或字段类型声明带 `kotlinx.serialization.Serializable`，字段类型必须同时实现 `io.github.hristogochev.vortex.util.Serializable`，避免页面恢复失败。
 - 非抽象 Screen 必须有 `@Router`。
 - 构造参数必须有 `@Params` 或默认值。
 - 业务代码不能直接使用原始 Settings。

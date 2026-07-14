@@ -20,6 +20,8 @@ private const val SCREEN_TYPE = "io.github.hristogochev.vortex.screen.Screen"
 private const val SCREEN_MODEL_TYPE = "io.github.hristogochev.vortex.model.ScreenModel"
 private const val DIALOG_TYPE = "com.basic.base.ktx.Dialog"
 private const val NATIVE_DIALOG_TYPE = "com.basic.base.ui.NativeDialog"
+private const val KOTLINX_SERIALIZABLE_TYPE = "kotlinx.serialization.Serializable"
+private const val VORTEX_SERIALIZABLE_TYPE = "io.github.hristogochev.vortex.util.Serializable"
 private const val FORBIDDEN_REMEMBER_METHOD = "io.github.hristogochev.vortex.model.rememberScreenModel"
 private const val FORBIDDEN_SCREEN_IMPORT = "io.github.hristogochev.vortex.screen.Screen"
 private const val FORBIDDEN_SETTINGS_IMPORT = "com.russhwolf.settings.Settings"
@@ -42,6 +44,7 @@ class LintSymbolProcessor(
         val screenModelType = resolver.getClassDeclarationByName(resolver.getKSNameFromString(SCREEN_MODEL_TYPE))?.asStarProjectedType()
         val dialogType = resolver.getClassDeclarationByName(resolver.getKSNameFromString(DIALOG_TYPE))?.asStarProjectedType()
         val nativeDialogType = resolver.getClassDeclarationByName(resolver.getKSNameFromString(NATIVE_DIALOG_TYPE))?.asStarProjectedType()
+        val vortexSerializableType = resolver.getClassDeclarationByName(resolver.getKSNameFromString(VORTEX_SERIALIZABLE_TYPE))?.asStarProjectedType()
 
         val screenImportRegex = Regex("import\\s+${FORBIDDEN_SCREEN_IMPORT.replace(".", "\\.")}(\\s+|$)")
         val settingsImportRegex = Regex("import\\s+${FORBIDDEN_SETTINGS_IMPORT.replace(".", "\\.")}(\\s+|$)")
@@ -60,7 +63,7 @@ class LintSymbolProcessor(
             // 2. 声明检查 (顶级函数与类)
             file.declarations.forEach { declaration ->
                 when (declaration) {
-                    is KSClassDeclaration -> declaration.checkClassRules(screenType, screenModelType, dialogType, nativeDialogType, fileLines)
+                    is KSClassDeclaration -> declaration.checkClassRules(screenType, screenModelType, dialogType, nativeDialogType, vortexSerializableType, fileLines)
                     is KSFunctionDeclaration -> declaration.checkFunctionRules(fileLines = fileLines)
                     is KSPropertyDeclaration -> declaration.checkTopLevelApiIsolationRule()
                 }
@@ -94,6 +97,7 @@ class LintSymbolProcessor(
         screenModelType: KSType?,
         dialogType: KSType?,
         nativeDialogType: KSType?,
+        vortexSerializableType: KSType?,
         fileLines: List<String>
     ) {
         if (classKind == ClassKind.ENUM_CLASS || classKind == ClassKind.ENUM_ENTRY) return
@@ -106,7 +110,7 @@ class LintSymbolProcessor(
         // 递归检查成员
         declarations.forEach { declaration ->
             when (declaration) {
-                is KSClassDeclaration -> declaration.checkClassRules(screenType, screenModelType, dialogType, nativeDialogType, fileLines)
+                is KSClassDeclaration -> declaration.checkClassRules(screenType, screenModelType, dialogType, nativeDialogType, vortexSerializableType, fileLines)
                 is KSFunctionDeclaration -> declaration.checkFunctionRules(
                     isDataClass = modifiers.contains(Modifier.DATA),
                     parentClassName = className,
@@ -124,6 +128,10 @@ class LintSymbolProcessor(
 
         // 架构红线：Screen/ScreenModel/Dialog 构造参数禁止持有不合规函数引用。
         checkConstructorFunctionParameterRules(className, isScreen, isScreenModel, isDialog)
+
+        if (isScreen) {
+            checkScreenKotlinxSerializablePropertyRules(className, vortexSerializableType)
+        }
 
         // A. 类 KDoc 校验
         val classDoc = docString
@@ -185,6 +193,39 @@ class LintSymbolProcessor(
 
             if (isDialog && (param.isVal || param.isVar) && isFunctionParameter) {
                 logger.error("架构红线 [Constructor]: Dialog/NativeDialog 子类 [$className] 的构造参数属性 [$paramName] 禁止声明为函数属性，请去掉 val/var 并使用 by autoClear。", param)
+            }
+        }
+    }
+
+    private fun KSClassDeclaration.checkScreenKotlinxSerializablePropertyRules(
+        className: String,
+        vortexSerializableType: KSType?
+    ) {
+        if (vortexSerializableType == null) return
+
+        primaryConstructor?.parameters
+            ?.filter { it.isVal || it.isVar }
+            ?.forEach { param ->
+                val paramName = param.name?.asString() ?: return@forEach
+                val paramType = param.type.resolve()
+                if (param.isKotlinxSerializableProperty(paramType) && !paramType.implementsVortexSerializable(vortexSerializableType)) {
+                    logger.error(
+                        "架构红线 [Serialization]: Screen 子类 [$className] 的构造器属性 [$paramName] 使用了 @$KOTLINX_SERIALIZABLE_TYPE，类型 [${paramType.readableName()}] 必须实现 $VORTEX_SERIALIZABLE_TYPE，否则页面序列化会失败。",
+                        param
+                    )
+                }
+            }
+
+        declarations.filterIsInstance<KSPropertyDeclaration>().forEach { property ->
+            val propName = property.simpleName.asString()
+            val isConstructorParam = primaryConstructor?.parameters?.any { it.name?.asString() == propName } == true
+            if (isConstructorParam) return@forEach
+            val propType = property.type.resolve()
+            if (property.isKotlinxSerializableProperty(propType) && !propType.implementsVortexSerializable(vortexSerializableType)) {
+                logger.error(
+                    "架构红线 [Serialization]: Screen 子类 [$className] 的成员变量 [$propName] 使用了 @$KOTLINX_SERIALIZABLE_TYPE，类型 [${propType.readableName()}] 必须实现 $VORTEX_SERIALIZABLE_TYPE，否则页面序列化会失败。",
+                    property
+                )
             }
         }
     }
@@ -403,6 +444,29 @@ class LintSymbolProcessor(
     private fun KSType.isKtorfitApiType(): Boolean = (declaration as? KSClassDeclaration)?.let { it.simpleName.asString().endsWith("Api", ignoreCase = true) || it.hasKtorfitAnnotations() } ?: false
 
     private fun KSType.isFunctionType(): Boolean = declaration.qualifiedName?.asString()?.let { it.startsWith("kotlin.Function") || it.startsWith("kotlin.coroutines.SuspendFunction") } ?: false
+
+    private fun KSAnnotated.isKotlinxSerializableProperty(type: KSType): Boolean {
+        return hasKotlinxSerializableAnnotation() || type.hasKotlinxSerializableAnnotation()
+    }
+
+    private fun KSAnnotated.hasKotlinxSerializableAnnotation(): Boolean {
+        return annotations.any { annotation ->
+            annotation.annotationType.resolve().declaration.qualifiedName?.asString() == KOTLINX_SERIALIZABLE_TYPE
+        }
+    }
+
+    private fun KSType.hasKotlinxSerializableAnnotation(): Boolean {
+        return declaration.hasKotlinxSerializableAnnotation()
+    }
+
+    private fun KSType.implementsVortexSerializable(vortexSerializableType: KSType): Boolean {
+        val classDeclaration = declaration as? KSClassDeclaration ?: return false
+        return vortexSerializableType.isAssignableFrom(classDeclaration.asStarProjectedType())
+    }
+
+    private fun KSType.readableName(): String {
+        return declaration.qualifiedName?.asString() ?: declaration.simpleName.asString()
+    }
 
     private companion object {
         private val companionObjectRegex = Regex("""\bcompanion\s+object\b""")
