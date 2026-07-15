@@ -17,8 +17,19 @@ import io.github.hristogochev.vortex.screen.Screen
 
 actual typealias UIContainer = Activity
 
-actual fun UIContainer.pop() {
-    finish()
+actual fun UIContainer.pop(rootToHome: Boolean) {
+    if (!rootToHome) {
+        finish()
+        return
+    }
+    if (ActivityStackManager.getCurrentActivity() == this) {
+        startActivity(Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        })
+    } else {
+        finish()
+    }
 }
 
 internal class NativeActivity : BaseActivity() {

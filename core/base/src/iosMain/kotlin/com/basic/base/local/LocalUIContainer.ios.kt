@@ -12,7 +12,7 @@ import platform.UIKit.navigationController
 
 actual typealias UIContainer = UIViewController
 
-actual fun UIContainer.pop() {
+actual fun UIContainer.pop(rootToHome: Boolean) {
     val nav = findNearestNavigationController()
     if (nav != null && nav.viewControllers.size > 1) {
         nav.popViewControllerAnimated(true)

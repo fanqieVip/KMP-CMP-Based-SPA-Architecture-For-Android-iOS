@@ -4,7 +4,12 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import io.github.hristogochev.vortex.screen.Screen
 
 expect class UIContainer
-expect fun UIContainer.pop()
+
+/**
+ * 关闭当前宿主页
+ * @param rootToHome 当最后一张宿主页面调用时，是否模拟home点击（仅安卓有效）
+ */
+expect fun UIContainer.pop(rootToHome: Boolean = true)
 /**
  * 打开原生Screen
  * 启动一个全新的宿主页面来加载Screen,与NativeDialog类似，尽量用在最简单的页面上
