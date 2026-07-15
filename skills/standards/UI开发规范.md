@@ -17,8 +17,10 @@
 ### 1.2 弹窗与原生宿主选择
 - **BasicDialog**：仅限 Compose 实现的轻量业务弹窗，生命周期跟随当前 `BaseScreen` 宿主。
 - **BasicNativeDialog**：用于需要脱离 Compose 弹窗栈、覆盖到原生层的弹窗，例如权限申请或需要强制覆盖导航栏的交互。
+- **弹窗宽度约束**：弹窗、卡片、按钮组等横向容器不要写死整体宽度；优先使用 `Modifier.fillMaxWidth()` 配合父容器 `padding(horizontal = ...)`、`weight`、`fillMaxWidth(fraction)`、`aspectRatio` 等方式表达约束。只有设计明确要求固定规格且无法由父容器约束表达时，才允许固定具体子元素尺寸。
 - **UIContainer.push**：用于需要打开完整 `Screen`，且当前 Compose 单页宿主可能被三方 SDK 原生页面遮挡的场景，例如一键登录原生页上继续打开协议页、说明页或业务确认页。
 - **原生宿主能力边界**：跑在原生宿主里的 `Screen` 与普通 `Screen` 没有本质区别，除关闭页面等宿主生命周期操作需要特殊处理外，吐司、loading、弹窗等交互仍必须按 Compose 页面实现。没有明确原生宿主覆盖诉求时，禁止使用 `nativeToast`、`UIContainer.showPopLoading(...)`、`UIContainer.dismissPopLoading()`、`BasicNativeDialog` / `NativeDialog`；必须优先使用 `toastShort` / `toastLong`、`PopLoadingState.showPopLoading()` / `dismissPopLoading()`、`BasicDialog`。
+- **NativeDialog 交互层级**：`NativeDialog` 运行在独立原生弹窗容器内，弹窗内部需要吐司时必须使用 `nativeToast(LocalUIContainer.current, ...)`；不要使用 `toastShort` / `toastLong`，普通 Compose Toast 可能被原生弹窗层级遮挡。
 - **Android Activity 主题强制性**：新建 Android Activity（包括 `NativeActivity` 和业务专属 Activity）时，在 `AndroidManifest.xml` 中**必须**配置 `android:theme="@style/base_activity_anim_theme"`。这确保了原生 Activity 的进出场动画与 Compose Screen 的滑动动画（右进右出）完全一致，维持视觉连续性。
 - **禁止滥用原生宿主**：常规页面跳转必须优先使用 `navigator.push(Screen())`。`UIContainer.push(Screen())` 会创建独立宿主和独立导航栈，返回、参数传递和数据同步必须由业务明确处理。
 
@@ -61,5 +63,6 @@
 - ❌ **禁止** 直接使用 `Icon` 和 `IconButton` 组件。
 - ❌ **禁止** 直接使用原生 `BasicTextField` 或 `TextField`（必须使用 `ComposeEditText`）。
 - ❌ **禁止** 严禁在任何布局中硬编码 `44.dp` / `statusBar` 等数值作为安全边距。
+- ❌ **禁止** 弹窗、卡片、按钮组等横向容器优先写死整体宽度；能通过 `fillMaxWidth()` 和父容器内边距表达时必须使用响应式约束。
 - ❌ **禁止** 在数据加载逻辑中手动 catch 并处理分页错误（必须委托给 `PagingControl` 自动处理）。
 - ❌ **禁止** 在 Android 原生代码中编写重复的尺寸转换胶水代码（必须统一引用 `core:base` 中的 `SizeUtils` 扩展）。
