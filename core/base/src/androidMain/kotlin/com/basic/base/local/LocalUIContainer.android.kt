@@ -12,6 +12,7 @@ import com.basic.base.ktx.getFunction
 import com.basic.base.ktx.putFunction
 import com.basic.base.ui.BaseApp
 import com.basic.base.utils.ActivityStackManager
+import com.basic.base.utils.KeyboardFix
 import io.github.hristogochev.vortex.screen.Screen
 
 actual typealias UIContainer = Activity
@@ -32,6 +33,7 @@ internal class NativeActivity : BaseActivity() {
                     permissionController = this
                 )
             }
+            KeyboardFix.fix(this)
         }
     }
 }

@@ -15,6 +15,7 @@
             android:name="com.basic.base.local.NativeActivity"
             android:exported="true"
             android:theme="@style/base_activity_anim_theme"
-            android:windowSoftInputMode="adjustResize"/>
+            android:windowSoftInputMode="adjustResize|stateHidden"
+            android:configChanges="orientation|screenSize|keyboardHidden"/>
     </application>
 </manifest>

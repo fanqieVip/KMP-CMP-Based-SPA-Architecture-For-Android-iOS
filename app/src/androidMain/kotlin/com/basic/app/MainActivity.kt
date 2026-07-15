@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.basic.base.ApplicationProxyManager
 import com.basic.base.base.BaseActivity
+import com.basic.base.utils.KeyboardFix
 
 /**
  * 由于MainActivity在框架层有依赖，切记不要更改名字和路径
@@ -19,6 +20,7 @@ class MainActivity : BaseActivity() {
             App(uiContainer = this, permissionController = this)
         }
         ApplicationProxyManager.androidMainActivityOnCreate(intent)
+        KeyboardFix.fix(this)
     }
 
     override fun onNewIntent(intent: Intent) {
