@@ -42,7 +42,8 @@ actual fun UIContainer.push(
             uiContainer = uiContainer,
             permissionController = object : PermissionController {
                 override val permissionClient by lazy { PermissionsController() }
-            })
+            },
+            isRoot = false)
     }
     findNearestNavigationController()?.pushViewController(vc, animated = true)
 }

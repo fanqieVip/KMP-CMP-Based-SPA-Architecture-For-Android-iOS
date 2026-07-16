@@ -49,11 +49,19 @@ import io.github.hristogochev.vortex.transitions.SlideTransition
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
+/**
+ * 根Compose
+ * @param screen 首屏Screen
+ * @param uiContainer 宿主页面
+ * @param isRoot 该宿主是否是根页面
+ * @param permissionController 权限请求器
+ */
 @Composable
 fun BaseApp(
     screen: () -> Screen,
     uiContainer: UIContainer,
-    permissionController: PermissionController
+    permissionController: PermissionController,
+    isRoot: Boolean = true
 ) {
     CompositionLocalProvider(
         LocalAppState provides appState,
@@ -65,7 +73,7 @@ fun BaseApp(
             if (uiConfig == null) {
                 RootUIConfig(screen = screen, uiConfig = uiConfig)
             } else {
-                uiConfig.RootUiConfig {
+                uiConfig.RootUiConfig(isRoot) {
                     RootUIConfig(screen = screen, uiConfig = uiConfig)
                 }
             }

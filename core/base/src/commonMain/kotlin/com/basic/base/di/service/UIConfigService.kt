@@ -14,10 +14,11 @@ interface UIConfigService {
     fun toastUi(isVisible: Boolean, text: String): @Composable BoxScope.() -> Unit
 
     /**
-     * 最低层配置整体风格或者注入参数
+     * 最底层配置整体风格或者注入参数
+     * @param isRootUiContainer 是否是根宿主页面上
      */
     @Composable
-    fun RootUiConfig(content: @Composable () -> Unit) = content()
+    fun RootUiConfig(isRootUiContainer: Boolean, content: @Composable () -> Unit) = content()
 
     /**
      * 全屏弹窗样式

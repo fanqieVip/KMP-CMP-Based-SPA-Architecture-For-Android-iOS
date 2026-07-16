@@ -41,7 +41,8 @@ internal class NativeActivity : BaseActivity() {
                 BaseApp(
                     screen = { it },
                     uiContainer = this,
-                    permissionController = this
+                    permissionController = this,
+                    isRoot = false
                 )
             }
             KeyboardFix.fix(this)
