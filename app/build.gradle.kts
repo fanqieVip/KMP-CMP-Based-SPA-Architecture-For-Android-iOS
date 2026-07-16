@@ -143,11 +143,11 @@ android {
         }
         create("beta") {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
-            isShrinkResources = false
-            isCrunchPngs = false
-            isDebuggable = true
-            isJniDebuggable = true
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isCrunchPngs = true
+            isDebuggable = false
+            isJniDebuggable = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         create("alpha") {
