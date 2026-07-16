@@ -22,7 +22,7 @@ actual fun UIContainer.pop(rootToHome: Boolean) {
         finish()
         return
     }
-    if (ActivityStackManager.getCurrentActivity() == this) {
+    if (ActivityStackManager.activityStack.size <= 1) {
         startActivity(Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
