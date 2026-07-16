@@ -1,10 +1,5 @@
 package com.basic.common.base
 
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,13 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight.Companion.W400
 import androidx.compose.ui.text.font.FontWeight.Companion.W500
@@ -38,7 +30,7 @@ import com.basic.base.local.LocalContext
 import com.basic.base.local.ScreenContext
 import com.basic.common.R_com_basic_common
 import com.basic.common.common_fail_icon
-import com.basic.common.common_loading_icon
+import com.basic.common.di.impl.PubLoadingUI
 import org.jetbrains.compose.resources.painterResource
 
 /**
@@ -53,7 +45,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun BasicInteraction(
     state: InteractionState,
-    onRefresh: (context: ScreenContext)-> Unit,
+    onRefresh: (context: ScreenContext) -> Unit,
     onLoading: @Composable BoxScope.(modifier: Modifier, text: String?) -> Unit = { modifier, text -> BasicLoading(modifier, text) },
     onEmpty: @Composable BoxScope.(modifier: Modifier) -> Unit = { modifier ->
         val context = LocalContext.current
@@ -96,21 +88,7 @@ fun BasicLoading(modifier: Modifier, text: String?) {
     Column(
         modifier = modifier.background(Color.Transparent), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val infiniteTransition = rememberInfiniteTransition()
-        val rotationAngle by infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1500, easing = LinearOutSlowInEasing)
-            )
-        )
-        Image(
-            painter = painterResource(R_com_basic_common.drawable.common_loading_icon), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier
-                .size(36.dp)
-                .rotate(rotationAngle),
-            colorFilter = ColorFilter.tint(Color.Black)
-        )
-        Text(text ?: "", color = Color(0xFF333333), fontSize = 14.sp, fontWeight = W400, modifier = Modifier.padding(top = 5.dp))
+        PubLoadingUI(text)
     }
 }
 
