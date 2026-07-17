@@ -13,7 +13,7 @@ expect fun createWebView(uiContainer: UIContainer,  state: WebViewState): IWebVi
 /**
  * 加载url
  */
-expect fun IWebView.loadNewUrl(url: String)
+expect fun IWebView.loadNewUrl(url: String, state: WebViewState)
 
 /**
  * 回退

@@ -67,7 +67,14 @@ actual fun createWebView(uiContainer: UIContainer, state: WebViewState): IWebVie
     }
 }
 
-actual fun IWebView.loadNewUrl(url: String) {
+actual fun IWebView.loadNewUrl(url: String, state: WebViewState) {
+    if (state.interceptProxy) {
+        if (com.basic.base.utils.isProxyEnabled()) {
+            state.loadingState = LoadingState.Error(-1, "网络环境异常，请稍后重试")
+            stopLoading()
+            return
+        }
+    }
     loadUrl(url)
 }
 

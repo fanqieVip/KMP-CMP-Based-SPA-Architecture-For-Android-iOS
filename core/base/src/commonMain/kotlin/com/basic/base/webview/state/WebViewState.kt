@@ -27,7 +27,15 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.withContext
 
-class WebViewState(@PublishedApi internal var scope: CoroutineScope?) {
+/**
+ * Webview状态
+ * @param scope
+ * @param interceptProxy 是否禁用代理
+ */
+class WebViewState(
+    @PublishedApi internal var scope: CoroutineScope?,
+    val interceptProxy: Boolean = com.basic.base.constant.VersionStatus.RELEASE == buildkonfig.BuildConfig_com_basic_base.VERSION_TYPE
+) {
     companion object {
         internal const val jsNamespace = "kmp"
     }
@@ -178,7 +186,7 @@ class WebViewState(@PublishedApi internal var scope: CoroutineScope?) {
             scope?.launchScope {
                 callJsReq.collect {
                     when (it) {
-                        is EvaluateJsReq.LoadUrl -> withContext(Dispatchers.Main) { webView?.loadNewUrl(it.url) }
+                        is EvaluateJsReq.LoadUrl -> withContext(Dispatchers.Main) { webView?.loadNewUrl(it.url, this@WebViewState) }
                         is EvaluateJsReq.GoBack -> withContext(Dispatchers.Main) { webView?.goBackPage() }
                         is EvaluateJsReq.Reload -> withContext(Dispatchers.Main) { webView?.reloadPage() }
                         is EvaluateJsReq.GoForward -> withContext(Dispatchers.Main) { webView?.goForwardPage() }

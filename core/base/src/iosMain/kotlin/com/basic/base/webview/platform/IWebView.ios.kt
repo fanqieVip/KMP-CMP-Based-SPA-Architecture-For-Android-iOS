@@ -9,6 +9,7 @@ import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.cValue
 import kotlinx.cinterop.convert
+import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGRect
 import platform.Foundation.NSJSONSerialization
 import platform.Foundation.NSKeyValueObservingOptionNew
@@ -66,11 +67,25 @@ actual fun createWebView(
                 context = null
             )
         }
+
+        // iOS 17+ 绕过系统代理
+        if (state.interceptProxy) {
+            val isAtLeast17 = platform.Foundation.NSProcessInfo.processInfo.operatingSystemVersion.useContents { majorVersion >= 17 }
+            if (isAtLeast17) {
+                configuration.websiteDataStore.proxyConfigurations = emptyList<Any?>()
+            }
+        }
     }
 }
 
-actual fun IWebView.loadNewUrl(url: String) {
-//    loadRequest(NSURLRequest(uRL = NSURL(string = url), cachePolicy = NSURLRequestReloadIgnoringCacheData, timeoutInterval = 2.0))
+actual fun IWebView.loadNewUrl(url: String, state: WebViewState) {
+    if (state.interceptProxy) {
+        if (com.basic.base.utils.isProxyEnabled()) {
+            state.loadingState = com.basic.base.webview.state.LoadingState.Error(-1, "网络环境异常，请稍后重试")
+            stopLoading()
+            return
+        }
+    }
     loadRequest(NSURLRequest(uRL = NSURL(string = url)))
 }
 
