@@ -55,18 +55,7 @@ fun WebView.register(
     var isError = false
 
     fun updateHistoryState(view: WebView) {
-        val list = view.copyBackForwardList()
-        val currentIndex = list.currentIndex
-        var canBack = view.canGoBack()
-        // 特殊处理：如果是第一页由于重定向或参数变化产生的多条历史，过滤掉第一条，避免回退死循环
-        if (currentIndex == 1 && list.size == 2) {
-            val item0 = list.getItemAtIndex(0)?.url
-            val item1 = list.getItemAtIndex(1)?.url
-            if (item0 == item1 || (item0 != null && item1 != null && isLikelyRedirect(item0, item1))) {
-                canBack = false
-            }
-        }
-        onHistoryChanged?.invoke(canBack, view.canGoForward(), view.url)
+        onHistoryChanged?.invoke(view.canGoBack(), view.canGoForward(), view.url)
     }
 
     webChromeClient = object : WebChromeClient() {
