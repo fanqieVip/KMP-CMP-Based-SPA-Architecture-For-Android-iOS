@@ -55,14 +55,18 @@ class TinyPngTask extends DefaultTask {
         return bigInt.toString(16).padLeft(32, '0')
     }
 
-    static TinyPngResult compress(File resDir, Iterable<String> whiteList,
+    static TinyPngResult compress(File rootDir, File resDir, Iterable<String> whiteList,
                                   Iterable<TinyPngInfo> compressedList, int skipSize, float compressThreshold) {
         def newCompressedList = new ArrayList<TinyPngInfo>()
         def accountError = false
         def beforeTotalSize = 0
         def afterTotalSize = 0
         label: for (File file : resDir.listFiles()) {
-            def filePath = file.path
+            if (!file.isFile()) {
+                continue
+            }
+            def filePath = formatRelativePath(rootDir, file)
+            def legacyFilePath = file.path
             def fileName = file.name
 
             for (String s : whiteList) {
@@ -73,12 +77,13 @@ class TinyPngTask extends DefaultTask {
             }
 
             for (TinyPngInfo info : compressedList) {
-                if (filePath == info.path && generateMD5(file) == info.md5) {
+                if ((filePath == info.path || legacyFilePath == info.path || legacyFilePath.replace("\\", "/") == info.path) &&
+                        generateMD5(file) == info.md5) {
                     continue label
                 }
             }
 
-            if (fileName.endsWith(".jpg") || fileName.endsWith(".png") || fileName.toLowerCase().endsWith(".webp")) {
+            if (isCompressibleImage(fileName)) {
                 if (fileName.contains(".9")) {
                     continue
                 }
@@ -96,7 +101,7 @@ class TinyPngTask extends DefaultTask {
                         continue
                     }
                     // Use the Tinify API client
-                    def tSource = Tinify.fromFile("${resDir.absolutePath}/${fileName}")
+                    def tSource = Tinify.fromFile(file.absolutePath)
                     def result = tSource.result()
                     def afterSize = result.toBuffer().length
                     def afterSizeStr = formetFileSize(afterSize)
@@ -108,7 +113,7 @@ class TinyPngTask extends DefaultTask {
                     if (compressRatio >= 0 && compressRatio < compressThreshold) {
                         continue label
                     }
-                    result.toFile("${resDir.absolutePath}/${fileName}")
+                    result.toFile(file.absolutePath)
                     println("beforeSize: $beforeSizeStr -> afterSize: ${afterSizeStr}")
                 } catch (AccountException e) {
                     println("AccountException: ${e.getMessage()}")
@@ -135,15 +140,67 @@ class TinyPngTask extends DefaultTask {
         return new TinyPngResult(beforeTotalSize, afterTotalSize, accountError, newCompressedList)
     }
 
+    static boolean isCompressibleImage(String fileName) {
+        def lowerName = fileName.toLowerCase()
+        return lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") ||
+                lowerName.endsWith(".png") || lowerName.endsWith(".webp")
+    }
+
+    static String formatRelativePath(File rootDir, File file) {
+        return rootDir.toPath().relativize(file.toPath()).toString().replace(File.separatorChar, '/' as char)
+    }
+
+    static ArrayList<File> collectTargetResourceDirs(File rootDir) {
+        def result = new ArrayList<File>()
+        collectTargetResourceDirsInternal(rootDir.canonicalFile, rootDir.canonicalFile, result)
+        return result.unique { it.canonicalPath }.sort { it.path }
+    }
+
+    private static void collectTargetResourceDirsInternal(File rootDir, File currentDir, ArrayList<File> result) {
+        if (shouldSkipDir(currentDir)) {
+            return
+        }
+        if (isTargetResourceDir(rootDir, currentDir)) {
+            result.add(currentDir)
+            return
+        }
+        currentDir.listFiles()?.findAll { it.isDirectory() }?.each { childDir ->
+            collectTargetResourceDirsInternal(rootDir, childDir, result)
+        }
+    }
+
+    private static boolean shouldSkipDir(File dir) {
+        return dir.name == ".git" || dir.name == ".gradle" || dir.name == ".idea" || dir.name == "build"
+    }
+
+    private static boolean isTargetResourceDir(File rootDir, File dir) {
+        def relativePath = formatRelativePath(rootDir, dir)
+        return isCommonComposeDrawableDir(relativePath, dir.name) ||
+                isAndroidDrawableDir(relativePath, dir.name) ||
+                isIosAppIconSetDir(relativePath, dir)
+    }
+
+    private static boolean isCommonComposeDrawableDir(String relativePath, String dirName) {
+        return dirName.startsWith("drawable") &&
+                relativePath.endsWith("/src/commonMain/composeResources/${dirName}")
+    }
+
+    private static boolean isAndroidDrawableDir(String relativePath, String dirName) {
+        return dirName.startsWith("drawable") &&
+                relativePath.endsWith("/src/androidMain/res/${dirName}")
+    }
+
+    private static boolean isIosAppIconSetDir(String relativePath, File dir) {
+        return relativePath.startsWith("iosApp/") &&
+                dir.name.endsWith(".appiconset") &&
+                dir.parentFile?.name == "Assets.xcassets"
+    }
+
     @TaskAction
     def run() {
         def configuration = project.tinyInfo
         println(configuration.toString())
 
-        if (!(configuration.resourceDir ?: false)) {
-            println("Not found resources list")
-            return
-        }
         if (!(configuration.apiKey ?: false)) {
             println("Tiny API Key not set")
             return
@@ -184,26 +241,22 @@ class TinyPngTask extends DefaultTask {
         int skipSize = configuration.skipSize ?: 10
         float compressThreshold = (configuration.compressThreshold ?: 35) / 100f
         def newCompressedList = new ArrayList<TinyPngInfo>()
-        configuration.resourceDir.each { d ->
-            def dir = new File("${project.rootDir}\\$d")
-            if(dir.exists() && dir.isDirectory()) {
-                if (!(configuration.resourcePattern ?: false)) {
-                    configuration.resourcePattern = ["drawable[a-z-]*"]
-                }
-                configuration.resourcePattern.each { p ->
-                    dir.eachDirMatch(~/$p/) { drawDir ->
-                        if(!error) {
-                            String realPath = "${project.rootDir}\\$drawDir"
-                            TinyPngResult result = compress(drawDir, configuration.whiteList,
-                                    compressedList, skipSize, compressThreshold)
-                            beforeSize += result.beforeSize
-                            afterSize += result.afterSize
-                            error = result.error
-                            if (result.getResults()) {
-                                newCompressedList.addAll(result.getResults())
-                            }
-                        }
-                    }
+        def targetDirs = collectTargetResourceDirs(project.rootDir)
+        if (!targetDirs) {
+            println("Not found target image resources")
+            return
+        }
+        println("Found target image resource dirs:")
+        targetDirs.each { println(" - ${formatRelativePath(project.rootDir, it)}") }
+        targetDirs.each { drawDir ->
+            if(!error) {
+                TinyPngResult result = compress(project.rootDir, drawDir, configuration.whiteList,
+                        compressedList, skipSize, compressThreshold)
+                beforeSize += result.beforeSize
+                afterSize += result.afterSize
+                error = result.error
+                if (result.getResults()) {
+                    newCompressedList.addAll(result.getResults())
                 }
             }
         }

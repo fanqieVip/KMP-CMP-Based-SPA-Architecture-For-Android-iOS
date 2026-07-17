@@ -1,4 +1,3 @@
-import com.frame.basic.buildsrc.CompressConfig
 import com.frame.basic.buildsrc.ProjectBuildConfig
 import com.frame.basic.buildsrc.SDKKeyConfig
 import com.frame.basic.buildsrc.SignConfig
@@ -198,8 +197,5 @@ buildkonfig {
     defaultConfigs {}
 }
 tinyInfo {
-    resourceDir = CompressConfig.getResourceDir(rootProject.getRootDir())
-    resourcePattern = CompressConfig.RESOURCE_PATTERN
-    whiteList = CompressConfig.WHITE_LIST
     apiKey = SDKKeyConfig.tinyPngApiKey
 }
