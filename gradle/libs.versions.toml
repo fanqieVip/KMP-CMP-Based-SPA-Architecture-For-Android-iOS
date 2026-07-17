@@ -1,8 +1,8 @@
 [versions]
 agp = "9.3.0"                                                   # https://developer.android.google.cn/reference/tools/gradle-api
-coreKtx = "1.18.0"                                              # 1.19.0要求编译版本37以后，暂不升级
+coreKtx = "1.19.0"                                              # 1.19.0要求编译版本37以后，暂不升级
 androidx-activity = "1.13.0"
-androidx-lifecycle = "2.10.0"                                   # 2.11.0要求编译版本37以后，暂不升级
+androidx-lifecycle = "2.11.0"                                   # 2.11.0要求编译版本37以后，暂不升级
 androidx-splashscreen = "1.2.0"
 constraintLayout = "2.2.1"
 haze = "2.0.0-alpha03"                                          # https://chrisbanes.github.io/haze/latest/
@@ -21,7 +21,7 @@ koinPlugin = "1.0.2"                                            # https://github
 ktorfitVersion = "2.7.5"                                        # https://klibs.io/project/Foso/Ktorfit
 ktorVersion = "3.5.1"                                           # https://klibs.io/project/ktorio/ktor
 ktorMonitor = "1.14.4"                                          # https://github.com/CosminMihuMDC/KtorMonitor
-lifecycleProcess = "2.10.0"                                     # 2.11.0要求编译版本37以后，暂不升级
+lifecycleProcess = "2.11.0"                                     # 2.11.0要求编译版本37以后，暂不升级
 utilcodex = "1.31.1"
 multiplatform-settings = "1.3.0"                                # https://klibs.io/project/russhwolf/multiplatform-settings
 filekit = "0.14.2"                                              # https://klibs.io/project/vinceglb/FileKit

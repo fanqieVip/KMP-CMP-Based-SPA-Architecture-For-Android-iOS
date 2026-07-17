@@ -24,11 +24,11 @@ object ProjectBuildConfig {
          * 安卓特定配置
          */
         object Android {
-            const val compileSdkVersion = 36
-            const val buildToolsVersion = "36.0.0"
+            const val compileSdkVersion = 37
+            const val buildToolsVersion = "37.0.0"
             //vmp加密要求24以上，多个依赖库要求最低26起
             const val minSdkVersion = 26
-            const val targetSdkVersion = 36
+            const val targetSdkVersion = 37
             const val versionCode = 1
             const val versionName = "1.0.0"
 
