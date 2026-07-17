@@ -29,7 +29,7 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
 private val httpClient by lazy {
-    HttpClient {
+    HttpClient(getPlatformEngine()) {
         install(ContentNegotiation) {
             json(JsonUtils, contentType = ContentType.Any)
         }

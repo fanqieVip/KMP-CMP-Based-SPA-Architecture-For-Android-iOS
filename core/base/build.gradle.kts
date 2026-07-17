@@ -87,7 +87,7 @@ kotlin {
             api(libs.github.walle)
             api(libs.xxPermission)
             api(libs.autoSize)
-            implementation(libs.coil.ktor.android)
+            api(libs.coil.ktor.android)
             api(libs.android.immersionbar)
             val oaidLib = libs.github.cnOaid.get().let { "${it.group}:${it.name}:${it.version}" }
             implementation(oaidLib) {
@@ -99,7 +99,7 @@ kotlin {
         }
         commonMain.dependencies {
             api(libs.kotlin.stdlib)
-            implementation(libs.compose.multiplatform.components)
+            api(libs.compose.multiplatform.components)
             api(libs.compose.multiplatform.runtime)
             api(libs.compose.multiplatform.foundation)
             api(libs.compose.multiplatform.material3)
