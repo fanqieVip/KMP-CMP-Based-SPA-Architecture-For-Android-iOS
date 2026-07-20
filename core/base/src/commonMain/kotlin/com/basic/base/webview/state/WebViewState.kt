@@ -214,21 +214,20 @@ class WebViewState(
             //收集来自js的调用指令
             scope?.launchScope {
                 jsCall.collect {
-                    withContext(Dispatchers.Main) {
-                        jsProcessors[it.methodName]?.also { method ->
-                            val result = runCatching {
-                                val result = method(it.jsonParams)
-                                it.callbackId?.let { callbackId ->
+                    jsProcessors[it.methodName]?.also { method ->
+                        val result = runCatching {
+                            val result = method(it.jsonParams)
+                            it.callbackId?.let { callbackId ->
+                                withContext(Dispatchers.Main) {
                                     webView?.evaluateJScript(
                                         "window:onKmpCallback('${callbackId}', '${result}')",
                                         null
                                     )
                                 }
                             }
-                            if (result.isFailure) {
-                                logError("webview", result.exceptionOrNull()?.message)
-                            }
-
+                        }
+                        if (result.isFailure) {
+                            logError("webview", result.exceptionOrNull()?.message)
                         }
                     }
                 }
