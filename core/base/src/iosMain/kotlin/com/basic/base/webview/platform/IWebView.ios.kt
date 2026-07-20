@@ -89,6 +89,7 @@ actual fun IWebView.loadNewUrl(url: String, state: WebViewState) {
             return
         }
     }
+    state.updateCurrentUrlIfPresent(url)
     loadRequest(NSURLRequest(uRL = NSURL(string = url)))
 }
 
@@ -100,9 +101,10 @@ actual fun IWebView.goForwardPage() {
     goForward()
 }
 
-actual fun IWebView.reloadPage() {
+actual fun IWebView.reloadPage(state: WebViewState) {
     stopLoading()
-    URL?.let {
+    val reloadUrl = URL ?: state.currentUrl?.let { NSURL(string = it) }
+    reloadUrl?.let {
         loadRequest(NSURLRequest(uRL = it))
     }
 }

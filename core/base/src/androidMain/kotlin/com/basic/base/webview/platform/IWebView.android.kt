@@ -1,7 +1,6 @@
 package com.basic.base.webview.platform
 
 import android.annotation.SuppressLint
-import android.view.View.LAYER_TYPE_HARDWARE
 import com.basic.base.local.UIContainer
 import com.basic.base.webview.jsbridge.JsBridgeHelper
 import com.basic.base.webview.jsbridge.recycleAll
@@ -85,7 +84,7 @@ actual fun IWebView.goForwardPage() {
     goForward()
 }
 
-actual fun IWebView.reloadPage() {
+actual fun IWebView.reloadPage(state: WebViewState) {
     reload()
 }
 

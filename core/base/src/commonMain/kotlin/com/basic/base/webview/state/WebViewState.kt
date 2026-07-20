@@ -188,7 +188,7 @@ class WebViewState(
                     when (it) {
                         is EvaluateJsReq.LoadUrl -> withContext(Dispatchers.Main) { webView?.loadNewUrl(it.url, this@WebViewState) }
                         is EvaluateJsReq.GoBack -> withContext(Dispatchers.Main) { webView?.goBackPage() }
-                        is EvaluateJsReq.Reload -> withContext(Dispatchers.Main) { webView?.reloadPage() }
+                        is EvaluateJsReq.Reload -> withContext(Dispatchers.Main) { webView?.reloadPage(this@WebViewState) }
                         is EvaluateJsReq.GoForward -> withContext(Dispatchers.Main) { webView?.goForwardPage() }
                         is EvaluateJsReq.StopLoading -> withContext(Dispatchers.Main) { webView?.stopLoadPage() }
                         is EvaluateJsReq.EvaluateJavaScripts -> {

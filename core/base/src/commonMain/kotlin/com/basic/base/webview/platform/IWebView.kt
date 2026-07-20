@@ -28,7 +28,7 @@ expect fun IWebView.goForwardPage()
 /**
  * 刷新
  */
-expect fun IWebView.reloadPage()
+expect fun IWebView.reloadPage(state: WebViewState)
 
 /**
  * 停止加载

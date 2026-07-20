@@ -50,7 +50,7 @@ class WKWebViewNavigatorDelegate(
                 }
 
                 "title" -> state.title = newValue as? String
-                "URL" -> state.currentUrl = (newValue as? NSURL)?.absoluteString
+                "URL" -> state.updateCurrentUrlIfPresent((newValue as? NSURL)?.absoluteString)
                 "canGoBack" -> state.canGoBack = (newValue as? NSNumber)?.boolValue ?: false
                 "canGoForward" -> state.canGoForward =
                     (newValue as? NSNumber)?.boolValue ?: false
@@ -63,7 +63,7 @@ class WKWebViewNavigatorDelegate(
     @ObjCSignatureOverride
     override fun webView(webView: WKWebView, didStartProvisionalNavigation: WKNavigation?) {
         state.scope?.launch(Dispatchers.Main) {
-            state.currentUrl = webView.URL.toString()
+            state.updateCurrentUrlIfPresent(webView.URL?.absoluteString)
             state.loadingState = LoadingState.Initializing
         }
     }
@@ -197,6 +197,12 @@ class WKWebViewNavigatorDelegate(
         webView.reload()
     }
 
+}
+
+internal fun WebViewState.updateCurrentUrlIfPresent(url: String?) {
+    if (!url.isNullOrBlank() && url != "null" && url != "<null>") {
+        currentUrl = url
+    }
 }
 
 private val webViewExternalSchemes = setOf("tel", "telprompt", "mailto", "sms")
