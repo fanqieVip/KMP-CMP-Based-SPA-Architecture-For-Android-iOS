@@ -25,8 +25,7 @@ actual fun createWebView(uiContainer: UIContainer, state: WebViewState): IWebVie
             // 启用 H5 定位
             setGeolocationEnabled(true)
             // 必须开启LAYER_TYPE_HARDWARE，否则搭配haze毛玻璃效果会无线闪烁
-            setLayerType(LAYER_TYPE_HARDWARE, null)
-//            cacheMode = WebSettings.LOAD_NO_CACHE
+            //setLayerType(LAYER_TYPE_HARDWARE, null)
         }
         addJavascriptInterface(JsBridgeHelper(state), WebViewState.jsNamespace)
         register(

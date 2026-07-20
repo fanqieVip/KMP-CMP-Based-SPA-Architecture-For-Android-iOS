@@ -22,6 +22,7 @@ import com.basic.base.base.rememberBaseScreenModel
 import com.basic.base.ktx.rememberInteractionState
 import com.basic.base.local.ScreenContext
 import com.basic.base.router.Router
+import com.basic.base.ui.HazeRule
 import com.basic.base.utils.logDebug
 import com.basic.base.webview.platform.NativeWebView
 import com.basic.base.webview.state.LoadingState
@@ -73,6 +74,7 @@ class WebviewScreen : BasicScreen() {
         Box(modifier = Modifier.fillMaxSize()) {
             BasicHazeScaffold(
                 modifier = Modifier.fillMaxSize(),
+                hazeRule = HazeRule.NONE,
                 top = {
                     BasicTitleBar(model.webviewState.title ?: "", left = {
                         TitleBarLeftCore(it) {
