@@ -32,6 +32,7 @@ private val observerKeys = listOf("estimatedProgress", "title", "URL", "canGoBac
 private val shareProcessPool by lazy { WKProcessPool() }
 
 private val webViewNavigatorDelegates = HashMap<WKWebView, WKWebViewNavigatorDelegate>()
+private val webViewUIDelegates = HashMap<WKWebView, WKWebViewUIDelegate>()
 actual fun createWebView(
     uiContainer: UIContainer,
     state: WebViewState
@@ -53,7 +54,9 @@ actual fun createWebView(
         size.height = 0.0
     }, configuration = configuration).apply {
         allowsBackForwardNavigationGestures = true
-        UIDelegate = WKWebViewUIDelegate()
+        val uiDelegate = WKWebViewUIDelegate()
+        UIDelegate = uiDelegate
+        webViewUIDelegates[this] = uiDelegate
     }.apply {
         val observer = WKWebViewNavigatorDelegate(state = state)
         navigationDelegate = observer
@@ -128,6 +131,7 @@ actual fun IWebView.recycle() {
         }
     }
     webViewNavigatorDelegates.remove(this)
+    webViewUIDelegates.remove(this)
     UIDelegate = null
     navigationDelegate = null
     configuration.userContentController.removeScriptMessageHandlerForName(WebViewState.jsNamespace)

@@ -32,7 +32,6 @@ class WKWebViewNavigatorDelegate(
 ) : NSObject(), WKNavigationDelegateProtocol, ObserverProtocol {
 
     private val internalSchemes = setOf("about", "javascript", "blob", "data", "file")
-    private val externalSchemes = setOf("tel", "mailto", "sms")
 
     // --- KVO: 属性监控 (URL, Title, Progress, GoBack/Forward) ---
     override fun observeValueForKeyPath(
@@ -111,15 +110,15 @@ class WKWebViewNavigatorDelegate(
         }
 
         // 明确需要系统外跳的协议
-        if (scheme in externalSchemes) {
-            UIApplication.sharedApplication.openURL(url)
+        if (url.isWebViewExternalUrl()) {
+            openWebViewExternalUrl(url)
             decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel, preferences)
             return
         }
 
         // 其他自定义协议：如果系统能处理则外跳，否则直接拦截，避免 WKWebView 报 -1002
         if (UIApplication.sharedApplication.canOpenURL(url)) {
-            UIApplication.sharedApplication.openURL(url)
+            openWebViewExternalUrl(url)
             decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel, preferences)
             return
         }
@@ -154,11 +153,10 @@ class WKWebViewNavigatorDelegate(
         decidePolicyForNavigationAction: WKNavigationAction,
         decisionHandler: (WKNavigationActionPolicy) -> Unit,
     ) {
-        if (decidePolicyForNavigationAction.request.URL?.scheme?.startsWith(
-                "http",
-                ignoreCase = true
-            ) == true
-        ) {
+        val url = decidePolicyForNavigationAction.request.URL
+        val scheme = url?.scheme?.lowercase()
+
+        if (scheme == "http" || scheme == "https") {
             if (decidePolicyForNavigationAction.navigationType == WKNavigationTypeLinkActivated) {
                 if (!networkStatus.isConnected) {
                     decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
@@ -171,12 +169,47 @@ class WKWebViewNavigatorDelegate(
                     return
                 }
             }
+            decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
+            return
         }
-        decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
+
+        if (scheme == null || scheme in internalSchemes) {
+            decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyAllow)
+            return
+        }
+
+        if (url.isWebViewExternalUrl()) {
+            openWebViewExternalUrl(url)
+            decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
+            return
+        }
+
+        if (UIApplication.sharedApplication.canOpenURL(url)) {
+            openWebViewExternalUrl(url)
+            decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
+            return
+        }
+
+        decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
     }
 
     override fun webViewWebContentProcessDidTerminate(webView: WKWebView) {
         webView.reload()
     }
 
+}
+
+private val webViewExternalSchemes = setOf("tel", "telprompt", "mailto", "sms")
+
+internal fun NSURL?.isWebViewExternalUrl(): Boolean {
+    return this?.scheme?.lowercase() in webViewExternalSchemes
+}
+
+internal fun openWebViewExternalUrl(url: NSURL?) {
+    url ?: return
+    UIApplication.sharedApplication.openURL(
+        url = url,
+        options = emptyMap<Any?, Any?>(),
+        completionHandler = null
+    )
 }
