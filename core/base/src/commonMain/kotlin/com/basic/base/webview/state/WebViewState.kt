@@ -29,6 +29,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Webview状态
+ * 预置资源仅支持安卓，ios无效，目前已知的所有ios预置资源方案要么耦合h5原代码，要么有功能可用性风险，低风险的js注入方案性能反而大幅下降，综合来看，ios不建议内置
  * @param scope
  * @param interceptProxy 是否禁用代理
  * @param localResourceFiles 本地预置资源映射。key 支持完整 URL 或请求 path，匹配时忽略 query/hash；value 为 Compose Resources getUri 返回的精准资源 URI。
