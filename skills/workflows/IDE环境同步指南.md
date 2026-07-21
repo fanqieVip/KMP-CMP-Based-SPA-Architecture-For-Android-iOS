@@ -15,7 +15,7 @@ AI 必须确保 AS 与 Xcode 之间的配置严格按下表对应：
 | 环境目标 | AS 运行配置名 | AS 外部工具分组 | AS 外部工具名称 | Xcode 对应 Scheme | Xcode 编译配置 | 环境属性值 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **开发环境** | `iosApp-debug` | `GRADLE_ENV` | `GRADLE_ENV_DEBUG` | `iosApp-debug` | `Debug` | `VERSION_STATUS_DEVELOP` |
-| **测试环境** | `iosApp-beta` | `GRADLE_ENV` | `GRADLE_ENV_BETA` | `iosApp-beta` | `Debug` | `VERSION_STATUS_BETA` |
+| **测试环境** | `iosApp-beta` | `GRADLE_ENV` | `GRADLE_ENV_BETA` | `iosApp-beta` | `Release` | `VERSION_STATUS_BETA` |
 | **预发环境** | `iosApp-alpha` | `GRADLE_ENV` | `GRADLE_ENV_ALPHA` | `iosApp-alpha` | `Release` | `VERSION_STATUS_ALPHA` |
 | **生产环境** | `iosApp-release`| `GRADLE_ENV` | `GRADLE_ENV_RELEASE`| `iosApp-release`| `Release` | `VERSION_STATUS_RELEASE` |
 
