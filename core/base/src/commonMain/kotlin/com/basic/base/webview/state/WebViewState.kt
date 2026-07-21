@@ -31,10 +31,12 @@ import kotlinx.coroutines.withContext
  * Webview状态
  * @param scope
  * @param interceptProxy 是否禁用代理
+ * @param localResourceFiles 本地预置资源映射。key 支持完整 URL 或请求 path，匹配时忽略 query/hash；value 为 Compose Resources getUri 返回的精准资源 URI。
  */
 class WebViewState(
     @PublishedApi internal var scope: CoroutineScope?,
-    val interceptProxy: Boolean = com.basic.base.constant.VersionStatus.RELEASE == buildkonfig.BuildConfig_com_basic_base.VERSION_TYPE
+    val interceptProxy: Boolean = com.basic.base.constant.VersionStatus.RELEASE == buildkonfig.BuildConfig_com_basic_base.VERSION_TYPE,
+    val localResourceFiles: Map<String, String> = emptyMap()
 ) {
     companion object {
         internal const val jsNamespace = "kmp"
@@ -144,6 +146,27 @@ class WebViewState(
         jsCall.emit(WebViewJsBridgeReq(callbackId, methodName, jsonParams))
     }
 
+    /**
+     * 根据 WebView 请求 URL 查找对应的本地预置文件。
+     *
+     * 匹配优先级：完整 URL 直接匹配、完整 URL 归一化匹配、请求 path 匹配。
+     *
+     * @param requestUrl WebView 发起的资源请求地址。
+     * @return 命中的本地预置文件信息，未配置或配置不合法时返回 null。
+     */
+    internal fun findLocalResourceFile(requestUrl: String?): WebViewLocalResourceFile? {
+        val matchedUrl = normalizeLocalResourceUrl(requestUrl) ?: return null
+        val matchedPath = normalizeRemoteResourcePath(requestUrl)
+        val configuredUri = localResourceFiles[matchedUrl]
+            ?: localResourceFiles.entries.firstOrNull { normalizeLocalResourceUrl(it.key) == matchedUrl }?.value
+            ?: localResourceFiles.entries.firstOrNull { normalizeRemoteResourcePath(it.key) == matchedPath }?.value
+        val localResourceUri = configuredUri?.normalizeLocalResourceUri() ?: return null
+        return WebViewLocalResourceFile(
+            localResourceUri = localResourceUri,
+            mimeType = guessMimeType(localResourceUri)
+        )
+    }
+
     @PublishedApi
     internal val jsProcessors = hashMapOf<String, (suspend (jsonParams: String?) -> String?)>()
 
@@ -235,5 +258,93 @@ class WebViewState(
             webView = createWebView(uiContainer, this)
         }
         return webView!!
+    }
+}
+
+/**
+ * WebView 本地预置资源命中结果。
+ *
+ * @property localResourceUri Compose Resources getUri 返回的精准资源 URI。
+ * @property mimeType 返回给 WebView 的资源 MIME 类型。
+ */
+internal data class WebViewLocalResourceFile(
+    val localResourceUri: String,
+    val mimeType: String
+)
+
+/**
+ * 归一化完整远端 URL，用于忽略 query/hash 后做精确匹配。
+ *
+ * @param url 原始请求 URL 或配置 key。
+ * @return 归一化后的完整 URL；非 http/https 地址返回 null。
+ */
+private fun normalizeLocalResourceUrl(url: String?): String? {
+    val value = url?.trim().orEmpty()
+    if (!value.startsWith("http://", ignoreCase = true) && !value.startsWith("https://", ignoreCase = true)) {
+        return null
+    }
+    return value.substringBefore("#").substringBefore("?").trimEnd('/')
+}
+
+/**
+ * 归一化远端资源 path，用于支持不包含域名的配置 key。
+ *
+ * @param urlOrPath 原始请求 URL 或配置 path。
+ * @return 去掉开头斜杠、query、hash 后的资源 path。
+ */
+private fun normalizeRemoteResourcePath(urlOrPath: String?): String? {
+    val value = urlOrPath?.trim().orEmpty()
+        .substringBefore("#")
+        .substringBefore("?")
+        .trimEnd('/')
+    if (value.isEmpty()) {
+        return null
+    }
+    val path = when {
+        value.startsWith("http://", ignoreCase = true) || value.startsWith("https://", ignoreCase = true) -> {
+            val schemeEndIndex = value.indexOf("://")
+            val pathStartIndex = value.indexOf("/", startIndex = schemeEndIndex + 3)
+            if (pathStartIndex < 0) return null
+            value.substring(pathStartIndex)
+        }
+
+        else -> value
+    }
+    return path.trimStart('/').takeIf { it.isNotEmpty() }
+}
+
+/**
+ * 归一化本地资源 URI，并阻止越权或非法路径。
+ *
+ * @return 合法的资源 URI；非法时返回 null。
+ */
+private fun String.normalizeLocalResourceUri(): String? {
+    return trim().takeIf { it.isNotEmpty() && !it.contains("..") }
+}
+
+/**
+ * 根据文件扩展名推断 WebView 响应 MIME 类型。
+ *
+ * @param path 本地预置资源路径。
+ * @return 对应 MIME 类型，未知扩展名返回 application/octet-stream。
+ */
+private fun guessMimeType(path: String): String {
+    return when (path.substringAfterLast('.', "").lowercase()) {
+        "html", "htm" -> "text/html"
+        "js", "mjs" -> "application/javascript"
+        "css" -> "text/css"
+        "json", "map" -> "application/json"
+        "svg" -> "image/svg+xml"
+        "png" -> "image/png"
+        "jpg", "jpeg" -> "image/jpeg"
+        "webp" -> "image/webp"
+        "gif" -> "image/gif"
+        "ico" -> "image/x-icon"
+        "woff" -> "font/woff"
+        "woff2" -> "font/woff2"
+        "ttf" -> "font/ttf"
+        "otf" -> "font/otf"
+        "wasm" -> "application/wasm"
+        else -> "application/octet-stream"
     }
 }

@@ -1,14 +1,18 @@
 package com.basic.base.webview.platform
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import com.basic.base.local.UIContainer
+import com.basic.base.utils.logDebug
 import com.basic.base.webview.jsbridge.JsBridgeHelper
 import com.basic.base.webview.jsbridge.recycleAll
 import com.basic.base.webview.jsbridge.register
 import com.basic.base.webview.state.LoadingState
+import com.basic.base.webview.state.WebViewLocalResourceFile
 import com.basic.base.webview.state.WebViewState
 import com.hjq.permissions.XXPermissions
 import com.hjq.permissions.permission.PermissionLists
+import com.tencent.smtt.export.external.interfaces.WebResourceResponse
 import com.tencent.smtt.sdk.WebView
 
 actual typealias IWebView = WebView
@@ -23,8 +27,8 @@ actual fun createWebView(uiContainer: UIContainer, state: WebViewState): IWebVie
             databaseEnabled = true
             // 启用 H5 定位
             setGeolocationEnabled(true)
-            // 必须开启LAYER_TYPE_HARDWARE，否则搭配haze毛玻璃效果会无线闪烁
-            //setLayerType(LAYER_TYPE_HARDWARE, null)
+            // 必须开启 LAYER_TYPE_HARDWARE，否则搭配 Haze 毛玻璃效果会无线闪烁
+            // setLayerType(LAYER_TYPE_HARDWARE, null)
         }
         addJavascriptInterface(JsBridgeHelper(state), WebViewState.jsNamespace)
         register(
@@ -60,6 +64,12 @@ actual fun createWebView(uiContainer: UIContainer, state: WebViewState): IWebVie
                         }
                         callback?.invoke(origin, true, false)
                     }
+            },
+            onInterceptRequest = { request, webResourceResponse ->
+                logDebug("webview", "资源：${request?.url}")
+                state.findLocalResourceFile(request?.url?.toString())
+                    ?.let { resolveLocalResourceResponse(it) }
+                    ?: webResourceResponse
             }
         )
     }
@@ -99,4 +109,42 @@ actual fun IWebView.evaluateJScript(script: String, callback: ((String?) -> Unit
 actual fun IWebView.recycle() {
     removeJavascriptInterface(WebViewState.jsNamespace)
     recycleAll()
+}
+
+/**
+ * 从 Android assets 中解析 WebView 本地预置资源响应。
+ *
+ * localResourceUri 必须来自 Compose Resources 生成的 getUri()，这样可以精确定位资源所属模块，
+ * 避免在 composeResources 下遍历所有资源包。
+ */
+private fun WebView.resolveLocalResourceResponse(localResourceFile: WebViewLocalResourceFile): WebResourceResponse? {
+    val assetPath = localResourceFile.localResourceUri.toAndroidAssetPath() ?: return null
+    val inputStream = runCatching {
+        context.assets.open(assetPath)
+    }.getOrNull()
+    if (inputStream != null) {
+        com.basic.base.utils.logDebug("webview", "命中预置文件：$assetPath")
+        return WebResourceResponse(localResourceFile.mimeType, "UTF-8", inputStream)
+    }
+    com.basic.base.utils.logDebug("webview", "未命中预置文件：${localResourceFile.localResourceUri}")
+    return null
+}
+
+/**
+ * 将 Compose Resources getUri() 的 Android 返回值转换为 assets.open 可用路径。
+ */
+private fun String.toAndroidAssetPath(): String? {
+    val value = trim()
+    if (value.isEmpty() || value.contains("..")) {
+        return null
+    }
+    val decodedPath = runCatching {
+        Uri.parse(value).path
+    }.getOrNull()?.trimStart('/')
+    return when {
+        decodedPath?.startsWith("android_asset/") == true -> decodedPath.removePrefix("android_asset/")
+        value.startsWith("file:///android_asset/") -> value.removePrefix("file:///android_asset/")
+        value.startsWith("composeResources/") -> value
+        else -> null
+    }
 }
