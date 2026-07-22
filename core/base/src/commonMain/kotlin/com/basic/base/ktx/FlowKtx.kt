@@ -69,9 +69,9 @@ suspend fun <T> Flow<T>.takeOnce(
 }
 
 /**
- * 满足条件前会一直执行then，直到满足条件并执行当次then后，将终止收集（即不满足条件才执行，满足条件的后续不执行）
+ * 满足条件前会一直执行 then，直到满足条件后终止收集（满足条件当次不执行 then）。
  * @param predicate 是否满足条件
- * @param timeout 超时时间，如果超过这个时间还没有满足条件终止，则终止收集，并执行最后一次then,但数据是null。 当timeout <= 0时，不使用超时机制
+ * @param timeout 超时时间，如果超过这个时间还没有满足条件终止，则终止收集，并执行最后一次 then，但数据是 null。 当 timeout <= 0 时，不使用超时机制
  */
 suspend fun <T> Flow<T>.takeUntil(
     predicate: suspend (T) -> Boolean,
@@ -93,11 +93,10 @@ suspend fun <T> Flow<T>.takeUntil(
                     break
                 }
                 val value = channelResult.getOrThrow()
-                val isOver = predicate(value)
-                then(value)
-                if (isOver) {
+                if (predicate(value)) {
                     break
                 }
+                then(value)
             }
         } finally {
             channel.cancel()
