@@ -11,6 +11,7 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.Resolver
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
@@ -71,6 +72,7 @@ class RouterSymbolProcessor(
         return RouteSpec(
             path = routePath.trim().trim('/'),
             screenClassName = screenClassName,
+            isObject = classKind == ClassKind.OBJECT,
             arguments = arguments,
             sourceFile = containingFile
         )
@@ -298,6 +300,10 @@ class RouterSymbolProcessor(
     private fun StringBuilder.appendConstructorCall(route: RouteSpec, includedDefaultArgumentIndexes: Set<Int>) {
         val includedArguments = route.arguments.withIndex()
             .filter { (index, argument) -> !argument.hasDefault || index in includedDefaultArgumentIndexes }
+        if (route.isObject && includedArguments.isEmpty()) {
+            append(route.screenClassName)
+            return
+        }
         append("${route.screenClassName}(")
         if (includedArguments.isNotEmpty()) {
             appendLine()
@@ -319,6 +325,7 @@ class RouterSymbolProcessor(
 private data class RouteSpec(
     val path: String,
     val screenClassName: String,
+    val isObject: Boolean,
     val arguments: List<ArgumentSpec>,
     val sourceFile: KSFile?
 )
