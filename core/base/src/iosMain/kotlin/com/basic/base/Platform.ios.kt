@@ -18,7 +18,7 @@ private val platform by lazy { IOSPlatform() }
 class IOSPlatform : Platform {
     override val name: String = UIDevice.currentDevice.systemName() + " " + UIDevice.currentDevice.systemVersion
     override val os: Os = Os.IOS
-    override val systemVersion: String = UIDevice.currentDevice.systemName
+    override val systemVersion: String = UIDevice.currentDevice.systemVersion
     override val appName: String
         get() = (infoDict["CFBundleDisplayName"] as? String)
             ?: (infoDict["CFBundleName"] as? String)
