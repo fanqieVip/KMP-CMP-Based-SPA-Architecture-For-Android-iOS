@@ -3,7 +3,6 @@ package com.basic.base.webview.platform
 import android.annotation.SuppressLint
 import android.net.Uri
 import com.basic.base.local.UIContainer
-import com.basic.base.utils.logDebug
 import com.basic.base.webview.jsbridge.JsBridgeHelper
 import com.basic.base.webview.jsbridge.recycleAll
 import com.basic.base.webview.jsbridge.register
@@ -66,7 +65,6 @@ actual fun createWebView(uiContainer: UIContainer, state: WebViewState): IWebVie
                     }
             },
             onInterceptRequest = { request, webResourceResponse ->
-                logDebug("webview", "资源：${request?.url}")
                 state.findLocalResourceFile(request?.url?.toString())
                     ?.let { resolveLocalResourceResponse(it) }
                     ?: webResourceResponse
