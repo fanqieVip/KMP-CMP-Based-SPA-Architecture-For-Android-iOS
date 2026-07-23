@@ -56,10 +56,12 @@
 
 - **WebView 释放**：`WebViewState` 必须持有在 `ScreenModel` 中，且必须在 `onDestroyed()` 中调用 `destroyed()`。
 - **Haze 磨砂安全**：严禁在 `HazeScaffold` 的 `top`/`bottom` 插槽内设置不透明背景（会导致硬件加速失效）。
+- **Pager 生命周期首帧安全**：使用 `HorizontalPagerLifecycle` / `VerticalPagerLifecycle` 且 tab 页内部持有 `ScreenModel`、`WebViewState`、埋点或刷新副作用时，`PagerState` 的 `initialPage` 必须与当前业务选中 tab 同步。禁止依赖默认第 0 页创建后再用 `LaunchedEffect` 滚动纠偏，否则页面恢复或二级页返回时会误触发第 0 个 tab 的 `onVisible/onInvisible`。
 
 ## 4. 关键禁用清单 (Prohibition List)
 
 - ❌ **禁止** 直接使用原生 `HorizontalPager` / `VerticalPager`（必须使用其 `Lifecycle` 后缀版本）。
+- ❌ **禁止** 在有业务选中态的 Pager 中写 `rememberPagerState { count }` 后再仅依赖 `LaunchedEffect(currentIndex)` 切到目标页；必须写成 `rememberPagerState(initialPage = currentIndex) { count }`。
 - ❌ **禁止** 直接使用 `Icon` 和 `IconButton` 组件。
 - ❌ **禁止** 直接使用原生 `BasicTextField` 或 `TextField`（必须使用 `ComposeEditText`）。
 - ❌ **禁止** 严禁在任何布局中硬编码 `44.dp` / `statusBar` 等数值作为安全边距。

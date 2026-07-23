@@ -68,7 +68,8 @@ class EmbeddedPageScreen : BasicScreen() {
     private fun BuildInnerPage(modifier: Modifier = Modifier) {
         val screenModel = rememberBaseScreenModel { EmbeddedPageScreenModel() }
         Box(modifier = modifier) {
-            val pagerState = rememberPagerState { screenModel.tabs.size }
+            val current = maxOf(screenModel.tabs.indexOf(screenModel.current), 0)
+            val pagerState = rememberPagerState(current) { screenModel.tabs.size }
             HorizontalPagerLifecycle(pagerState, userScrollEnabled = false){
                 EmbeddedInnerPage(screenModel.tabs[it])
             }

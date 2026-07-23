@@ -52,6 +52,29 @@ class XxxScreen : BasicScreen() {
 - **多层嵌套策略**：外层负责骨架 Loading，内层列表刷新建议使用 `PopLoadingState` (全屏等待框) 模式。
 - **状态同步**：加载完成必须调用 `interactionState.uiSuccess(data.isEmpty())`。
 
+### 3.4 Pager 生命周期首帧对齐
+
+`HorizontalPagerLifecycle` / `VerticalPagerLifecycle` 会根据 `PagerState.currentPage` 为当前页注入 `LocalPageLifecycleVisible = true`，内页通过 `rememberBaseScreenModel(tag)` 接收 `onVisible/onInvisible`。
+
+如果当前选中的 tab 由业务状态保存，例如底部导航当前是会员页，创建 `PagerState` 时必须直接注入初始页：
+
+```kotlin
+val tabs = MainTabManager.tabs.collectAsState().value
+val currentTab = MainTabManager.currentTab.collectAsState().value
+val currentIndex = maxOf(tabs.indexOf(currentTab), 0)
+val pagerState = rememberPagerState(initialPage = currentIndex) { tabs.size }
+
+HorizontalPagerLifecycle(pagerState, userScrollEnabled = false) { page ->
+    TabContent(tabs[page])
+}
+
+LaunchedEffect(currentIndex) {
+    pagerState.scrollToPage(currentIndex)
+}
+```
+
+`LaunchedEffect` 只负责后续 tab 切换同步，不能作为首帧纠偏。否则从某个 tab 打开二级页后返回，宿主重新进入 composition 时 Pager 可能先以默认第 0 页分发生命周期，造成首页 WebView 收到错误的 `pageShow(true)`，随后再切回真实 tab，形成 `onVisible/onInvisible` 抖动。
+
 ## 4. 常见布局适配
 - **处理 Bottom 遮挡**：通过 `LocalHazeScaffoldContentPadding.current` 获取并应用到内层列表。
 

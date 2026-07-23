@@ -68,7 +68,8 @@ class EmbeddedSlidePageScreen : BasicScreen() {
     private fun BuildInnerPage(modifier: Modifier = Modifier) {
         Box(modifier = modifier) {
             val screenModel = rememberBaseScreenModel { EmbeddedSlidePageScreenModel() }
-            val pagerState = rememberPagerState { screenModel.tabs.size }
+            val current = maxOf(screenModel.tabs.indexOf(screenModel.current), 0)
+            val pagerState = rememberPagerState(current) { screenModel.tabs.size }
             HorizontalPagerLifecycle(pagerState) {
                 EmbeddedInnerPage(screenModel.tabs[it])
             }

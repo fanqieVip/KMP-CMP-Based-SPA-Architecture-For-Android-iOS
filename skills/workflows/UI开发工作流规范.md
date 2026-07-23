@@ -64,6 +64,11 @@ AI 在接收到新页面/功能的编写指令时，**必须**严格遵循以下
 1. 是否需要使用 Pager 分栏？（选项必须包含：不使用）
 2. 是否需要双向联动（滑动页面同步切换 Tab）？
 3. 各 Tab 内容是否可复用同一个 Composable？
+4. Pager 初始选中项来源是什么？若当前 Tab 来自业务状态、全局状态或路由参数，必须在创建 `PagerState` 时通过 `rememberPagerState(initialPage = currentIndex) { count }` 同步注入，禁止先默认第 0 页再在 `LaunchedEffect` 中滚动到目标页。
+
+生命周期红线：
+- 使用 `HorizontalPagerLifecycle` / `VerticalPagerLifecycle` 时，`LocalPageLifecycleVisible` 依赖 `PagerState.currentPage` 分发内页 `onVisible/onInvisible`。如果恢复页面、返回二级页或重建 composition 时 `PagerState` 首帧落在默认第 0 页，会短暂触发第 0 个 tab 的可见生命周期，再切回真实 tab，导致 WebView `pageShow(true)`、埋点、刷新等副作用串到错误 tab。
+- 因此，任何有默认选中 tab、可恢复选中 tab 或外部状态驱动 tab 的分栏页面，都必须先同步计算 `currentIndex`，再作为 `rememberPagerState(initialPage = currentIndex)` 的初始值；`LaunchedEffect(currentIndex) { scrollToPage/animateScrollToPage(...) }` 只能作为后续切换同步，不得承担首帧纠偏职责。
 
 ### 3.2 页面骨架与标题栏
 针对页面骨架，我需要确认：

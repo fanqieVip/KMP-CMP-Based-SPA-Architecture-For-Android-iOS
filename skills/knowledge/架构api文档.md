@@ -1531,12 +1531,16 @@ fun EmbeddedInnerPage(
 - `tag` 相同会复用同一个 ScreenModel。
 - `tag` 不同会为同一个宿主 Screen 内的不同区域创建独立模型。
 - 嵌套 pager 使用 `HorizontalPagerLifecycle` 后，只有当前页的 `LocalPageLifecycleVisible` 为 `true`，因此内页 `BaseScreenModel` 可正确收到 `onVisible/onInvisible`。
+- `LocalPageLifecycleVisible` 的首帧值来自 `PagerState.currentPage`。当当前 tab 由业务状态恢复时，必须把业务当前索引传给 `rememberPagerState(initialPage = currentIndex)`，避免默认第 0 页先触发一次错误的内页可见生命周期。
 
 ### Pager 生命周期 API
 
 `HorizontalPagerLifecycle` 是对 Compose `HorizontalPager` 的封装：
 
 ```kotlin
+val currentIndex = maxOf(screenModel.tabs.indexOf(screenModel.current), 0)
+val pagerState = rememberPagerState(initialPage = currentIndex) { screenModel.tabs.size }
+
 HorizontalPagerLifecycle(
     state = pagerState,
     userScrollEnabled = false
@@ -1549,10 +1553,16 @@ HorizontalPagerLifecycle(
 
 | 参数 | 说明 |
 | --- | --- |
-| `state` | `PagerState`，通常由 `rememberPagerState { count }` 创建。 |
+| `state` | `PagerState`，通常由 `rememberPagerState(initialPage = currentIndex) { count }` 创建；有业务选中态时 `initialPage` 必须与当前 tab 同步。 |
 | `userScrollEnabled` | 是否允许用户手势滑动。 |
 | `autoResetHazeScaffoldOnPageSettled` | 与 `HazeScaffold` 配合时，切页后是否自动展开 scaffold。 |
 | `pageContent` | 页面内容；内部会注入 `LocalPageLifecycleVisible`。 |
+
+首帧生命周期规则：
+
+- 禁止在有业务选中态的 Pager 中只写 `rememberPagerState { count }`，再依赖 `LaunchedEffect(currentIndex)` 滚动到目标页。
+- 页面恢复、二级页返回或 composition 重建时，默认第 0 页会先参与 `LocalPageLifecycleVisible` 分发，可能误触发首页 tab 的 `onVisible`、WebView `pageShow(true)`、埋点或刷新。
+- `LaunchedEffect(currentIndex) { scrollToPage/animateScrollToPage(...) }` 只能作为后续状态同步；首帧必须通过 `initialPage` 保证正确。
 
 滑动 tab demo 使用双向同步：
 
