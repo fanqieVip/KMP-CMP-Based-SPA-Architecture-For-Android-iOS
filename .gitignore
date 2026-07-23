@@ -27,3 +27,4 @@ node_modules/
 **/*.podspec
 /iosApp/.bundle/
 /iosApp/Podfile.lock
+.tmp
