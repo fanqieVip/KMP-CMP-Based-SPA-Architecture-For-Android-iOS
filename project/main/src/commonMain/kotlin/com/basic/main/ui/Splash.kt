@@ -17,12 +17,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.basic.base.getDeviceId
 import com.basic.base.ktx.takeOnce
+import com.basic.base.local.LocalAppState
 import com.basic.base.router.Router
 import com.basic.base.router.asRouter
-import com.basic.base.utils.logDebug
-import com.basic.base.utils.networkGrantedState
 import com.basic.base.vortex.ScreenTransitionNone
 import com.basic.common.base.BasicScreen
 import com.basic.common.share.RouterConstant
@@ -42,14 +40,15 @@ import kotlinx.coroutines.isActive
 class SplashScreen : BasicScreen() {
     override val onAppearTransition: ScreenTransition = ScreenTransitionNone
     override val onDisappearTransition: ScreenTransition = ScreenTransitionNone
+
     @Composable
     override fun CreateUI() {
         val navigator = LocalNavigator.currentOrThrow
         val lifecycleOwner = LocalLifecycleOwner.current
+        val appState = LocalAppState.current
         var cutdown by remember { mutableIntStateOf(2) }
         LaunchedEffect(Unit) {
-            networkGrantedState.takeOnce({ it == true }, timeout = 10000){
-                logDebug("deviceid", "${getDeviceId()}")
+            appState.networkStatus.isGrantedState.takeOnce({ it == true }, timeout = 10000) {
                 while (isActive) {
                     delay(1000)
                     if (lifecycleOwner.lifecycle.currentState == Lifecycle.State.RESUMED) {
@@ -62,7 +61,11 @@ class SplashScreen : BasicScreen() {
                 }
             }
         }
-        Column(Modifier.fillMaxSize().background(Color.Black), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Column(
+            Modifier.fillMaxSize().background(Color.Black),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
             Text("进入主页${cutdown}s", color = Color.Red, fontSize = 30.sp)
         }
     }

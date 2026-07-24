@@ -37,7 +37,7 @@ coil = "3.5.0"                                                  # https://coil-k
 immersionbar = "2.0.2"                                          # https://github.com/yuzhiqiang1993/immersionbar
 compottie = "2.2.4"                                             # https://github.com/alexzhirkevich/compottie
 kni = "2.0.4-rc02"                                              # https://klibs.io/project/dshatz/Kotlin-JNI 保持该版本，新版本限制过多，不方便做llvm混淆
-konnectivity = "0.1-alpha01"                                    # https://klibs.io/project/plusmobileapps/konnectivity
+konnectivity = "0.1-alpha01"                                    # https://github.com/Plus-Mobile-Apps/konnectivity
 xxPermission = "28.3"                                           # https://github.com/getActivity/XXPermissions
 autoSize = "v1.2.1"                                             # https://github.com/JessYanCoding/AndroidAutoSize
 

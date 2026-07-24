@@ -8,10 +8,13 @@ import com.basic.base.ScreenOrientation
 import com.basic.base.StatusBar
 import com.basic.base.ktx.applicationScope
 import com.basic.base.ktx.launchScope
+import com.plusmobileapps.konnectivity.Konnectivity
+import com.plusmobileapps.konnectivity.NetworkConnection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.debounce
@@ -32,9 +35,20 @@ data class AppState(
     private var _toastText: MutableState<String> = mutableStateOf("0L"),
     private var _toastUpdateTime: MutableState<Long> = mutableStateOf(0L),
     private val _statusBarTextIsDark: MutableSharedFlow<Boolean> = MutableSharedFlow(),
-    private val _screenOrientation: MutableState<ScreenOrientation> = mutableStateOf(ScreenOrientation.PORTRAIT),
+    private val _screenOrientation: MutableState<ScreenOrientation> = mutableStateOf(
+        ScreenOrientation.PORTRAIT
+    ),
 ) {
+    /**
+     * app前台状态
+     */
     val appIsForeground: StateFlow<Boolean> get() = _appIsForeground
+
+    /**
+     * 网络连接状态
+     */
+    val networkStatus by lazy { NetworkStatus(Konnectivity()) }
+
     internal val toastCountdown: State<Long> get() = _toastCountdown
     internal val toastText: State<String> get() = _toastText
     internal val toastUpdateTime: State<Long> get() = _toastUpdateTime
@@ -79,3 +93,40 @@ data class AppState(
         }
     }
 }
+
+/**
+ * 网络连接状态
+ */
+class NetworkStatus(private val konnectivity: Konnectivity) {
+
+    /**
+     * 当前网络连接状态
+     */
+    val isConnectedState: StateFlow<Boolean> = konnectivity.isConnectedState
+
+    /**
+     * 当前网络连接方式
+     */
+    val currentNetworkConnectionState: StateFlow<NetworkConnection> =
+        konnectivity.currentNetworkConnectionState
+
+    /**
+     * 当前网络连接授权状态
+     */
+    val isGrantedState: StateFlow<Boolean?> = _networkGrantedState.asStateFlow()
+    /**
+     * 当前网络是否已连接
+     */
+    fun isConnected(): Boolean = konnectivity.isConnected
+
+    /**
+     * 当前网络连接方式
+     */
+    fun currentNetworkConnection(): NetworkConnection = konnectivity.currentNetworkConnection
+}
+
+/**
+ * 自动检测网络授权状态
+ */
+internal expect fun AppState.autoCheckNetworkPermission()
+internal expect val _networkGrantedState: MutableStateFlow<Boolean?>

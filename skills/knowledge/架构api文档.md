@@ -26,6 +26,7 @@
 ### 网络 API
 - `Http`：Ktorfit 网络客户端
 - `TestApi`：示例 API 接口定义
+- `AppState.networkStatus`：聚合网络连接、连接方式及网络授权状态
 - 网络配置在 `core/common/net/` 中
 
 ### 弹窗 API
@@ -150,7 +151,95 @@ interface UIConfigService {
 | 位置 | `core/base/src/commonMain/kotlin/com/basic/base/ApplicationProxyManager.kt` |
 | 作用 | 聚合所有 `ApplicationService` 实现并安全调用。 |
 | 获取实现 | `SPIRegisterCenter.all<ApplicationService>()` |
-| 内建行为 | `onCreate()` 中初始化日志、自动检测网络权限；前后台切换更新 `appState.appIsForeground`。 |
+| 内建行为 | `onCreate()` 中初始化日志并调用 `appState.autoCheckNetworkPermission()`；前后台切换更新 `appState.appIsForeground`。 |
+
+### `AppState`
+
+| 项 | 内容 |
+| --- | --- |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/local/LocalAppState.kt` |
+| 全局实例 | `val appState = AppState()` |
+| Compose 注入 | `LocalAppState` |
+| 作用 | 聚合 App 前后台、网络、Toast、状态栏文字颜色和屏幕方向状态。 |
+
+主要 API：
+
+```kotlin
+val appIsForeground: StateFlow<Boolean>
+val networkStatus: NetworkStatus
+
+fun statusBarTextIsDark(isDark: Boolean)
+fun setScreenOrientation(screenOrientation: ScreenOrientation)
+```
+
+访问方式：
+
+| 场景 | 入口 |
+| --- | --- |
+| Compose | `LocalAppState.current` |
+| Screen/ScreenModel | `ScreenContext.appState` |
+| 非 Compose 全局逻辑 | `com.basic.base.local.appState` |
+
+内部状态：
+
+- `updateAppIsForeground(...)` 由 `ApplicationProxyManager` 调用。
+- Toast 的倒计时、文本和更新时间仅供 `core/base` 根 UI 使用。
+- 状态栏颜色事件经过 `conflate + debounce(50)` 后调用平台实现。
+- 屏幕方向由 `BaseApp.AutoScreenOrientation()` 监听并应用。
+
+### `NetworkStatus`
+
+| 项 | 内容 |
+| --- | --- |
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/local/LocalAppState.kt` |
+| 创建方式 | `AppState.networkStatus` 懒加载 `NetworkStatus(Konnectivity())` |
+| 作用 | 将网络连接、连接方式和网络连接授权状态收敛到一个对象。 |
+
+签名：
+
+```kotlin
+class NetworkStatus(konnectivity: Konnectivity) {
+    val isConnectedState: StateFlow<Boolean>
+    val currentNetworkConnectionState: StateFlow<NetworkConnection>
+    val isGrantedState: StateFlow<Boolean?>
+
+    fun isConnected(): Boolean
+    fun currentNetworkConnection(): NetworkConnection
+}
+```
+
+字段语义：
+
+| 字段 | 语义 |
+| --- | --- |
+| `isConnected()` | 即时读取当前是否已连接网络。 |
+| `currentNetworkConnection()` | 即时读取当前连接方式，可能为 `NONE`、`WIFI` 或 `CELLULAR`。 |
+| `isConnectedState` | 实时连接状态；需要监听断网/恢复时使用该 `StateFlow`。 |
+| `currentNetworkConnectionState` | 实时连接方式。 |
+| `isGrantedState` | 网络连接授权状态。`null` 表示尚未检测，`true/false` 表示当前检测结论。 |
+
+平台授权实现：
+
+| 平台 | 初始值 | `autoCheckNetworkPermission()` |
+| --- | --- | --- |
+| Android | `true` | 空实现，保持默认已授权。 |
+| iOS | `null` | 启动 `LLNetworkAccessibility` 并开启提示；回调写入 `state != restricted`。 |
+
+`ApplicationProxyManager.onCreate()` 会自动调用 `appState.autoCheckNetworkPermission()`，业务层不应重复启动检测。原 `core/base/utils/NetworkUtils.*` 已移除。
+
+使用示例：
+
+```kotlin
+val connected = context.appState.networkStatus.isConnected()
+
+context.appState.networkStatus.isConnectedState.collectLatest { isConnected ->
+    // 处理断网或网络恢复
+}
+
+context.appState.networkStatus.isGrantedState.takeOnce({ it == true }) {
+    // 网络授权状态可用后继续
+}
+```
 
 ## 3. SPI / 服务发现 API
 
@@ -637,7 +726,7 @@ fun rememberInteractionState(tag: String? = null): InteractionState
 | --- | --- | --- |
 | `navigatorController` | `Navigator` | Vortex 导航控制器。 |
 | `dialogController` | `DialogController` | 当前页面弹窗控制器。 |
-| `appState` | `AppState` | 全局 App 状态。 |
+| `appState` | `AppState` | 全局 App 状态，可通过 `networkStatus` 访问连接与网络授权状态。 |
 | `permissionController` | `PermissionController` | 权限控制器。 |
 | `uiContainer` | `UIContainer` | Android Activity 或 iOS UIViewController。 |
 | `popLoadingController` | `PopLoadingState` | 全屏加载控制器。 |

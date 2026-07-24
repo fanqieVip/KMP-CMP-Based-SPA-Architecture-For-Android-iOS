@@ -7,8 +7,8 @@ import com.basic.base.di.service.ApplicationService
 import com.basic.base.di.service.IosNSUserActivity
 import com.basic.base.di.service.IosUIOpenURLContext
 import com.basic.base.local.appState
+import com.basic.base.local.autoCheckNetworkPermission
 import com.basic.base.spi.SPIRegisterCenter
-import com.basic.base.utils.autoCheckNetworkPermission
 import com.basic.base.utils.initNapier
 import io.github.vinceglb.filekit.coil.addPlatformFileSupport
 
@@ -23,7 +23,7 @@ object ApplicationProxyManager : ApplicationService {
     override fun onCreate() {
         initNapier()
         initCoil()
-        autoCheckNetworkPermission()
+        appState.autoCheckNetworkPermission()
         proxies.forEach { proxy ->
             runCatching { proxy.onCreate() }
         }

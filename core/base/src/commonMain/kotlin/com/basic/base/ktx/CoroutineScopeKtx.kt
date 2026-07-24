@@ -1,6 +1,7 @@
 package com.basic.base.ktx
 
 import androidx.compose.runtime.Composable
+import com.basic.base.local.appState
 import com.basic.base.utils.logDebug
 import io.github.hristogochev.vortex.model.ScreenModel
 import io.github.hristogochev.vortex.model.rememberScreenModel
@@ -17,7 +18,6 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.SelectClause0
 import kotlinx.coroutines.withContext
-import kotlinx.io.IOException
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -144,21 +144,11 @@ internal const val OTHER_ERROR_CODE = 999999
  */
 const val NETWORK_ERROR_CODE = 999998
 
-private fun Throwable.hasNetworkCause(): Boolean {
-    if (this is IOException){
-        return true
-    }
-    if ((message?.indexOf("No address associated with hostname")?: -1) >= 0){
-        return true
-    }
-    return false
-}
-
 fun exceptionHandler(e: Throwable): Pair<Int?, String?> {
     return when {
         e is ResponseException -> Pair(e.response.status.value, e.message ?: e.cause?.toString())
-        e.hasNetworkCause() -> Pair(NETWORK_ERROR_CODE, "网络异常，请稍后重试")
         e is ApiException -> Pair(e.code, "${e.message}")
+        !appState.networkStatus.isConnected() -> Pair(NETWORK_ERROR_CODE, "网络异常，请稍后重试")
         else -> Pair(OTHER_ERROR_CODE, "${e.message ?: e.cause?.toString()}")
     }
 }

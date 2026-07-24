@@ -1,7 +1,7 @@
 package com.basic.base.webview.platform
 
 import androidx.compose.runtime.snapshots.Snapshot
-import com.basic.base.utils.networkStatus
+import com.basic.base.local.appState
 import com.basic.base.webview.state.LoadingState
 import com.basic.base.webview.state.WebViewState
 import com.basic.webview.cinterop.ObserverProtocol
@@ -88,7 +88,7 @@ class WKWebViewNavigatorDelegate(
         // 正常页面跳转直接放行；仅在用户点击链接且无网时拦截
         if (scheme == "http" || scheme == "https") {
             if (decidePolicyForNavigationAction.navigationType == WKNavigationTypeLinkActivated &&
-                !networkStatus.isConnected
+                !appState.networkStatus.isConnected()
             ) {
                 decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel, preferences)
                 state.scope?.launch(Dispatchers.Main) {
@@ -158,7 +158,7 @@ class WKWebViewNavigatorDelegate(
 
         if (scheme == "http" || scheme == "https") {
             if (decidePolicyForNavigationAction.navigationType == WKNavigationTypeLinkActivated) {
-                if (!networkStatus.isConnected) {
+                if (!appState.networkStatus.isConnected()) {
                     decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
                     state.scope?.launch(Dispatchers.Main) {
                         delay(5)
