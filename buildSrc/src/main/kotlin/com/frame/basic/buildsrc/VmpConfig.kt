@@ -24,15 +24,16 @@ object VmpConfig {
      * class C extends B {
      * }
      * //比如'class * extends A' 只会匹配B而不会再匹配C
+     *
+     * 注意：需要与app/proguard-rules.pro配套使用，避免出现r8优化后加密失效的问题
      */
     @JvmStatic
     val protectRules = listOf<String>(
-        "class com.basic.base.ApplicationProxyManager",
-        "class com.basic.app.Application",
         "class com.basic.native.* { *; }",
         "class com.basic.main.* { *; }",
         "class com.basic.common.* { *; }"
     )
+
 
     /**
      * 核心库名称
