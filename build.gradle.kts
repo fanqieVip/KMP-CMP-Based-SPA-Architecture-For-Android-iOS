@@ -29,11 +29,11 @@ val canBuildAppleTargets = isMac && commandSucceeds("xcrun", "--find", "xcodebui
 fun isAppleRelatedTask(taskName: String): Boolean {
     val name = taskName.lowercase()
     return name.contains("ios") ||
-        name.contains("cocoapods") ||
-        name.contains("pod") ||
-        name.contains("xcode") ||
-        name.contains("cinterop") ||
-        name.contains("apple")
+            name.contains("cocoapods") ||
+            name.contains("pod") ||
+            name.contains("xcode") ||
+            name.contains("cinterop") ||
+            name.contains("apple")
 }
 
 subprojects {
@@ -53,10 +53,13 @@ subprojects {
                 var text = podfile.readText()
                 if (text.contains("IPHONEOS_DEPLOYMENT_TARGET")) {
                     val targetVersion = ProjectBuildConfig.Build.Ios.deploymentTarget
+                    val major = targetVersion.split(".")[0]
+                    val minor = if (targetVersion.contains(".")) targetVersion.split(".")[1] else "0"
                     // 替换判定逻辑和版本号
-                    text = text.replace(Regex("""deployment_target_major\s*<\s*12"""), "deployment_target_major < ${targetVersion.split(".")[0]}")
-                    text = text.replace(Regex("""deployment_target_major\s*==\s*12"""), "deployment_target_major == ${targetVersion.split(".")[0]}")
-                    text = text.replace(Regex("""version\s*=\s*"#\{12\}\.#\{0\}""""), "version = \"#{$targetVersion.split(\".\")[0]}.#{$targetVersion.split(\".\")[1]}\"")
+                    text = text.replace(Regex("""deployment_target_major\s*<\s*[^|\n]+"""), "deployment_target_major < $major")
+                    text = text.replace(Regex("""deployment_target_major\s*==\s*[^&\n]+"""), "deployment_target_major == $major")
+                    text = text.replace(Regex("""deployment_target_minor\s*<\s*[^)\n]+"""), "deployment_target_minor < $minor")
+                    text = text.replace(Regex("""version\s*=\s*".*?""""), "version = \"#{$major}.#{$minor}\"")
                     podfile.writeText(text)
                     logger.lifecycle("Patched synthetic Podfile in ${project.path} to use iOS $targetVersion")
                 }
@@ -134,7 +137,13 @@ if (canBuildAppleTargets){
                 appendLine("  installer.pods_project.targets.each do |target|")
                 appendLine("    target.build_configurations.each do |config|")
                 appendLine("      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '$targetVersion'")
+                appendLine("      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'x86_64'")
                 appendLine("    end")
+                appendLine("  end")
+                appendLine("  Dir.glob(File.join(installer.sandbox.target_support_files_root.to_s, '**', '*.xcconfig')).each do |xcconfig|")
+                appendLine("    text = File.read(xcconfig)")
+                appendLine("    text = text.gsub(/EXCLUDED_ARCHS\\[sdk=iphonesimulator\\*\\]\\s*=\\s*arm64/, 'EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64')")
+                appendLine("    File.write(xcconfig, text)")
                 appendLine("  end")
                 appendLine("end")
             }
@@ -146,4 +155,3 @@ if (canBuildAppleTargets){
         }
     }
 }
-

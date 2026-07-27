@@ -11,6 +11,12 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'x86_64'
     end
+  end
+  Dir.glob(File.join(installer.sandbox.target_support_files_root.to_s, '**', '*.xcconfig')).each do |xcconfig|
+    text = File.read(xcconfig)
+    text = text.gsub(/EXCLUDED_ARCHS\[sdk=iphonesimulator\*\]\s*=\s*arm64/, 'EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64')
+    File.write(xcconfig, text)
   end
 end
