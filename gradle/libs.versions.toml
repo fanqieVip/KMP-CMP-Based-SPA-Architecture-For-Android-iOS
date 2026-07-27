@@ -1,5 +1,5 @@
 [versions]
-agp = "9.3.0"                                                   # https://developer.android.google.cn/reference/tools/gradle-api
+agp = "9.3.1"                                                   # https://developer.android.google.cn/reference/tools/gradle-api
 coreKtx = "1.19.0"
 androidx-activity = "1.13.0"
 androidx-lifecycle = "2.11.0"
@@ -8,7 +8,7 @@ constraintLayout = "2.2.1"
 haze = "2.0.0-alpha03"                                          # https://chrisbanes.github.io/haze/latest/
 material = "1.14.0"
 composeMaterial3 = "1.9.0"
-composeHotReload = "1.1.1"
+composeHotReload = "1.2.0"
 composeMultiplatform = "1.11.1"                                 # https://github.com/JetBrains/compose-multiplatform
 kotlin = "2.4.10"                                               # https://github.com/JetBrains/kotlin
 kotlinxDatetime = "0.8.0"                                       # https://klibs.io/project/Kotlin/kotlinx-datetime
