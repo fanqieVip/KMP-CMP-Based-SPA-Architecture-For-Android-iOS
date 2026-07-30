@@ -364,21 +364,30 @@ asRouter("project/detail")?.let { screen ->
 
 ```kotlin
 expect class UIContainer
-expect fun UIContainer.pop()
-expect fun UIContainer.push(screen: Screen)
+expect fun UIContainer.pop(
+    rootToHome: Boolean = true,
+    useAnimation: Boolean = true
+)
+expect fun UIContainer.push(
+    screen: Screen,
+    useAnimation: Boolean = true,
+    disablePhysicalBack: Boolean = false
+)
 ```
 
 行为：
 
-- `pop()`：关闭当前平台容器。Android 调用 `finish()`；iOS 优先从 `UINavigationController` pop，否则 dismiss。
-- `push(screen)`：创建新的原生宿主页面并在其中运行 `BaseApp(screen, uiContainer, permissionController)`。
-- Android 通过 `NativeActivity` 承载新的 `BaseApp`，该 Activity 在 Manifest 中必须配置 `android:theme="@style/base_activity_anim_theme"`；iOS 查找最近的 `UINavigationController` 并 push `ComposeUIViewController`。
+- `pop(rootToHome, useAnimation)`：关闭当前平台容器。Android 默认在最后一张宿主页面时模拟 Home；`useAnimation = false` 时禁用出场动画。iOS 优先从 `UINavigationController` pop，否则 dismiss，并按 `useAnimation` 控制原生出场动画。
+- `push(screen, useAnimation, disablePhysicalBack)`：创建新的原生宿主页面并在其中运行 `BaseApp(screen, uiContainer, permissionController)`。`useAnimation = false` 时禁用进场动画；`disablePhysicalBack = true` 时禁用原生物理返回。
+- Android 通过 `NativeActivity` 承载新的 `BaseApp`，该 Activity 在 Manifest 中必须配置 `android:theme="@style/base_activity_anim_theme"`；禁用物理返回时由 `NativeActivity` 拦截系统返回键。
+- iOS 查找最近的 `UINavigationController` 并 push `ComposeUIViewController`；禁用物理返回时关闭 `interactivePopGestureRecognizer`，并按原生页面 VC 记录策略，支持嵌套原生页关闭后恢复当前页的禁用状态。
 
 使用边界：
 
 - 普通业务页面跳转优先使用 `navigator.push(Screen())`。
 - 当单页模式下当前可见层是三方 SDK 原生页面，例如一键登录页，Compose 宿主在下层，普通 Screen 或 Compose 弹窗可能不可见；此时打开完整页面应使用 `LocalUIContainer.current.push(Screen())`。
 - `UIContainer.push` 会产生独立宿主和独立导航栈，返回、数据同步和跨页面通信需要业务侧明确处理。
+- 仅当业务明确要求无原生转场时传 `useAnimation = false`；仅当业务明确要求禁止系统返回/侧滑返回时传 `disablePhysicalBack = true`。
 
 ### `@Router`
 

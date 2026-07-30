@@ -114,11 +114,23 @@ Text(
 )
 ```
 
+如果业务需要关闭原生转场或禁止系统返回，可显式传参：
+
+```kotlin
+uiContainer.push(
+    screen = NativeScreenScreen(),
+    useAnimation = false,
+    disablePhysicalBack = true
+)
+```
+
 选择规则：
 
 - 普通业务页面：优先使用 `navigator.push(Screen())`。
 - 原生弹窗容器：使用 `BasicNativeDialog().show(uiContainer)`。
 - 原生页面宿主：使用 `uiContainer.push(Screen())`。
+- 无原生转场：仅在业务明确要求时使用 `useAnimation = false`。
+- 禁止系统返回/侧滑返回：仅在强制流程中使用 `disablePhysicalBack = true`；iOS 嵌套原生页关闭后会重新按当前页策略恢复侧滑手势状态。
 
 ## 6. 弹窗与内存泄漏防护 (Dialog & Memory Leaks)
 

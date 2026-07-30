@@ -6,26 +6,39 @@ import com.basic.base.ui.BaseApp
 import dev.icerock.moko.permissions.ios.PermissionsController
 import io.github.hristogochev.vortex.screen.Screen
 import platform.UIKit.UINavigationController
+import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.UIKit.UITabBarController
 import platform.UIKit.UIViewController
 import platform.UIKit.navigationController
+import platform.darwin.NSEC_PER_SEC
+import platform.darwin.NSObject
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_after
+import platform.darwin.dispatch_get_main_queue
+import platform.darwin.dispatch_time
 
 actual typealias UIContainer = UIViewController
+private var defaultInteractivePopEnabled: Boolean? = null
+private val physicalBackDisabledViewControllers = mutableSetOf<UIViewController>()
+private val physicalBackNavigationDelegates = mutableMapOf<UINavigationController, PhysicalBackNavigationDelegate>()
 
-actual fun UIContainer.pop(rootToHome: Boolean) {
+actual fun UIContainer.pop(rootToHome: Boolean, useAnimation: Boolean) {
     val nav = findNearestNavigationController()
     if (nav != null && nav.viewControllers.size > 1) {
-        nav.popViewControllerAnimated(true)
+        val targetViewController = nav.viewControllers[nav.viewControllers.size - 2] as? UIViewController
+        nav.popViewControllerAnimated(useAnimation)
+        nav.applyInteractivePopGesture(targetViewController)
         return
     }
 
     if (presentingViewController != null) {
-        dismissViewControllerAnimated(true, null)
+        dismissViewControllerAnimated(useAnimation, null)
         return
     }
 
     if (nav?.presentingViewController != null) {
-        nav.dismissViewControllerAnimated(true, null)
+        nav.dismissViewControllerAnimated(useAnimation, null)
+        nav.applyInteractivePopGesture(null)
         return
     }
 
@@ -33,7 +46,9 @@ actual fun UIContainer.pop(rootToHome: Boolean) {
 }
 
 actual fun UIContainer.push(
-    screen: Screen
+    screen: Screen,
+    useAnimation: Boolean,
+    disablePhysicalBack: Boolean
 ) {
     val vc = ComposeUIViewController {
         val uiContainer = LocalUIViewController.current
@@ -45,7 +60,13 @@ actual fun UIContainer.push(
             },
             isRoot = false)
     }
-    findNearestNavigationController()?.pushViewController(vc, animated = true)
+    findNearestNavigationController()?.let {
+        it.installPhysicalBackNavigationDelegate()
+        defaultInteractivePopEnabled = defaultInteractivePopEnabled ?: it.interactivePopGestureRecognizer?.enabled
+        if (disablePhysicalBack) physicalBackDisabledViewControllers.add(vc)
+        it.pushViewController(vc, animated = useAnimation)
+        it.applyInteractivePopGesture(vc)
+    }
 }
 
 /**
@@ -80,4 +101,40 @@ private fun UIViewController.findNearestNavigationController(): UINavigationCont
     }
 
     return null
+}
+
+private class PhysicalBackNavigationDelegate : NSObject(), UINavigationControllerDelegateProtocol {
+    override fun navigationController(
+        navigationController: UINavigationController,
+        didShowViewController: UIViewController,
+        animated: Boolean
+    ) {
+        navigationController.applyInteractivePopGesture(didShowViewController)
+    }
+}
+
+private fun UINavigationController.installPhysicalBackNavigationDelegate() {
+    if (physicalBackNavigationDelegates[this] == null) {
+        physicalBackNavigationDelegates[this] = PhysicalBackNavigationDelegate()
+    }
+    delegate = physicalBackNavigationDelegates[this]
+}
+
+private fun UINavigationController.applyInteractivePopGesture(viewController: UIViewController?) {
+    val disablePhysicalBack = viewController in physicalBackDisabledViewControllers
+    val gestureEnabled = if (disablePhysicalBack) {
+        false
+    } else {
+        defaultInteractivePopEnabled ?: true
+    }
+    interactivePopGestureRecognizer?.enabled = gestureEnabled
+    dispatch_async(dispatch_get_main_queue()) {
+        interactivePopGestureRecognizer?.enabled = gestureEnabled
+    }
+    dispatch_after(
+        dispatch_time(0uL, (NSEC_PER_SEC / 2u).toLong()),
+        dispatch_get_main_queue()
+    ) {
+        interactivePopGestureRecognizer?.enabled = gestureEnabled
+    }
 }

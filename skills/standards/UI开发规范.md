@@ -19,6 +19,8 @@
 - **BasicNativeDialog**：用于需要脱离 Compose 弹窗栈、覆盖到原生层的弹窗，例如权限申请或需要强制覆盖导航栏的交互。
 - **弹窗宽度约束**：弹窗、卡片、按钮组等横向容器不要写死整体宽度；优先使用 `Modifier.fillMaxWidth()` 配合父容器 `padding(horizontal = ...)`、`weight`、`fillMaxWidth(fraction)`、`aspectRatio` 等方式表达约束。只有设计明确要求固定规格且无法由父容器约束表达时，才允许固定具体子元素尺寸。
 - **UIContainer.push**：用于需要打开完整 `Screen`，且当前 Compose 单页宿主可能被三方 SDK 原生页面遮挡的场景，例如一键登录原生页上继续打开协议页、说明页或业务确认页。
+- **原生宿主动画控制**：`UIContainer.push(screen, useAnimation = false)` 与 `UIContainer.pop(useAnimation = false)` 仅用于业务明确要求无原生进出场动画的场景。默认必须保持 `useAnimation = true`，以维持与单页 Compose Screen 的右进右出视觉连续性。
+- **原生宿主物理返回控制**：`UIContainer.push(screen, disablePhysicalBack = true)` 仅用于协议确认、强制流程或三方 SDK 覆盖层上必须禁止系统返回的场景。Android 会拦截系统返回键；iOS 会禁用 `UINavigationController.interactivePopGestureRecognizer`，且嵌套原生页关闭后必须恢复当前页的禁用状态。
 - **原生宿主能力边界**：跑在原生宿主里的 `Screen` 与普通 `Screen` 没有本质区别，除关闭页面等宿主生命周期操作需要特殊处理外，吐司、loading、弹窗等交互仍必须按 Compose 页面实现。没有明确原生宿主覆盖诉求时，禁止使用 `nativeToast`、`UIContainer.showPopLoading(...)`、`UIContainer.dismissPopLoading()`、`BasicNativeDialog` / `NativeDialog`；必须优先使用 `toastShort` / `toastLong`、`PopLoadingState.showPopLoading()` / `dismissPopLoading()`、`BasicDialog`。
 - **NativeDialog 交互层级**：`NativeDialog` 运行在独立原生弹窗容器内，弹窗内部需要吐司时必须使用 `nativeToast(LocalUIContainer.current, ...)`；不要使用 `toastShort` / `toastLong`，普通 Compose Toast 可能被原生弹窗层级遮挡。
 - **Android Activity 主题强制性**：新建 Android Activity（包括 `NativeActivity` 和业务专属 Activity）时，在 `AndroidManifest.xml` 中**必须**配置 `android:theme="@style/base_activity_anim_theme"`。这确保了原生 Activity 的进出场动画与 Compose Screen 的滑动动画（右进右出）完全一致，维持视觉连续性。
