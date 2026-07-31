@@ -34,7 +34,6 @@
     </style>
     <!-- 全透明无动画的activity主题 -->
     <style name="base_activity_transparent" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="android:windowAnimationStyle">@style/base_no_activity_animation</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:colorBackgroundCacheHint">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
@@ -44,7 +43,10 @@
         <item name="android:windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
     </style>
-
+    <!-- 全透明无动画的activity主题 -->
+    <style name="base_activity_transparent_no_animation" parent="base_activity_transparent">
+        <item name="android:windowAnimationStyle">@style/base_no_activity_animation</item>
+    </style>
     <!-- 右进右出动画 -->
     <style name="base_slide_left_right_anim" parent="@android:style/Animation.Activity">
         <item name="android:activityOpenEnterAnimation">@anim/base_slide_in_right</item>

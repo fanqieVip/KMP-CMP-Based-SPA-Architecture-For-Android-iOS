@@ -18,11 +18,13 @@ expect fun UIContainer.pop(rootToHome: Boolean = true, useAnimation: Boolean = t
  * @param screen 需要在原生宿主中打开的 Screen
  * @param useAnimation 是否使用进场动画
  * @param disablePhysicalBack 是否禁用物理返回
+ * @param transparent 原生宿主是否使用全透明背景
  */
 expect fun UIContainer.push(
     screen: Screen,
     useAnimation: Boolean = true,
-    disablePhysicalBack: Boolean = false
+    disablePhysicalBack: Boolean = false,
+    transparent: Boolean = false
 )
 val LocalUIContainer = staticCompositionLocalOf<UIContainer> {
     error("UIContainer not provided")

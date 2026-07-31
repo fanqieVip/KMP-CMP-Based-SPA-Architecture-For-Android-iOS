@@ -1,5 +1,8 @@
+@file:OptIn(ExperimentalComposeUiApi::class)
+
 package com.basic.base.local
 
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.window.ComposeUIViewController
 import com.basic.base.ui.BaseApp
@@ -8,6 +11,8 @@ import io.github.hristogochev.vortex.screen.Screen
 import platform.UIKit.UINavigationController
 import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.UIKit.UITabBarController
+import platform.UIKit.UIColor
+import platform.UIKit.UIModalPresentationOverFullScreen
 import platform.UIKit.UIViewController
 import platform.UIKit.navigationController
 import platform.darwin.NSEC_PER_SEC
@@ -48,9 +53,14 @@ actual fun UIContainer.pop(rootToHome: Boolean, useAnimation: Boolean) {
 actual fun UIContainer.push(
     screen: Screen,
     useAnimation: Boolean,
-    disablePhysicalBack: Boolean
+    disablePhysicalBack: Boolean,
+    transparent: Boolean
 ) {
-    val vc = ComposeUIViewController {
+    val vc = ComposeUIViewController(configure = {
+        if (transparent) {
+            opaque = false
+        }
+    }) {
         val uiContainer = LocalUIViewController.current
         BaseApp(
             screen = { screen },
@@ -59,6 +69,20 @@ actual fun UIContainer.push(
                 override val permissionClient by lazy { PermissionsController() }
             },
             isRoot = false)
+    }.apply {
+        if (transparent) {
+            view.backgroundColor = UIColor.clearColor
+            view.opaque = false
+            modalPresentationStyle = UIModalPresentationOverFullScreen
+        }
+    }
+    if (transparent) {
+        findTopMostViewController().presentViewController(
+            viewControllerToPresent = vc,
+            animated = useAnimation,
+            completion = null
+        )
+        return
     }
     findNearestNavigationController()?.let {
         it.installPhysicalBackNavigationDelegate()
@@ -101,6 +125,20 @@ private fun UIViewController.findNearestNavigationController(): UINavigationCont
     }
 
     return null
+}
+
+private fun UIViewController.findTopMostViewController(): UIViewController {
+    var controller = this
+    while (controller.parentViewController != null) {
+        controller = controller.parentViewController!!
+    }
+    while (true) {
+        controller = when (controller) {
+            is UINavigationController -> controller.visibleViewController ?: controller
+            is UITabBarController -> controller.selectedViewController ?: controller
+            else -> controller.presentedViewController ?: return controller
+        }
+    }
 }
 
 private class PhysicalBackNavigationDelegate : NSObject(), UINavigationControllerDelegateProtocol {

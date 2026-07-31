@@ -2,11 +2,14 @@ package com.basic.base.local
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.basic.base.R
 import com.basic.base.base.BaseActivity
 import com.basic.base.ktx.getFunction
 import com.basic.base.ktx.putFunction
@@ -17,6 +20,7 @@ import io.github.hristogochev.vortex.screen.Screen
 
 actual typealias UIContainer = Activity
 private const val DISABLE_PHYSICAL_BACK = "disablePhysicalBack"
+private const val TRANSPARENT = "transparent"
 
 actual fun UIContainer.pop(rootToHome: Boolean, useAnimation: Boolean) {
     if (!rootToHome) {
@@ -48,7 +52,14 @@ actual fun UIContainer.pop(rootToHome: Boolean, useAnimation: Boolean) {
 internal class NativeActivity : BaseActivity() {
     private val viewModel by viewModels<NativeViewModel>()
     override fun onCreate(savedInstanceState: Bundle?) {
+        if (intent.getBooleanExtra(TRANSPARENT, false)) {
+            setTheme(R.style.base_activity_transparent)
+        }
         super.onCreate(savedInstanceState)
+        if (viewModel.transparent) {
+            window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            window.decorView.setBackgroundColor(Color.TRANSPARENT)
+        }
         viewModel.startScreen?.invoke()?.let {
             setContent {
                 BaseApp(
@@ -74,12 +85,14 @@ internal class NativeActivity : BaseActivity() {
 internal class NativeViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
     val startScreen = savedStateHandle.getFunction<() -> Screen>("screen")
     val disablePhysicalBack = savedStateHandle.get<Boolean>(DISABLE_PHYSICAL_BACK) ?: false
+    val transparent = savedStateHandle.get<Boolean>(TRANSPARENT) ?: false
 }
 
 actual fun UIContainer.push(
     screen: Screen,
     useAnimation: Boolean,
-    disablePhysicalBack: Boolean
+    disablePhysicalBack: Boolean,
+    transparent: Boolean
 ) {
     ActivityStackManager.getTopFragmentActivity()?.let {
         it.startActivity(Intent(it, NativeActivity::class.java).apply {
@@ -87,6 +100,7 @@ actual fun UIContainer.push(
                 addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
             }
             putExtra(DISABLE_PHYSICAL_BACK, disablePhysicalBack)
+            putExtra(TRANSPARENT, transparent)
             putFunction(it, "screen") {
                 screen
             }
