@@ -123,6 +123,7 @@ fun WebView.register(
 
         override fun onPageFinished(view: WebView?, url: String?) {
             super.onPageFinished(view, url)
+            view?.injectInputFocusScrollFix()
             isRedirect = false
             isLoading = false
             if (!isError) {
@@ -270,6 +271,75 @@ fun WebView.register(
 
     }
 }
+
+/**
+ * 注入页面侧输入框聚焦监听，在软键盘弹出后将可编辑元素滚动到可视区域内。
+ */
+private fun WebView.injectInputFocusScrollFix() {
+    evaluateJavascript(WEBVIEW_INPUT_FOCUS_SCROLL_FIX_SCRIPT, null)
+}
+
+// 同一个 WebView 可能多次完成同文档加载，脚本内部通过标记保证监听只安装一次。
+private const val WEBVIEW_INPUT_FOCUS_SCROLL_FIX_SCRIPT = """
+(function() {
+  if (window.__basicInputFocusScrollFixInstalled) return;
+  window.__basicInputFocusScrollFixInstalled = true;
+
+  function isEditableElement(el) {
+    if (!el) return false;
+    var tag = (el.tagName || '').toUpperCase();
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable === true;
+  }
+
+  function getViewportHeight() {
+    return window.visualViewport && window.visualViewport.height ? window.visualViewport.height : window.innerHeight;
+  }
+
+  function scrollFocusedElementNow() {
+    var el = document.activeElement;
+    if (!isEditableElement(el)) return;
+
+    try {
+      el.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest',
+        behavior: 'auto'
+      });
+
+      var rect = el.getBoundingClientRect();
+      var viewportHeight = getViewportHeight();
+      var safeTop = viewportHeight * 0.18;
+      var safeBottom = viewportHeight * 0.62;
+      if (rect.bottom > safeBottom) {
+        window.scrollBy(0, rect.bottom - safeBottom);
+      } else if (rect.top < safeTop) {
+        window.scrollBy(0, rect.top - safeTop);
+      }
+    } catch (e) {
+      var rect = el.getBoundingClientRect();
+      var safeBottom = getViewportHeight() * 0.62;
+      var dy = rect.bottom - safeBottom;
+      if (dy > 0) {
+        window.scrollBy(0, dy);
+      }
+    }
+  }
+
+  function scrollFocusedElement() {
+    scrollFocusedElementNow();
+    requestAnimationFrame(function() {
+      requestAnimationFrame(scrollFocusedElementNow);
+    });
+    setTimeout(scrollFocusedElementNow, 80);
+  }
+
+  document.addEventListener('focusin', scrollFocusedElement, true);
+  window.addEventListener('resize', scrollFocusedElement);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scrollFocusedElement);
+  }
+})();
+"""
 
 private fun isLikelyRedirect(from: String, to: String): Boolean {
     // 如果两个 URL 基本路径一致，或者包含 common 重定向特征
