@@ -1,6 +1,7 @@
 package com.basic.base.webview.platform
 
 import android.annotation.SuppressLint
+import android.view.ViewGroup
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
@@ -17,7 +18,9 @@ actual fun NativeWebView(
     val uiContainer = LocalUIContainer.current
     AndroidView(
         factory = { _ ->
-            state.getOrCreate(uiContainer)
+            state.getOrCreate(uiContainer).also {
+                (it.parent as? ViewGroup)?.removeView(it)
+            }
         }, modifier = modifier
     )
 }
