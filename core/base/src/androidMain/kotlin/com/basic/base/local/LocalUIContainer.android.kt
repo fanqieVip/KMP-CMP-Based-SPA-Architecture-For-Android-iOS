@@ -19,8 +19,10 @@ import com.basic.base.utils.KeyboardFix
 import io.github.hristogochev.vortex.screen.Screen
 
 actual typealias UIContainer = Activity
+
 private const val DISABLE_PHYSICAL_BACK = "disablePhysicalBack"
 private const val TRANSPARENT = "transparent"
+private const val USE_ANIMATION = "useAnimation"
 
 actual fun UIContainer.pop(rootToHome: Boolean, useAnimation: Boolean) {
     if (!rootToHome) {
@@ -52,14 +54,20 @@ actual fun UIContainer.pop(rootToHome: Boolean, useAnimation: Boolean) {
 internal class NativeActivity : BaseActivity() {
     private val viewModel by viewModels<NativeViewModel>()
     override fun onCreate(savedInstanceState: Bundle?) {
-        if (intent.getBooleanExtra(TRANSPARENT, false)) {
+        val isTransparent = intent?.getBooleanExtra(TRANSPARENT, false) == true
+        val useAnimation = intent?.getBooleanExtra(USE_ANIMATION, true) == true
+        if (isTransparent && !useAnimation) {
+            setTheme(R.style.base_activity_transparent_no_animation)
+            window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            window?.decorView?.setBackgroundColor(Color.TRANSPARENT)
+        } else if (isTransparent) {
             setTheme(R.style.base_activity_transparent)
+            window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            window?.decorView?.setBackgroundColor(Color.TRANSPARENT)
+        } else if (!useAnimation) {
+            setTheme(R.style.base_activity_no_animation)
         }
         super.onCreate(savedInstanceState)
-        if (viewModel.transparent) {
-            window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            window.decorView.setBackgroundColor(Color.TRANSPARENT)
-        }
         viewModel.startScreen?.invoke()?.let {
             setContent {
                 BaseApp(
@@ -85,7 +93,6 @@ internal class NativeActivity : BaseActivity() {
 internal class NativeViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
     val startScreen = savedStateHandle.getFunction<() -> Screen>("screen")
     val disablePhysicalBack = savedStateHandle.get<Boolean>(DISABLE_PHYSICAL_BACK) ?: false
-    val transparent = savedStateHandle.get<Boolean>(TRANSPARENT) ?: false
 }
 
 actual fun UIContainer.push(
@@ -96,17 +103,12 @@ actual fun UIContainer.push(
 ) {
     ActivityStackManager.getTopFragmentActivity()?.let {
         it.startActivity(Intent(it, NativeActivity::class.java).apply {
-            if (!useAnimation) {
-                addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-            }
             putExtra(DISABLE_PHYSICAL_BACK, disablePhysicalBack)
             putExtra(TRANSPARENT, transparent)
+            putExtra(USE_ANIMATION, useAnimation)
             putFunction(it, "screen") {
                 screen
             }
         })
-        if (!useAnimation) {
-            it.overridePendingTransition(0, 0)
-        }
     }
 }
