@@ -6,6 +6,7 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 object DateUtils {
     /**
@@ -15,6 +16,15 @@ object DateUtils {
     fun getNowTime(): LocalDateTime {
         val now = Clock.System.now()
         return now.toLocalDateTime(TimeZone.currentSystemDefault())
+    }
+
+    /**
+     * 毫秒时间戳转LocalDateTime
+     */
+    fun Long.toLocalDateTimeSeconds(
+        timeZone: TimeZone = TimeZone.currentSystemDefault()
+    ): LocalDateTime {
+        return Instant.fromEpochMilliseconds(this).toLocalDateTime(timeZone)
     }
 
     /**
