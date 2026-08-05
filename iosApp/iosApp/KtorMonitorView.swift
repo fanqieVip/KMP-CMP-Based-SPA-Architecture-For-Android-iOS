@@ -14,9 +14,23 @@ struct KtorMonitorVC: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }
 
+/**
+ * KtorMonitor 调试页面。
+ */
 struct KtorMonitorView: View {
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
-        KtorMonitorVC()
-            .ignoresSafeArea()
+        ZStack(alignment: .topLeading) {
+            KtorMonitorVC()
+                .ignoresSafeArea()
+
+            Button("返回") {
+                dismiss()
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.top, 12)
+            .padding(.leading, 12)
+        }
     }
 }

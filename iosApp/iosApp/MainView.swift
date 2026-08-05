@@ -14,37 +14,32 @@ struct NainVC: UIViewControllerRepresentable {
 struct MainView: View {
     @EnvironmentObject var notificationManager: NotificationManager
     @SwiftUI.State private var isKtorMonitorActive = false
-    
-    var body: some View {
-        NavigationView {
-            ZStack {
-                NainVC()
-                    .ignoresSafeArea()
-                    .navigationBarHidden(true)
-                NavigationLink(
-                    destination: KtorMonitorView(),
-                    isActive: $isKtorMonitorActive
-                ) {
-                    EmptyView()
-                }
 
-                // KtorMonitor 快捷入口按钮
-                if BuildConfig_com_basic_base.shared.VERSION_TYPE != VersionStatus.shared.RELEASE {
-                    VStack {
+    var body: some View {
+        ZStack {
+            NainVC()
+                .ignoresSafeArea()
+                .navigationBarHidden(true)
+            // KtorMonitor 快捷入口按钮
+            if BuildConfig_com_basic_base.shared.VERSION_TYPE != VersionStatus.shared.RELEASE {
+                VStack {
+                    Spacer()
+                    HStack {
                         Spacer()
-                        HStack {
-                            Spacer()
-                            Button("KtorMonitor") {
-                                isKtorMonitorActive = true
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .padding()
-                            .padding(.bottom, 100)
+                        Button("KtorMonitor") {
+                            isKtorMonitorActive = true
                         }
+                        .buttonStyle(.borderedProminent)
+                        .padding()
+                        .padding(.bottom, 100)
                     }
                 }
             }
         }
-        .navigationViewStyle(.stack)
+        .fullScreenCover(isPresented: $isKtorMonitorActive) {
+            KtorMonitorView()
+                .navigationBarHidden(true)
+                .interactiveDismissDisabled(true)
+        }
     }
 }
