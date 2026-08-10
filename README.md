@@ -175,6 +175,29 @@ iosApp/Configuration/iosConfig.xcconfig
 - 网络 API 必须收敛到 `*Repository`。
 - 类、方法、成员变量必须补齐 KDoc 或注释。
 
+### 7. 编译期字符串保护进 Android 产物
+
+`com.basic.protect-src` 用于保护 Android Release 产物中的敏感字符串常量。业务代码在 `commonMain` 中可以直接调用 `ProtectSrc(data: String?)`，保持 KMP 调用方式不变；Android 编译后，插件会把直接包裹的字符串字面量改写为加密后的 `ByteArray` 常量，并在运行期通过 `ProtectSrcRuntime` 组合密钥片段后解密。
+
+典型用法：
+
+```kotlin
+import com.basic.base.utils.ProtectSrc
+
+val headerName = ProtectSrc("X-Sign")!!
+registerJsBridge<String, String>(ProtectSrc("createSign")!!) {
+    GlobalHeaders.buildSignData(it ?: "")
+}
+```
+
+插件特性：
+
+- 只处理 Android 产物，`commonMain`、iOS 编译仍保留普通 marker 函数语义。
+- 仅支持直接字符串字面量或 `null`，不处理变量、字符串拼接或运行期表达式。
+- 每次构建都会生成不同的 AES password 和 IV。
+- password、IV 会拆成多段 `ByteArray`，运行期 XOR 组合，不以明文字符串进入 APK。
+- 加密结果本身也以 `ByteArray` 指令生成，编译后不再保留被保护字符串的明文常量。
+
 ## AI Agent 协作体系
 
 这个项目把 AI Agent 当成工程协作者来设计，而不是临时问答工具。根目录的 `AGENTS.md` 是总入口，要求 Agent 先读工作流，再读补丁，最后按任务类型读取规约和知识手册，避免一上来全量扫文档、乱猜架构。
@@ -296,6 +319,8 @@ project/<name>/
 - `core/base/src/commonMain/kotlin/com/basic/base/router/Router.kt`：路由注解和协议。
 - `buildSrc/src/main/kotlin/com/frame/basic/router/RouterSymbolProcessor.kt`：路由生成器。
 - `buildSrc/src/main/kotlin/com/frame/basic/lint/LintSymbolProcessor.kt`：架构红线。
+- `buildSrc/src/main/kotlin/com/frame/basic/plugin/ProtectSrcPlugin.kt`：Android 字符串字节码保护插件。
+- `buildSrc/src/main/kotlin/com/frame/basic/protect/ProtectSrcClassVisitor.kt`：`ProtectSrc` 调用字节码改写器。
 - `buildSrc/src/main/kotlin/com/frame/basic/plugin/IosConfigPlugin.kt`：iOS 配置聚合。
 - `project/main/src/commonMain/kotlin/com/basic/main/ui/`：业务页面示例。
 
