@@ -5,7 +5,7 @@ androidx-activity = "1.13.0"
 androidx-lifecycle = "2.11.0"
 androidx-splashscreen = "1.2.0"
 constraintLayout = "2.2.2"
-haze = "2.0.0-alpha03"                                          # https://chrisbanes.github.io/haze/latest/
+haze = "2.0.0-alpha04"                                          # https://chrisbanes.github.io/haze/latest/
 material = "1.14.0"
 composeMaterial3 = "1.9.0"
 composeHotReload = "1.2.0"
@@ -19,13 +19,13 @@ vortex = "0.3.0"                                                # https://hristo
 koin = "4.2.2"                                                  # https://klibs.io/project/InsertKoinIO/koin
 koinPlugin = "1.1.0"                                            # https://github.com/InsertKoinIO/koin-compiler-plugin
 ktorfitVersion = "2.7.5"                                        # https://klibs.io/project/Foso/Ktorfit
-ktorVersion = "3.5.2"                                           # https://klibs.io/project/ktorio/ktor
+ktorVersion = "3.5.2"                                          # https://klibs.io/project/ktorio/ktor
 ktorMonitor = "1.14.4"                                          # https://github.com/CosminMihuMDC/KtorMonitor
 lifecycleProcess = "2.11.0"
 utilcodex = "1.31.1"
 multiplatform-settings = "1.3.0"                                # https://klibs.io/project/russhwolf/multiplatform-settings
 filekit = "0.14.2"                                              # https://klibs.io/project/vinceglb/FileKit
-imagepicker = "1.1.2"                                          # https://github.com/ismoy/ImagePickerKMP
+imagepicker = "1.1.3"                                          # https://github.com/ismoy/ImagePickerKMP
 moko-permissions = "0.20.1"                                     # https://klibs.io/project/icerockdev/moko-permissions
 pullrefresh = "1.4.0-beta03"                                    # https://klibs.io/project/MateriiApps/pullrefresh
 uuid = "0.8.4"                                                  # https://klibs.io/project/benasher44/uuid
@@ -36,7 +36,6 @@ cnOaid = "4.2.17"                                               # https://github
 coil = "3.5.0"                                                  # https://coil-kt.github.io/coil/network/#ktor-network-engines
 immersionbar = "2.0.2"                                          # https://github.com/yuzhiqiang1993/immersionbar
 compottie = "2.2.4"                                             # https://github.com/alexzhirkevich/compottie
-kni = "2.0.4-rc02"                                              # https://klibs.io/project/dshatz/Kotlin-JNI 保持该版本，新版本限制过多，不方便做llvm混淆
 konnectivity = "0.1-alpha01"                                    # https://github.com/Plus-Mobile-Apps/konnectivity
 xxPermission = "28.3"                                           # https://github.com/getActivity/XXPermissions
 autoSize = "v1.2.1"                                             # https://github.com/JessYanCoding/AndroidAutoSize
@@ -111,9 +110,6 @@ compottie-lite = { module = "io.github.alexzhirkevich:compottie-lite", version.r
 compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
 compottie-network = { module = "io.github.alexzhirkevich:compottie-network", version.ref = "compottie" }
 compottie-resources = { module = "io.github.alexzhirkevich:compottie-resources", version.ref = "compottie" }
-kni = { module = "com.dshatz.kni:jni", version.ref = "kni" }
-kni-processor = { module = "com.dshatz.kni:ksp", version.ref = "kni" }
-kni-annotations = { module = "com.dshatz.kni:annotations", version.ref = "kni" }
 konnectivity = { module = "com.plusmobileapps:konnectivity", version.ref = "konnectivity" }
 xxPermission = { group = "com.github.getActivity", name = "XXPermissions", version.ref = "xxPermission" }
 autoSize = { group = "com.github.JessYanCoding", name = "AndroidAutoSize", version.ref = "autoSize" }

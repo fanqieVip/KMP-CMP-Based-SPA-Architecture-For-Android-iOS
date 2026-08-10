@@ -36,10 +36,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import com.basic.base.Os
 import com.basic.base.getPlatform
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
@@ -332,15 +333,18 @@ fun defaultHazeScaffoldSurfaceModifier(
 ): Modifier {
     return modifier
         .background(baseColor.copy(alpha = 0.45f))
-        .hazeEffect(hazeState) {
-            blurEffect {
-                blurRadius = 25.dp
-                backgroundColor = baseColor.copy(alpha = 0.40f)
-                colorEffects = listOf(
-                    HazeColorEffect.tint(baseColor.copy(alpha = 0.10f))
+        .hazeBlur(
+            input = HazeInput.Sources(hazeState),
+            style = HazeBlurStyle {
+                blurRadius(25.dp)
+                backgroundColor(baseColor.copy(alpha = 0.40f))
+                colorEffects(
+                    listOf(
+                        HazeColorEffect.tint(baseColor.copy(alpha = 0.10f))
+                    )
                 )
             }
-        }
+        )
 }
 
 fun defaultLegacyTopModifier(
