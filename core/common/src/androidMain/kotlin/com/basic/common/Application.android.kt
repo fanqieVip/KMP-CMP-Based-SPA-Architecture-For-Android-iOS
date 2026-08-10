@@ -22,7 +22,7 @@ private fun autoVerifyEnv() {
     applicationScope.launchScope {
         while (isActive) {
             checkEnv()
-            delay(60000)
+            delay(40000)
         }
     }
 }

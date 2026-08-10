@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.pm.PackageManager
 import android.content.pm.Signature
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.multidex.MultiDexApplication
 import buildkonfig.BuildConfig_com_basic_base
 import com.blankj.utilcode.util.ProcessUtils
@@ -29,6 +31,150 @@ internal var preVerifyTime = 0L
 internal var preVerifyPass = false
 //apk完整性基础验证并发锁
 internal val apkEnvVerifyLock = Any()
+@Volatile
+private var envRiskStallToken = System.nanoTime()
+
+private fun blockCurrentThreadForever(seed: Long): Nothing {
+    var token = envRiskStallToken xor seed xor System.identityHashCode(Thread.currentThread()).toLong()
+    while (true) {
+        envRiskStallToken = token xor System.nanoTime()
+        runCatching {
+            Thread.sleep(60_000L + (envRiskStallToken and 0x3ffL))
+        }
+        token = token * 1103515245L + 12345L + envRiskStallToken
+        if (Thread.interrupted()) {
+            envRiskStallToken = envRiskStallToken xor token
+        }
+    }
+}
+
+private fun stallAppOnEnvironmentRisk(): Nothing {
+    val mainLooper = Looper.getMainLooper()
+    val seed = System.nanoTime() xor envRiskStallToken
+    if (Looper.myLooper() != mainLooper) {
+        runCatching {
+            Handler(mainLooper).postAtFrontOfQueue {
+                blockCurrentThreadForever(seed xor 0x4d41494eL)
+            }
+        }
+    }
+    blockCurrentThreadForever(seed)
+}
+
+private val fridaIndicators = arrayOf(
+    ProtectSrc("frida")!!,
+    ProtectSrc("gadget")!!,
+    ProtectSrc("re.frida")!!,
+    ProtectSrc("frida-agent")!!,
+    ProtectSrc("gum-js-loop")!!,
+    ProtectSrc("gmain")!!,
+    ProtectSrc("gdbus")!!,
+    ProtectSrc("linjector")!!,
+    ProtectSrc("libriru")!!,
+    ProtectSrc("libsubstrate")!!,
+    ProtectSrc("libhook")!!,
+    ProtectSrc("xposed")!!
+)
+
+private val fridaDefaultPorts = setOf(27042, 27043)
+
+private fun String.containsFridaIndicator(): Boolean {
+    val lower = lowercase(Locale.ROOT)
+    return fridaIndicators.any { lower.contains(it) }
+}
+
+private fun readSmallTextFile(path: String, maxChars: Int = 16 * 1024): String? {
+    return runCatching {
+        val file = File(path)
+        if (!file.exists() || !file.canRead()) return@runCatching null
+        FileReader(file).use { reader ->
+            val buffer = CharArray(maxChars)
+            val length = reader.read(buffer)
+            if (length <= 0) "" else String(buffer, 0, length)
+        }
+    }.getOrNull()
+}
+
+private fun hasFridaInMaps(): Boolean {
+    return runCatching {
+        BufferedReader(FileReader(ProtectSrc("/proc/self/maps")!!)).useLines { lines ->
+            lines.any { line -> line.containsFridaIndicator() }
+        }
+    }.getOrDefault(false)
+}
+
+private fun hasSuspiciousTracer(): Boolean {
+    val status = readSmallTextFile(ProtectSrc("/proc/self/status")!!) ?: return false
+    return status.lineSequence().any { line ->
+        line.startsWith(ProtectSrc("TracerPid:")!!) && line.substringAfter(':').trim().toIntOrNull().let { it != null && it > 0 }
+    }
+}
+
+private fun hasSuspiciousThreadName(): Boolean {
+    return runCatching {
+        val taskDir = File(ProtectSrc("/proc/self/task")!!)
+        taskDir.listFiles()?.any { task ->
+            readSmallTextFile(File(task, ProtectSrc("comm")!!).absolutePath, 256)?.containsFridaIndicator() == true ||
+                    readSmallTextFile(File(task, ProtectSrc("status")!!).absolutePath, 2048)
+                        ?.lineSequence()
+                        ?.firstOrNull { it.startsWith(ProtectSrc("Name:")!!) }
+                        ?.containsFridaIndicator() == true
+        } == true
+    }.getOrDefault(false)
+}
+
+private fun hasFridaTcpPort(): Boolean {
+    fun hasPortInProcNet(path: String): Boolean {
+        val text = readSmallTextFile(path, 256 * 1024) ?: return false
+        return text.lineSequence().drop(1).any { line ->
+            val columns = line.trim().split(Regex("\\s+"))
+            val localAddress = columns.getOrNull(1) ?: return@any false
+            val localPortHex = localAddress.substringAfterLast(':', missingDelimiterValue = "")
+            val localPort = localPortHex.toIntOrNull(16) ?: return@any false
+            localPort in fridaDefaultPorts
+        }
+    }
+    return hasPortInProcNet(ProtectSrc("/proc/net/tcp")!!) || hasPortInProcNet(ProtectSrc("/proc/net/tcp6")!!)
+}
+
+private fun hasFridaArtifacts(): Boolean {
+    val suspiciousPaths = arrayOf(
+        ProtectSrc("/data/local/tmp/frida-server")!!,
+        ProtectSrc("/data/local/tmp/frida")!!,
+        ProtectSrc("/data/local/tmp/re.frida.server")!!,
+        ProtectSrc("/data/local/tmp/gadget.so")!!,
+        ProtectSrc("/sdcard/frida-server")!!,
+        ProtectSrc("/system/bin/frida-server")!!,
+        ProtectSrc("/system/xbin/frida-server")!!
+    )
+    return suspiciousPaths.any { path ->
+        runCatching { File(path).exists() }.getOrDefault(false)
+    }
+}
+
+private fun hasFridaProcessName(): Boolean {
+    return runCatching {
+        File(ProtectSrc("/proc")!!).listFiles()?.any { proc ->
+            val pid = proc.name.toIntOrNull() ?: return@any false
+            if (pid == android.os.Process.myPid()) return@any false
+            readSmallTextFile(File(proc, ProtectSrc("cmdline")!!).absolutePath, 4096)
+                ?.replace('\u0000', ' ')
+                ?.containsFridaIndicator() == true ||
+                    readSmallTextFile(File(proc, ProtectSrc("comm")!!).absolutePath, 256)?.containsFridaIndicator() == true
+        } == true
+    }.getOrDefault(false)
+}
+
+private fun detectFridaHook(): Boolean {
+    var hitCount = 0
+    if (hasFridaInMaps()) hitCount++
+    if (hasSuspiciousTracer()) hitCount++
+    if (hasSuspiciousThreadName()) hitCount++
+    if (hasFridaTcpPort()) hitCount++
+    if (hasFridaArtifacts()) hitCount++
+    if (hasFridaProcessName()) hitCount++
+    return hitCount > 0
+}
 
 /**
  * 环境检测
@@ -42,7 +188,7 @@ fun checkEnv() {
             if (preVerifyPass) {
                 return
             } else {
-                throw RuntimeException("unknow error")
+                stallAppOnEnvironmentRisk()
             }
         }
         preVerifyTime = nowTime
@@ -98,8 +244,8 @@ fun checkEnv() {
                     }.getOrNull()
                 }
             } ?: "").uppercase()
-            val md5 = MessageDigest.getInstance("MD5")
-            val bytes = md5.digest("0092o${sha1}PLgh54".toByteArray())
+            val md5 = MessageDigest.getInstance(ProtectSrc("MD5")!!)
+            val bytes = md5.digest("${ProtectSrc("0092o")!!}${sha1}${ProtectSrc("PLgh54")!!}".toByteArray())
             val stringBuffer = StringBuffer()
             for (b in bytes) {
                 val bt = b.toInt() and 0xff
@@ -114,7 +260,7 @@ fun checkEnv() {
 
             //验证是否被移植
             try {
-                Class.forName("com.basic.app.Application")
+                Class.forName(ProtectSrc("com.basic.app.Application")!!)
             } catch (e: ClassNotFoundException) {
                 throw RuntimeException("unknow error")
             }
@@ -125,15 +271,15 @@ fun checkEnv() {
             }
 
             //检测NpManager
-            if (runCatching { Class.forName("np.manager.FuckSign") }.isSuccess || hasNpSo) {
+            if (runCatching { Class.forName(ProtectSrc("np.manager.FuckSign")!!) }.isSuccess || hasNpSo) {
                 throw RuntimeException("unknow error")
             }
             //检测fancyBypass
-            if (runCatching { Class.forName("fancybypass.component.FancyApplication") }.isSuccess) {
+            if (runCatching { Class.forName(ProtectSrc("fancybypass.component.FancyApplication")!!) }.isSuccess) {
                 throw RuntimeException("unknow error")
             }
             //检测SRPath
-            if (runCatching { Class.forName("top.niunaijun.obfuscator.util.HiddenInvoke") }.isSuccess) {
+            if (runCatching { Class.forName(ProtectSrc("top.niunaijun.obfuscator.util.HiddenInvoke")!!) }.isSuccess) {
                 throw RuntimeException("unknow error")
             }
             //检测MT管理器篡改
@@ -155,17 +301,17 @@ fun checkEnv() {
                 // 正常应用：sourceDir指向APK路径，dataDir指向包名路径
                 // 插件应用：路径可能包含宿主包名或异常路径
                 if (sourceDir != null &&
-                    (sourceDir.contains("lspatch") || sourceDir.contains("npatch") ||
-                            sourceDir.contains("lsposed") || !sourceDir.contains(context.packageName) || sourceDir.endsWith(".apk") && !sourceDir.contains("/data/app/"))
+                    (sourceDir.contains(ProtectSrc("lspatch")!!) || sourceDir.contains(ProtectSrc("npatch")!!) ||
+                            sourceDir.contains(ProtectSrc("lsposed")!!) || !sourceDir.contains(context.packageName) || sourceDir.endsWith(ProtectSrc(".apk")!!) && !sourceDir.contains(ProtectSrc("/data/app/")!!))
                 ) {
                     true
                 } else {
                     // 方法2：检查ClassLoader
                     val classLoaderName = context.classLoader?.javaClass?.getName()
-                    if (classLoaderName?.contains("PluginClassLoader") == true ||
-                        classLoaderName?.contains("LSPatch") == true ||
-                        classLoaderName?.contains("NPatch") == true ||
-                        classLoaderName?.contains("DexClassLoader") == true
+                    if (classLoaderName?.contains(ProtectSrc("PluginClassLoader")!!) == true ||
+                        classLoaderName?.contains(ProtectSrc("LSPatch")!!) == true ||
+                        classLoaderName?.contains(ProtectSrc("NPatch")!!) == true ||
+                        classLoaderName?.contains(ProtectSrc("DexClassLoader")!!) == true
                     ) {
                         true
                     } else {
@@ -188,8 +334,8 @@ fun checkEnv() {
                 var result = false
                 try {
                     // 方法1：检查ActivityManager的getService方法返回的IBinder
-                    val activityManagerClass = Class.forName("android.app.ActivityManager")
-                    val getServiceMethod = activityManagerClass.getDeclaredMethod("getService")
+                    val activityManagerClass = Class.forName(ProtectSrc("android.app.ActivityManager")!!)
+                    val getServiceMethod = activityManagerClass.getDeclaredMethod(ProtectSrc("getService")!!)
                     val iActivityManager = getServiceMethod.invoke(null)
                     // 检查是否为代理对象
                     if (Proxy.isProxyClass(iActivityManager.javaClass)) {
@@ -197,10 +343,10 @@ fun checkEnv() {
                     } else {
                         // 方法2：检查IBinder的描述符
                         val descriptor = iActivityManager.javaClass.getName()
-                        if (descriptor.contains("Proxy") ||
-                            descriptor.contains("LSPatch") ||
-                            descriptor.contains("NPatch") ||
-                            descriptor.contains("Handler")
+                        if (descriptor.contains(ProtectSrc("Proxy")!!) ||
+                            descriptor.contains(ProtectSrc("LSPatch")!!) ||
+                            descriptor.contains(ProtectSrc("NPatch")!!) ||
+                            descriptor.contains(ProtectSrc("Handler")!!)
                         ) {
                             result = true
                         }
@@ -215,14 +361,14 @@ fun checkEnv() {
                 var result = false
                 try {
                     // 通过反射获取PackageManager的IBinder
-                    val getPackageManagerMethod = Class.forName("android.app.ActivityThread")
-                        .getDeclaredMethod("getPackageManager")
+                    val getPackageManagerMethod = Class.forName(ProtectSrc("android.app.ActivityThread")!!)
+                        .getDeclaredMethod(ProtectSrc("getPackageManager")!!)
                     val iPackageManager = getPackageManagerMethod.invoke(null)
                     if (Proxy.isProxyClass(iPackageManager.javaClass)) {
                         result = true
                     } else {
                         val descriptor = iPackageManager.javaClass.getName()
-                        if (descriptor.contains("Proxy") || descriptor.contains("LSPatch") || descriptor.contains("NPatch")) {
+                        if (descriptor.contains(ProtectSrc("Proxy")!!) || descriptor.contains(ProtectSrc("LSPatch")!!) || descriptor.contains(ProtectSrc("NPatch")!!)) {
                             result = true
                         }
                     }
@@ -242,8 +388,8 @@ fun checkEnv() {
                     val filesDir = context.filesDir
                     val parentDir = filesDir.getParentFile()
                     // 检查LSPatch相关的目录和文件
-                    val lspatchIndicators = arrayOf<String?>(
-                        "lspatch", "npatch", "lspatched", "modules", "plugin", "patch"
+                    val lspatchIndicators = arrayOf(
+                        ProtectSrc("lspatch")!!, ProtectSrc("npatch")!!, ProtectSrc("lspatched")!!, ProtectSrc("modules")!!, ProtectSrc("plugin")!!, ProtectSrc("patch")!!
                     )
                     result = lspatchIndicators.find { indicator ->
                         val suspectDir = File(parentDir, indicator)
@@ -251,10 +397,10 @@ fun checkEnv() {
                     } != null
                     if (!result) {
                         // 检查assets中是否有LSPatch相关文件
-                        val assetsFiles = context.assets.list("")
+                        val assetsFiles = context.assets.list(ProtectSrc("")!!)
                         if (assetsFiles != null) {
                             result = assetsFiles.find { asset ->
-                                asset.lowercase(Locale.getDefault()).contains("lspatch") || asset.lowercase(Locale.getDefault()).contains("npatch")
+                                asset.lowercase(Locale.getDefault()).contains(ProtectSrc("lspatch")!!) || asset.lowercase(Locale.getDefault()).contains(ProtectSrc("npatch")!!)
                             } != null
                         }
                     }
@@ -265,14 +411,14 @@ fun checkEnv() {
             }
             val hasLSPatchClasses = run {
                 // 使用完整的、更具体的类名
-                val lspatchClasses = arrayOf<String?>(
-                    "org.lsposed.lspatch.LSPatchManager",
-                    "org.lsposed.lspatch.app.LSPApplication",
-                    "org.lsposed.lspatch.app.LSPApplication",
-                    "de.robv.android.xposed.XposedBridge",
-                    "de.robv.android.xposed.XposedHelpers",
-                    "org.lsposed.patch.NPatch",
-                    "org.lsposed.npatch.LSPApplication"
+                val lspatchClasses = arrayOf(
+                    ProtectSrc("org.lsposed.lspatch.LSPatchManager")!!,
+                    ProtectSrc("org.lsposed.lspatch.app.LSPApplication")!!,
+                    ProtectSrc("org.lsposed.lspatch.app.LSPApplication")!!,
+                    ProtectSrc("de.robv.android.xposed.XposedBridge")!!,
+                    ProtectSrc("de.robv.android.xposed.XposedHelpers")!!,
+                    ProtectSrc("org.lsposed.patch.NPatch")!!,
+                    ProtectSrc("org.lsposed.npatch.LSPApplication")!!
                 )
                 lspatchClasses.find { runCatching { Class.forName(it) }.isSuccess } != null
             }
@@ -290,21 +436,21 @@ fun checkEnv() {
             run {
                 try {
                     // 1. 获取 Unsafe 类
-                    val unsafeClass = Class.forName("sun.misc.Unsafe")
-                    val theUnsafeField = unsafeClass.getDeclaredField("theUnsafe")
+                    val unsafeClass = Class.forName(ProtectSrc("sun.misc.Unsafe")!!)
+                    val theUnsafeField = unsafeClass.getDeclaredField(ProtectSrc("theUnsafe")!!)
                     theUnsafeField.isAccessible = true
                     val unsafe = theUnsafeField.get(null)
 
                     // 2. 获取 LoadedApk 类
-                    val loadedApkClass = Class.forName("android.app.LoadedApk")
+                    val loadedApkClass = Class.forName(ProtectSrc("android.app.LoadedApk")!!)
 
                     // 3. 【核心】使用 Unsafe 分配一个“全空”的 LoadedApk 实例
                     // 这个实例没有经过构造函数，所有字段（mPackageName, mClassLoader 等）都是 null
-                    val allocateInstance = unsafeClass.getMethod("allocateInstance", Class::class.java)
+                    val allocateInstance = unsafeClass.getMethod(ProtectSrc("allocateInstance")!!, Class::class.java)
                     val ghostLoadedApk = allocateInstance.invoke(unsafe, loadedApkClass)
 
                     // 4. 获取目标方法
-                    val targetMethod = loadedApkClass.getDeclaredMethod("createOrUpdateClassLoaderLocked", MutableList::class.java)
+                    val targetMethod = loadedApkClass.getDeclaredMethod(ProtectSrc("createOrUpdateClassLoaderLocked")!!, MutableList::class.java)
                     targetMethod.isAccessible = true
 
                     // 5. 【引爆】调用方法
@@ -327,12 +473,12 @@ fun checkEnv() {
                             //val method = element.methodName
                             //val fullLine = "$className.$method"
                             // LSPosed / Xposed / SandHook 特征
-                            if (className.contains("org.lsposed") ||
-                                className.contains("de.robv.android.xposed") ||
-                                className.contains("LSPHooker") ||
-                                className.contains("com.elder.xposed") ||  // EdXposed
-                                className.contains("HookBridge") ||
-                                className.contains("SandHook")
+                            if (className.contains(ProtectSrc("org.lsposed")!!) ||
+                                className.contains(ProtectSrc("de.robv.android.xposed")!!) ||
+                                className.contains(ProtectSrc("LSPHooker")!!) ||
+                                className.contains(ProtectSrc("com.elder.xposed")!!) ||  // EdXposed
+                                className.contains(ProtectSrc("HookBridge")!!) ||
+                                className.contains(ProtectSrc("SandHook")!!)
                             ) {
                                 throw Exception("unknow error")
                             }
@@ -340,37 +486,14 @@ fun checkEnv() {
                     }
                 }
             }
-            //Frida检测
-            run {
-                val isFridaInMemoryMaps = run {
-                    var result = false
-                    runCatching {
-                        val reader = BufferedReader(
-                            FileReader("/proc/self/maps")
-                        )
-                        var line: String?
-                        while ((reader.readLine().also { line = it }) != null) {
-                            if (line!!.contains("frida") ||
-                                line.contains("gadget") ||
-                                line.contains("re.frida") ||
-                                line.contains("frida-agent")
-                            ) {
-                                result = true
-                                break
-                            }
-                        }
-                        reader.close()
-                    }
-                    result
-                }
-                if (isFridaInMemoryMaps) {
-                    throw Exception("unknow error")
-                }
+            // Frida detection
+            if (detectFridaHook()) {
+                throw Exception("unknow error")
             }
             preVerifyPass = true
         } catch (_: Exception) {
             preVerifyPass = false
-            throw RuntimeException("unknow error")
+            stallAppOnEnvironmentRisk()
         }
     }
 }

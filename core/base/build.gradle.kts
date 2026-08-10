@@ -20,6 +20,7 @@ plugins {
     alias(libs.plugins.buildkonfig)
     alias(libs.plugins.koinCompiler)
     alias(libs.plugins.kotlinCocoapods)
+    id("com.basic.protect-src")
 }
 val androidNameSpace = "com.basic.base"
 kotlin {
