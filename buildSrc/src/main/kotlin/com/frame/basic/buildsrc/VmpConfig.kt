@@ -29,7 +29,7 @@ object VmpConfig {
      */
     @JvmStatic
     val protectRules = listOf<String>(
-        "class com.basic.native.* { *; }",
+        "class com.basic.base.utils.* { *; }",
         "class com.basic.main.* { *; }",
         "class com.basic.common.* { *; }"
     )

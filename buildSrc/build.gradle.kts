@@ -7,6 +7,7 @@ repositories {
 }
 dependencies {
     implementation(gradleApi())
+    compileOnly("com.android.tools.build:gradle-api:${libs.versions.agp.get()}")
     implementation("com.aliyun.oss:aliyun-sdk-oss:3.8.0")
     implementation("net.dongliu:apk-parser:2.6.7")
     implementation("com.tinify:tinify:1.8.0")

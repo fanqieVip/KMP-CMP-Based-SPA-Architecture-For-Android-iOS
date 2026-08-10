@@ -16,6 +16,7 @@ plugins {
     alias(libs.plugins.koinCompiler)
     id("com.basic.router")
     id("com.basic.lint")
+    id("com.basic.protect-src")
 }
 val androidNameSpace = "com.basic.main"
 kotlin {
