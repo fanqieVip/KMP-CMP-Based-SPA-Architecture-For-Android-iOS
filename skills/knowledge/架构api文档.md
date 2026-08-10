@@ -1200,74 +1200,7 @@ expect suspend fun getDeviceId(): DeviceId
 | `FOLLOW_SENSOR` | 跟随传感器。 |
 | `AUTO` | 自动。 |
 
-## 13. Native 安全 API
-
-### `Encrypt`
-
-| 项 | 内容 |
-| --- | --- |
-| 位置 | `core/native/src/commonMain/kotlin/com/basic/native/Encrypt.kt` |
-| 类型 | `expect object` |
-| 实现源头 | 具体加解密实现集中在 `commonMain` 的 `EncryptNativeImpl`；平台 `actual` 负责选择直接调用或通过 JNI 调用。 |
-
-签名：
-
-```kotlin
-fun encodeData(data: String): String
-fun decodeData(data: String): String
-fun createSign(data: String): String
-```
-
-平台行为：
-
-| 平台 | 行为 |
-| --- | --- |
-| `commonMain` | 定义 `expect object Encrypt`，并提供 `EncryptNativeImpl` 作为真正的加解密实现入口。 |
-| `iosMain` | `actual object Encrypt` 直接调用 `EncryptNativeImpl`。 |
-| `androidNativeArm64Main` | `actual object Encrypt` 直接调用 `EncryptNativeImpl`；同时提供 KNI/JNI 映射函数，先校验 JVM 桥接签名，再调用 `EncryptNativeImpl`。手动执行 `:core:native:androidNativeArm64Binaries` 会生成 `src/androidNativeArm64Main/staticLib/libshared_nativeLibs.a`。 |
-| `androidMain` | `actual object Encrypt` 调用 `EncryptJni.external` 方法；`EncryptJni` 通过 `System.loadLibrary("shared_nativeLibs")` 加载 Android 打包阶段生成的 `.so`。 |
-
-Android 构建产物链路：
-
-```text
-commonMain EncryptNativeImpl
-  -> androidNativeArm64Main KNI/JNI 映射函数
-  -> :core:native:androidNativeArm64Binaries
-  -> src/androidNativeArm64Main/staticLib/libshared_nativeLibs.a
-  -> Android 打包时 CMake 链接 staticLib
-  -> shared_nativeLibs.so
-```
-
-运行时实际调用顺序：
-
-```text
-业务代码
-  -> Encrypt.encodeData/decodeData/createSign
-  -> androidMain actual Encrypt
-  -> EncryptJni.encodeData/decodeData/createSign
-  -> shared_nativeLibs.so JNI 方法
-  -> androidNativeArm64Main 映射函数
-  -> checkEnv(source, bridge)
-  -> commonMain EncryptNativeImpl
-```
-
-### `checkEnv`
-
-| 项 | 内容 |
-| --- | --- |
-| 位置 | `core/native/src/commonMain/kotlin/com/basic/native/EnvChecker.kt` |
-| 签名 | `expect inline fun checkEnv()` |
-| 作用 | 运行环境检测；建议敏感操作前调用。 |
-
-平台行为：
-
-| 平台 | 行为 |
-| --- | --- |
-| Android | 校验签名、Application、线程、篡改/插件化/Hook 痕迹等。 |
-| iOS | 空实现。 |
-| androidNativeArm64 | 空实现。 |
-
-## 14. UI 组件 API
+## 13. UI 组件 API
 
 ### `BasicTitleBar`
 
@@ -1293,7 +1226,7 @@ fun BasicTitleBar(
 | 作用 | 对 `HazeScaffold` 的业务默认封装。 |
 | Slots | `top`、`center`、`bottom`。 |
 
-## 15. 依赖库管理规则
+## 14. 依赖库管理规则
 
 ### 本地依赖
 
@@ -1337,7 +1270,7 @@ framework {
 - 其他共享模块通过 `app` 的依赖链进入最终 framework，不单独生成 framework。
 - 这个约束用于降低 iOS 编译链接阶段的重复符号、缺失库、重复 framework 等异常风险。
 
-## 16. 构建配置 API
+## 15. 构建配置 API
 
 ### `ProjectBuildConfig`
 
@@ -1451,7 +1384,7 @@ iosApp/Configuration/iosConfig.xcconfig
 - 非 macOS 上任务默认禁用，不写 `iosConfig.xcconfig`。
 - 多模块声明同名 key 且值不一致时构建失败。
 
-## 17. AI 快速任务指南
+## 16. AI 快速任务指南
 
 ### 新增页面
 
@@ -1492,7 +1425,7 @@ core/base/src/androidMain/... actual API
 core/base/src/iosMain/... actual API
 ```
 
-## 18. Demo 示例 API 使用说明
+## 17. Demo 示例 API 使用说明
 
 本章按 `project/main` 中的 demo 页面反向整理 API。阅读 demo 时优先看这里，可以更快判断某个框架能力应该怎么接入。
 

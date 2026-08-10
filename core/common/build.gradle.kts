@@ -54,7 +54,6 @@ kotlin {
                 implementation(libs.koin.annotations)
                 implementation(libs.koin.compose)
                 api(projects.core.base)
-                api(projects.core.native)
             }
         }
 
@@ -70,14 +69,12 @@ kotlin {
                 )
                 implementation(libs.koin.android)
                 api(projects.core.base)
-                api(projects.core.native)
             }
         }
 
         iosMain {
             dependencies {
                 api(projects.core.base)
-                api(projects.core.native)
             }
         }
     }

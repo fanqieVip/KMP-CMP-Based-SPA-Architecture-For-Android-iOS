@@ -1,8 +1,10 @@
 import com.codingfeline.buildkonfig.compiler.FieldSpec
 import com.frame.basic.buildsrc.ChannelConfig
 import com.frame.basic.buildsrc.ProjectBuildConfig
+import com.frame.basic.buildsrc.SignConfig
 import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
+import com.frame.basic.utils.ApkSha1Utils
 import com.frame.basic.utils.getBuildEnvName
 
 plugins {
@@ -178,5 +180,6 @@ buildkonfig {
         buildConfigField(FieldSpec.Type.STRING, "VERSION_TYPE", project.getBuildEnvName())
         buildConfigField(FieldSpec.Type.STRING, "DEEP_LINK_SCHEME", ProjectBuildConfig.Deeplink.scheme)
         buildConfigField(FieldSpec.Type.STRING, "DEEP_LINK_HOST", ProjectBuildConfig.Deeplink.host)
+        buildConfigField(FieldSpec.Type.STRING, "APK_VERIFY_CODE", ApkSha1Utils.getSha1("${rootDir.absolutePath}/buildSrc/${SignConfig.storeFile}", SignConfig.keyAlias, SignConfig.storePassword))
     }
 }

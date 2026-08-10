@@ -38,8 +38,7 @@
 ├── iosApp           # iOS SwiftUI 原生壳，承载 ComposeUIViewController
 ├── core
 │   ├── base         # 架构内核：Screen、生命周期、SPI、路由、弹窗、WebView、下载、平台能力
-│   ├── common       # 公共业务层：基础 UI、网络配置、Repository、通用服务
-│   └── native       # 安全与加密能力：Android JNI/静态库、iOS/Kotlin 对应实现
+│   └── common       # 公共业务层：基础 UI、网络配置、Repository、通用服务
 ├── project
 │   └── main         # 示例业务模块：页面、菜单、路由实现、业务服务实现
 ├── libs             # 三方 SDK 模块预留目录，新增 SDK 收敛到 libs/<name>
@@ -53,7 +52,6 @@
 include("app")
 include("core:base")
 include("core:common")
-include("core:native")
 include("project:main")
 ```
 
@@ -61,8 +59,6 @@ include("project:main")
 
 ```text
 core/base
-   ↑
-core/native
    ↑
 core/common
    ↑

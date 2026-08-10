@@ -2,7 +2,7 @@ package com.basic.common
 
 import com.basic.base.ktx.applicationScope
 import com.basic.base.ktx.launchScope
-import com.basic.native.checkEnv
+import com.basic.base.utils.checkEnv
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -20,7 +20,7 @@ internal actual object Application {
  */
 private fun autoVerifyEnv() {
     applicationScope.launchScope {
-        while (isActive){
+        while (isActive) {
             checkEnv()
             delay(60000)
         }

@@ -81,5 +81,4 @@ plugins {
 include("app")
 include("core:base")
 include("core:common")
-include("core:native")
 include("project:main")

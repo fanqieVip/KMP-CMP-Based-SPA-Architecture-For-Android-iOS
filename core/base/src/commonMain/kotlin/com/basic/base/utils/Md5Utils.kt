@@ -41,7 +41,6 @@ object Md5Utils {
 
     // 将 UInt 转换为十六进制字符串（不使用 format）
     private fun toHexString(value: UInt): String {
-        val hexChars = "0123456789abcdef"
         val bytes = ByteArray(4) { i ->
             ((value shr (i * 8)) and 0xFFu).toByte()
         }
@@ -51,10 +50,15 @@ object Md5Utils {
             val unsignedByte = byte.toUByte()
             val highNibble = (unsignedByte.toInt() shr 4) and 0xF
             val lowNibble = unsignedByte.toInt() and 0xF
-            result.append(hexChars[highNibble])
-            result.append(hexChars[lowNibble])
+            result.append(toHexChar(highNibble))
+            result.append(toHexChar(lowNibble))
         }
         return result.toString()
+    }
+
+    private fun toHexChar(value: Int): Char {
+        val base = if (value < 10) 48 else 87
+        return (base + value).toChar()
     }
 
     /**
@@ -166,11 +170,6 @@ object Md5Utils {
     }
 }
 
-// 简单的字符串转字节数组扩展（避免使用 encodeToByteArray 可能的问题）
 fun String.toBytes(): ByteArray {
-    val result = ByteArray(this.length)
-    for (i in this.indices) {
-        result[i] = this[i].code.toByte()
-    }
-    return result
+    return encodeToByteArray()
 }
