@@ -1,4 +1,4 @@
-package com.basic.base.utils
+﻿package com.basic.base.utils
 
 import android.app.Application
 import android.content.pm.PackageManager
@@ -17,6 +17,7 @@ import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Proxy
 import java.security.MessageDigest
 import java.util.Locale
+import java.util.zip.ZipFile
 
 //apk完整性基础验证np管理器超强破签的so文件
 internal val hasNpSo by lazy {
@@ -25,12 +26,16 @@ internal val hasNpSo by lazy {
         System.loadLibrary("fuck")
     }.isSuccess
 }
+
 //apk完整性基础验证上一次校验时间
 internal var preVerifyTime = 0L
+
 //apk完整性基础验证上一次校验结果
 internal var preVerifyPass = false
+
 //apk完整性基础验证并发锁
 internal val apkEnvVerifyLock = Any()
+
 @Volatile
 private var envRiskStallToken = System.nanoTime()
 
@@ -176,6 +181,471 @@ private fun detectFridaHook(): Boolean {
     return hitCount > 0
 }
 
+
+/**
+ * APK 内容完整性校验文件解密后的固定头。
+ * 只在真正需要比对时 lazy 解密，避免普通启动路径提前触发字符串还原。
+ */
+private val apkIntegrityPlainHeader by lazy { ProtectSrc("world-city-data-v1\n")!! }
+
+/**
+ * 将摘要字节转成小写十六进制，保持与 batchTask.gradle 生成侧格式一致。
+ */
+private fun ByteArray.toLowerHex(): String {
+    val builder = StringBuilder(size * 2)
+    for (byte in this) {
+        val value = byte.toInt() and 0xff
+        if (value < 16) {
+            builder.append('0')
+        }
+        builder.append(Integer.toHexString(value))
+    }
+    return builder.toString()
+}
+
+/**
+ * 计算 APK 内单个 ZipEntry 的 SHA-256。
+ * 这里读取的是 entry 内容本身，不依赖中心目录偏移，因此不会受 Walle 渠道写入影响。
+ */
+private fun sha256ZipEntry(zipFile: ZipFile, entry: java.util.zip.ZipEntry): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    zipFile.getInputStream(entry).use { input ->
+        val buffer = ByteArray(8192)
+        while (true) {
+            val length = input.read(buffer)
+            if (length <= 0) {
+                break
+            }
+            digest.update(buffer, 0, length)
+        }
+    }
+    return digest.digest().toLowerHex()
+}
+
+/**
+ * 按固定顺序重建 mainVmp 生成 integrity 文件时使用的明文清单。
+ * 覆盖 Manifest、resources、dex 和 so，排除 integrity 文件自身，避免自引用导致结果不稳定。
+ */
+private fun buildApkIntegrityPlainText(apkPath: String): String {
+    val signFileName = ProtectSrc("assets/world_city_data_3214.dat")!!
+    val signManifest = ProtectSrc("AndroidManifest.xml")!!
+    val signResources = ProtectSrc("resources.arsc")!!
+    val signDex = ProtectSrc("classes\\d*\\.dex")!!
+    ZipFile(apkPath).use { zipFile ->
+        val names = mutableListOf<String>()
+        val entries = zipFile.entries()
+        while (entries.hasMoreElements()) {
+            val entry = entries.nextElement()
+            val name = entry.name
+            if (entry.isDirectory) {
+                continue
+            }
+            if (name == signFileName) {
+                continue
+            }
+            if (name == signManifest ||
+                name == signResources ||
+                Regex(signDex).matches(name) ||
+                (name.startsWith("lib/") && name.endsWith(".so"))
+            ) {
+                names.add(name)
+            }
+        }
+        names.sort()
+        val builder = StringBuilder()
+        builder.append(apkIntegrityPlainHeader)
+        for (name in names) {
+            val entry = zipFile.getEntry(name) ?: continue
+            builder.append(name)
+                .append('|').append(entry.size)
+                .append('|').append(entry.crc)
+                .append('|').append(entry.method)
+                .append('|').append(sha256ZipEntry(zipFile, entry))
+                .append('\n')
+        }
+        return builder.toString()
+    }
+}
+
+/**
+ * 判断 mainVmp 是否已经写入完整性校验 asset。
+ * 注意：asset 缺失不一定直接放行，是否放行还要结合 VMP so 特征判断。
+ */
+private fun hasApkIntegritySignatureAsset(context: android.content.Context): Boolean {
+    return runCatching {
+        context.assets.open(ProtectSrc("world_city_data_3214.dat")!!).use { true }
+    }.getOrDefault(false)
+}
+
+/**
+ * 判断当前 APK 是否带有 VmpConfig 配置的 VMP so。
+ * 非生产环境 BuildKonfig 注入空字符串，此时返回 false，表示普通开发包不启用该校验。
+ */
+private fun hasVmpProtectedSo(apkPath: String): Boolean {
+    val nmmpName = BuildConfig_com_basic_base.VMP_NMMP_NAME
+    val nmmvmName = BuildConfig_com_basic_base.VMP_NMMVM_NAME
+    if (nmmpName.isEmpty() || nmmvmName.isEmpty()) {
+        return false
+    }
+    val nmmpSoName = "/lib${nmmpName}.so"
+    val nmmvmSoName = "/lib${nmmvmName}.so"
+    return runCatching {
+        ZipFile(apkPath).use { zipFile ->
+            val entries = zipFile.entries()
+            var hasNmmp = false
+            var hasNmmvm = false
+            while (entries.hasMoreElements()) {
+                val name = entries.nextElement().name
+                if (name.startsWith("lib/") && name.endsWith(nmmpSoName)) {
+                    hasNmmp = true
+                }
+                if (name.startsWith("lib/") && name.endsWith(nmmvmSoName)) {
+                    hasNmmvm = true
+                }
+                if (hasNmmp && hasNmmvm) {
+                    return@use true
+                }
+            }
+            false
+        }
+    }.getOrDefault(false)
+}
+
+/**
+ * 校验 mainVmp 写入的加密完整性清单。
+ * 未发现 integrity asset 时，只有在 APK 同时带有 VMP so 特征才判失败，防止删除 asset 绕过加固包校验。
+ */
+private fun verifyApkIntegritySignatureOrThrow(context: android.content.Context) {
+    val sourceDir = context.applicationInfo.sourceDir ?: throw RuntimeException("unknow error")
+    if (!hasApkIntegritySignatureAsset(context)) {
+        if (hasVmpProtectedSo(sourceDir)) {
+            throw RuntimeException("unknow error")
+        }
+        return
+    }
+    val verifyPass = runCatching {
+        val cipher = context.assets.open(ProtectSrc("world_city_data_3214.dat")!!).use { input ->
+            input.readBytes()
+        }
+        if (cipher.isEmpty()) {
+            return@runCatching false
+        }
+        val password = ProtectSrc("city-vmp-integrity-key-2026")!!.encodeToByteArray()
+        val iv = ProtectSrc("c1tyCheckIv2026!")!!.encodeToByteArray()
+        val expected = ProtectSrcAes256cbc.decryptBytes(cipher, password, iv).decodeToString()
+        if (!expected.startsWith(apkIntegrityPlainHeader)) {
+            return@runCatching false
+        }
+        val actual = buildApkIntegrityPlainText(sourceDir)
+        expected == actual
+    }.getOrDefault(false)
+    if (!verifyPass) {
+        throw RuntimeException("unknow error")
+    }
+}
+
+/**
+ * 校验证书签名是否仍为当前发布签名。
+ */
+private fun verifyApkCertificateOrThrow(context: android.content.Context) {
+    val sha1 = (run {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            runCatching {
+                val packageName = context.packageName
+                val packageInfo = context.packageManager.getPackageInfo(
+                    packageName, PackageManager.GET_SIGNING_CERTIFICATES
+                )
+                val signingInfo = packageInfo.signingInfo
+                val signatures: Array<Signature?>?
+                if (signingInfo != null && signingInfo.hasMultipleSigners()) {
+                    signatures = signingInfo.apkContentsSigners
+                } else {
+                    val certificateHistory = signingInfo?.signingCertificateHistory
+                    signatures = certificateHistory ?: packageInfo.signatures
+                }
+                if (signatures == null || signatures.isEmpty()) {
+                    null
+                } else {
+                    val digest = MessageDigest.getInstance("SHA-1")
+                    digest.update(signatures[0]!!.toByteArray())
+                    val hashBytes = digest.digest()
+                    val sb = StringBuilder()
+                    for (i in hashBytes.indices) {
+                        if (i > 0) {
+                            sb.append(":")
+                        }
+                        sb.append(String.format("%02X", hashBytes[i]))
+                    }
+                    sb.toString()
+                }
+            }.getOrNull()
+        } else {
+            runCatching {
+                val packageName = context.packageName
+                val packageInfo = context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
+                val signatures = packageInfo.signatures
+                val digest = MessageDigest.getInstance("SHA-1")
+                digest.update(signatures!![0]!!.toByteArray())
+                val sha1Bytes = digest.digest()
+                val sb = java.lang.StringBuilder()
+                for (i in sha1Bytes.indices) {
+                    if (i > 0) {
+                        sb.append(":")
+                    }
+                    sb.append(String.format("%02X", sha1Bytes[i]))
+                }
+                sb.toString()
+            }.getOrNull()
+        }
+    } ?: "").uppercase()
+    val md5 = MessageDigest.getInstance(ProtectSrc("MD5")!!)
+    val bytes = md5.digest("${ProtectSrc("0092o")!!}${sha1}${ProtectSrc("PLgh54")!!}".toByteArray())
+    val stringBuffer = StringBuffer()
+    for (b in bytes) {
+        val bt = b.toInt() and 0xff
+        if (bt < 16) {
+            stringBuffer.append(0)
+        }
+        stringBuffer.append(Integer.toHexString(bt))
+    }
+    if (stringBuffer.toString() != BuildConfig_com_basic_base.APK_VERIFY_CODE) {
+        throw RuntimeException("unknow error")
+    }
+}
+
+
+/**
+ * 校验 Application 是否被替换或移植。
+ */
+private fun verifyApplicationClassOrThrow() {
+    try {
+        Class.forName(ProtectSrc("com.basic.app.Application")!!)
+    } catch (e: ClassNotFoundException) {
+        throw RuntimeException("unknow error")
+    }
+}
+
+/**
+ * 校验运行线程数量，过低时认为存在单独调试或异常运行环境。
+ */
+private fun verifyThreadCountOrThrow() {
+    if (Thread.activeCount() < 3) {
+        throw RuntimeException("unknow error")
+    }
+}
+
+/**
+ * 校验常见改包、破签、隐藏调用工具的类特征。
+ */
+private fun verifyKnownPatchClassesOrThrow() {
+    if (runCatching { Class.forName(ProtectSrc("np.manager.FuckSign")!!) }.isSuccess || hasNpSo) {
+        throw RuntimeException("unknow error")
+    }
+    if (runCatching { Class.forName(ProtectSrc("fancybypass.component.FancyApplication")!!) }.isSuccess) {
+        throw RuntimeException("unknow error")
+    }
+    if (runCatching { Class.forName(ProtectSrc("top.niunaijun.obfuscator.util.HiddenInvoke")!!) }.isSuccess) {
+        throw RuntimeException("unknow error")
+    }
+}
+
+/**
+ * 校验 MultiDexApplication 父类是否被篡改。
+ */
+private fun verifyMultiDexApplicationOrThrow() {
+    val directSuperClass = MultiDexApplication::class.java.getSuperclass()
+    if (directSuperClass != Application::class.java) {
+        throw RuntimeException("unknow error")
+    }
+}
+
+/**
+ * 检测当前应用是否被插件化框架承载运行。
+ */
+private fun isRunningAsPlugin(context: android.content.Context): Boolean {
+    val appInfo = context.applicationInfo
+    val sourceDir = appInfo.sourceDir
+    if (sourceDir != null &&
+        (sourceDir.contains(ProtectSrc("lspatch")!!) || sourceDir.contains(ProtectSrc("npatch")!!) ||
+                sourceDir.contains(ProtectSrc("lsposed")!!) || !sourceDir.contains(context.packageName) || sourceDir.endsWith(ProtectSrc(".apk")!!) && !sourceDir.contains(ProtectSrc("/data/app/")!!))
+    ) {
+        return true
+    }
+    val classLoaderName = context.classLoader?.javaClass?.getName()
+    if (classLoaderName?.contains(ProtectSrc("PluginClassLoader")!!) == true ||
+        classLoaderName?.contains(ProtectSrc("LSPatch")!!) == true ||
+        classLoaderName?.contains(ProtectSrc("NPatch")!!) == true ||
+        classLoaderName?.contains(ProtectSrc("DexClassLoader")!!) == true
+    ) {
+        return true
+    }
+    val processName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        Application.getProcessName()
+    } else {
+        ProcessUtils.getCurrentProcessName()
+    }
+    return processName != null && processName != context.packageName
+}
+
+/**
+ * 检测 ActivityManager / PackageManager 系统服务是否被代理。
+ */
+private fun hasSystemServiceProxy(): Boolean {
+    val isAMSProxied = run {
+        var result = false
+        try {
+            val activityManagerClass = Class.forName(ProtectSrc("android.app.ActivityManager")!!)
+            val getServiceMethod = activityManagerClass.getDeclaredMethod(ProtectSrc("getService")!!)
+            val iActivityManager = getServiceMethod.invoke(null)
+            if (Proxy.isProxyClass(iActivityManager.javaClass)) {
+                result = true
+            } else {
+                val descriptor = iActivityManager.javaClass.getName()
+                if (descriptor.contains(ProtectSrc("Proxy")!!) ||
+                    descriptor.contains(ProtectSrc("LSPatch")!!) ||
+                    descriptor.contains(ProtectSrc("NPatch")!!) ||
+                    descriptor.contains(ProtectSrc("Handler")!!)
+                ) {
+                    result = true
+                }
+            }
+        } catch (e: java.lang.Exception) {
+            result = true
+        }
+        result
+    }
+    val isPMSProxied = run {
+        var result = false
+        try {
+            val getPackageManagerMethod = Class.forName(ProtectSrc("android.app.ActivityThread")!!)
+                .getDeclaredMethod(ProtectSrc("getPackageManager")!!)
+            val iPackageManager = getPackageManagerMethod.invoke(null)
+            if (Proxy.isProxyClass(iPackageManager.javaClass)) {
+                result = true
+            } else {
+                val descriptor = iPackageManager.javaClass.getName()
+                if (descriptor.contains(ProtectSrc("Proxy")!!) || descriptor.contains(ProtectSrc("LSPatch")!!) || descriptor.contains(ProtectSrc("NPatch")!!)) {
+                    result = true
+                }
+            }
+        } catch (e: Exception) {
+            result = true
+        }
+        result
+    }
+    return isAMSProxied || isPMSProxied
+}
+
+/**
+ * 检测 LSPatch / NPatch 相关目录、asset 和类特征。
+ */
+private fun hasLSPatchFeature(context: android.content.Context): Boolean {
+    val hasLSPatchArtifacts = run {
+        var result = false
+        try {
+            val filesDir = context.filesDir
+            val parentDir = filesDir.getParentFile()
+            val lspatchIndicators = arrayOf(
+                ProtectSrc("lspatch")!!, ProtectSrc("npatch")!!, ProtectSrc("lspatched")!!, ProtectSrc("modules")!!, ProtectSrc("plugin")!!, ProtectSrc("patch")!!
+            )
+            result = lspatchIndicators.find { indicator ->
+                val suspectDir = File(parentDir, indicator)
+                suspectDir.exists() && suspectDir.isDirectory()
+            } != null
+            if (!result) {
+                val assetsFiles = context.assets.list(ProtectSrc("")!!)
+                if (assetsFiles != null) {
+                    result = assetsFiles.find { asset ->
+                        asset.lowercase(Locale.getDefault()).contains(ProtectSrc("lspatch")!!) || asset.lowercase(Locale.getDefault()).contains(ProtectSrc("npatch")!!)
+                    } != null
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        result
+    }
+    val hasLSPatchClasses = run {
+        val lspatchClasses = arrayOf(
+            ProtectSrc("org.lsposed.lspatch.LSPatchManager")!!,
+            ProtectSrc("org.lsposed.lspatch.app.LSPApplication")!!,
+            ProtectSrc("org.lsposed.lspatch.app.LSPApplication")!!,
+            ProtectSrc("de.robv.android.xposed.XposedBridge")!!,
+            ProtectSrc("de.robv.android.xposed.XposedHelpers")!!,
+            ProtectSrc("org.lsposed.patch.NPatch")!!,
+            ProtectSrc("org.lsposed.npatch.LSPApplication")!!
+        )
+        lspatchClasses.find { runCatching { Class.forName(it) }.isSuccess } != null
+    }
+    return hasLSPatchArtifacts || hasLSPatchClasses
+}
+
+/**
+ * 汇总插件化、系统服务代理和 LSPatch 多项特征。
+ */
+private fun verifyPluginAndPatchEnvironmentOrThrow(context: android.content.Context) {
+    var detectionCount = 0
+    if (isRunningAsPlugin(context)) {
+        detectionCount++
+    }
+    if (hasSystemServiceProxy()) {
+        detectionCount++
+    }
+    if (hasLSPatchFeature(context)) {
+        detectionCount++
+    }
+    if (detectionCount >= 2) {
+        throw RuntimeException("unknow error")
+    }
+}
+
+/**
+ * 通过异常堆栈检测 LSPosed / Xposed / SandHook 等 Hook 框架。
+ */
+private fun verifyHookStackOrThrow() {
+    try {
+        val unsafeClass = Class.forName(ProtectSrc("sun.misc.Unsafe")!!)
+        val theUnsafeField = unsafeClass.getDeclaredField(ProtectSrc("theUnsafe")!!)
+        theUnsafeField.isAccessible = true
+        val unsafe = theUnsafeField.get(null)
+        val loadedApkClass = Class.forName(ProtectSrc("android.app.LoadedApk")!!)
+        val allocateInstance = unsafeClass.getMethod(ProtectSrc("allocateInstance")!!, Class::class.java)
+        val ghostLoadedApk = allocateInstance.invoke(unsafe, loadedApkClass)
+        val targetMethod = loadedApkClass.getDeclaredMethod(ProtectSrc("createOrUpdateClassLoaderLocked")!!, MutableList::class.java)
+        targetMethod.isAccessible = true
+        targetMethod.invoke(ghostLoadedApk, null as MutableList<*>?)
+    } catch (e: Exception) {
+        var cause: Throwable? = e
+        if (e is InvocationTargetException) {
+            cause = e.cause
+        }
+        if (cause != null) {
+            val elements = cause.stackTrace
+            for (element in elements) {
+                val className = element.className
+                if (className.contains(ProtectSrc("org.lsposed")!!) ||
+                    className.contains(ProtectSrc("de.robv.android.xposed")!!) ||
+                    className.contains(ProtectSrc("LSPHooker")!!) ||
+                    className.contains(ProtectSrc("com.elder.xposed")!!) ||
+                    className.contains(ProtectSrc("HookBridge")!!) ||
+                    className.contains(ProtectSrc("SandHook")!!)
+                ) {
+                    throw Exception("unknow error")
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 检测 Frida 相关内存、线程、端口、文件和进程特征。
+ */
+private fun verifyFridaOrThrow() {
+    if (detectFridaHook()) {
+        throw Exception("unknow error")
+    }
+}
+
 /**
  * 环境检测
  */
@@ -193,303 +663,15 @@ fun checkEnv() {
         }
         preVerifyTime = nowTime
         try {
-            //验证签名
-            val sha1 = (run {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    runCatching {
-                        val packageName = context.packageName
-                        val packageInfo = context.packageManager.getPackageInfo(
-                            packageName, PackageManager.GET_SIGNING_CERTIFICATES
-                        )
-                        val signingInfo = packageInfo.signingInfo
-                        val signatures: Array<Signature?>?
-                        if (signingInfo != null && signingInfo.hasMultipleSigners()) {
-                            signatures = signingInfo.apkContentsSigners
-                        } else {
-                            val certificateHistory = signingInfo?.signingCertificateHistory
-                            signatures = certificateHistory ?: packageInfo.signatures
-                        }
-                        if (signatures == null || signatures.isEmpty()) {
-                            null
-                        } else {
-                            val digest = MessageDigest.getInstance("SHA-1")
-                            digest.update(signatures[0]!!.toByteArray())
-                            val hashBytes = digest.digest()
-                            val sb = StringBuilder()
-                            for (i in hashBytes.indices) {
-                                if (i > 0) {
-                                    sb.append(":")
-                                }
-                                sb.append(String.format("%02X", hashBytes[i]))
-                            }
-                            sb.toString()
-                        }
-                    }.getOrNull()
-                } else {
-                    runCatching {
-                        val packageName = context.packageName
-                        val packageInfo = context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-                        val signatures = packageInfo.signatures
-                        val digest = MessageDigest.getInstance("SHA-1")
-                        digest.update(signatures!![0]!!.toByteArray())
-                        val sha1Bytes = digest.digest()
-                        val sb = java.lang.StringBuilder()
-                        for (i in sha1Bytes.indices) {
-                            if (i > 0) {
-                                sb.append(":")
-                            }
-                            sb.append(String.format("%02X", sha1Bytes[i]))
-                        }
-                        sb.toString()
-                    }.getOrNull()
-                }
-            } ?: "").uppercase()
-            val md5 = MessageDigest.getInstance(ProtectSrc("MD5")!!)
-            val bytes = md5.digest("${ProtectSrc("0092o")!!}${sha1}${ProtectSrc("PLgh54")!!}".toByteArray())
-            val stringBuffer = StringBuffer()
-            for (b in bytes) {
-                val bt = b.toInt() and 0xff
-                if (bt < 16) {
-                    stringBuffer.append(0)
-                }
-                stringBuffer.append(Integer.toHexString(bt))
-            }
-            if (stringBuffer.toString() != BuildConfig_com_basic_base.APK_VERIFY_CODE) {
-                throw RuntimeException("unknow error")
-            }
-
-            //验证是否被移植
-            try {
-                Class.forName(ProtectSrc("com.basic.app.Application")!!)
-            } catch (e: ClassNotFoundException) {
-                throw RuntimeException("unknow error")
-            }
-
-            //验证线程数，若低于3，则判定在单独调试
-            if (Thread.activeCount() < 3) {
-                throw RuntimeException("unknow error")
-            }
-
-            //检测NpManager
-            if (runCatching { Class.forName(ProtectSrc("np.manager.FuckSign")!!) }.isSuccess || hasNpSo) {
-                throw RuntimeException("unknow error")
-            }
-            //检测fancyBypass
-            if (runCatching { Class.forName(ProtectSrc("fancybypass.component.FancyApplication")!!) }.isSuccess) {
-                throw RuntimeException("unknow error")
-            }
-            //检测SRPath
-            if (runCatching { Class.forName(ProtectSrc("top.niunaijun.obfuscator.util.HiddenInvoke")!!) }.isSuccess) {
-                throw RuntimeException("unknow error")
-            }
-            //检测MT管理器篡改
-            run {
-                val directSuperClass = MultiDexApplication::class.java.getSuperclass()
-                if (directSuperClass != Application::class.java) {
-                    // 如果找到了Application类但路径中有中间类，则认为是被篡改了
-                    throw RuntimeException("unknow error")
-                }
-            }
-
-            var detectionCount = 0
-            // 检测1：插件化环境
-            //检测应用是否作为插件运行
-            val isRunningAsPlugin = run {
-                // 方法1：检查ApplicationInfo中的sourceDir和dataDir
-                val appInfo = context.applicationInfo
-                val sourceDir = appInfo.sourceDir
-                // 正常应用：sourceDir指向APK路径，dataDir指向包名路径
-                // 插件应用：路径可能包含宿主包名或异常路径
-                if (sourceDir != null &&
-                    (sourceDir.contains(ProtectSrc("lspatch")!!) || sourceDir.contains(ProtectSrc("npatch")!!) ||
-                            sourceDir.contains(ProtectSrc("lsposed")!!) || !sourceDir.contains(context.packageName) || sourceDir.endsWith(ProtectSrc(".apk")!!) && !sourceDir.contains(ProtectSrc("/data/app/")!!))
-                ) {
-                    true
-                } else {
-                    // 方法2：检查ClassLoader
-                    val classLoaderName = context.classLoader?.javaClass?.getName()
-                    if (classLoaderName?.contains(ProtectSrc("PluginClassLoader")!!) == true ||
-                        classLoaderName?.contains(ProtectSrc("LSPatch")!!) == true ||
-                        classLoaderName?.contains(ProtectSrc("NPatch")!!) == true ||
-                        classLoaderName?.contains(ProtectSrc("DexClassLoader")!!) == true
-                    ) {
-                        true
-                    } else {
-                        // 方法3：检查当前进程名（插件可能运行在宿主进程中）
-                        val processName = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P){
-                            Application.getProcessName()
-                        }else{
-                            ProcessUtils.getCurrentProcessName()
-                        }
-                        processName != null && processName != context.packageName
-                    }
-                }
-            }
-            if (isRunningAsPlugin) {
-                detectionCount++
-            }
-
-            // 检测2：系统服务Hook
-            val isAMSProxied = run {
-                var result = false
-                try {
-                    // 方法1：检查ActivityManager的getService方法返回的IBinder
-                    val activityManagerClass = Class.forName(ProtectSrc("android.app.ActivityManager")!!)
-                    val getServiceMethod = activityManagerClass.getDeclaredMethod(ProtectSrc("getService")!!)
-                    val iActivityManager = getServiceMethod.invoke(null)
-                    // 检查是否为代理对象
-                    if (Proxy.isProxyClass(iActivityManager.javaClass)) {
-                        result = true
-                    } else {
-                        // 方法2：检查IBinder的描述符
-                        val descriptor = iActivityManager.javaClass.getName()
-                        if (descriptor.contains(ProtectSrc("Proxy")!!) ||
-                            descriptor.contains(ProtectSrc("LSPatch")!!) ||
-                            descriptor.contains(ProtectSrc("NPatch")!!) ||
-                            descriptor.contains(ProtectSrc("Handler")!!)
-                        ) {
-                            result = true
-                        }
-                    }
-                } catch (e: java.lang.Exception) {
-                    // 异常可能表示环境异常
-                    result = true
-                }
-                result
-            }
-            val isPMSProxied = run {
-                var result = false
-                try {
-                    // 通过反射获取PackageManager的IBinder
-                    val getPackageManagerMethod = Class.forName(ProtectSrc("android.app.ActivityThread")!!)
-                        .getDeclaredMethod(ProtectSrc("getPackageManager")!!)
-                    val iPackageManager = getPackageManagerMethod.invoke(null)
-                    if (Proxy.isProxyClass(iPackageManager.javaClass)) {
-                        result = true
-                    } else {
-                        val descriptor = iPackageManager.javaClass.getName()
-                        if (descriptor.contains(ProtectSrc("Proxy")!!) || descriptor.contains(ProtectSrc("LSPatch")!!) || descriptor.contains(ProtectSrc("NPatch")!!)) {
-                            result = true
-                        }
-                    }
-                } catch (e: Exception) {
-                    result = true
-                }
-                result
-            }
-            if (isAMSProxied || isPMSProxied) {
-                detectionCount++
-            }
-
-            // 检测3：LSPatch特定痕迹
-            val hasLSPatchArtifacts = run {
-                var result = false
-                try {
-                    val filesDir = context.filesDir
-                    val parentDir = filesDir.getParentFile()
-                    // 检查LSPatch相关的目录和文件
-                    val lspatchIndicators = arrayOf(
-                        ProtectSrc("lspatch")!!, ProtectSrc("npatch")!!, ProtectSrc("lspatched")!!, ProtectSrc("modules")!!, ProtectSrc("plugin")!!, ProtectSrc("patch")!!
-                    )
-                    result = lspatchIndicators.find { indicator ->
-                        val suspectDir = File(parentDir, indicator)
-                        suspectDir.exists() && suspectDir.isDirectory()
-                    } != null
-                    if (!result) {
-                        // 检查assets中是否有LSPatch相关文件
-                        val assetsFiles = context.assets.list(ProtectSrc("")!!)
-                        if (assetsFiles != null) {
-                            result = assetsFiles.find { asset ->
-                                asset.lowercase(Locale.getDefault()).contains(ProtectSrc("lspatch")!!) || asset.lowercase(Locale.getDefault()).contains(ProtectSrc("npatch")!!)
-                            } != null
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-                result
-            }
-            val hasLSPatchClasses = run {
-                // 使用完整的、更具体的类名
-                val lspatchClasses = arrayOf(
-                    ProtectSrc("org.lsposed.lspatch.LSPatchManager")!!,
-                    ProtectSrc("org.lsposed.lspatch.app.LSPApplication")!!,
-                    ProtectSrc("org.lsposed.lspatch.app.LSPApplication")!!,
-                    ProtectSrc("de.robv.android.xposed.XposedBridge")!!,
-                    ProtectSrc("de.robv.android.xposed.XposedHelpers")!!,
-                    ProtectSrc("org.lsposed.patch.NPatch")!!,
-                    ProtectSrc("org.lsposed.npatch.LSPApplication")!!
-                )
-                lspatchClasses.find { runCatching { Class.forName(it) }.isSuccess } != null
-            }
-            if (hasLSPatchArtifacts || hasLSPatchClasses) {
-                detectionCount++
-            }
-
-            // 如果有多项检测命中，认为存在LSPatch环境
-            val isLSPatch = detectionCount >= 2
-            if (isLSPatch) {
-                throw RuntimeException("unknow error")
-            }
-
-            //LSPosed / Xposed / SandHook 检测
-            run {
-                try {
-                    // 1. 获取 Unsafe 类
-                    val unsafeClass = Class.forName(ProtectSrc("sun.misc.Unsafe")!!)
-                    val theUnsafeField = unsafeClass.getDeclaredField(ProtectSrc("theUnsafe")!!)
-                    theUnsafeField.isAccessible = true
-                    val unsafe = theUnsafeField.get(null)
-
-                    // 2. 获取 LoadedApk 类
-                    val loadedApkClass = Class.forName(ProtectSrc("android.app.LoadedApk")!!)
-
-                    // 3. 【核心】使用 Unsafe 分配一个“全空”的 LoadedApk 实例
-                    // 这个实例没有经过构造函数，所有字段（mPackageName, mClassLoader 等）都是 null
-                    val allocateInstance = unsafeClass.getMethod(ProtectSrc("allocateInstance")!!, Class::class.java)
-                    val ghostLoadedApk = allocateInstance.invoke(unsafe, loadedApkClass)
-
-                    // 4. 获取目标方法
-                    val targetMethod = loadedApkClass.getDeclaredMethod(ProtectSrc("createOrUpdateClassLoaderLocked")!!, MutableList::class.java)
-                    targetMethod.isAccessible = true
-
-                    // 5. 【引爆】调用方法
-                    // 因为 ghostLoadedApk 内部全是 null，原方法一执行就会产生空指针异常
-                    // 但如果 LSPosed Hook 了，它的 Bridge 会在异常抛出前的堆栈里
-                    targetMethod.invoke(ghostLoadedApk, null as MutableList<*>?)
-
-                    // 如果走到这里没崩，说明 LSPosed 甚至拦截了 NPE（极少见）或者方法没被 Hook 且没执行内部逻辑
-                } catch (e: Exception) {
-                    // 6. 捕获异常，剥离出真实的堆栈
-                    var cause: Throwable? = e
-                    // 如果是反射调用的异常，剥开一层
-                    if (e is InvocationTargetException) {
-                        cause = e.cause
-                    }
-                    if (cause != null) {
-                        val elements = cause.stackTrace
-                        for (element in elements) {
-                            val className = element.className
-                            //val method = element.methodName
-                            //val fullLine = "$className.$method"
-                            // LSPosed / Xposed / SandHook 特征
-                            if (className.contains(ProtectSrc("org.lsposed")!!) ||
-                                className.contains(ProtectSrc("de.robv.android.xposed")!!) ||
-                                className.contains(ProtectSrc("LSPHooker")!!) ||
-                                className.contains(ProtectSrc("com.elder.xposed")!!) ||  // EdXposed
-                                className.contains(ProtectSrc("HookBridge")!!) ||
-                                className.contains(ProtectSrc("SandHook")!!)
-                            ) {
-                                throw Exception("unknow error")
-                            }
-                        }
-                    }
-                }
-            }
-            // Frida detection
-            if (detectFridaHook()) {
-                throw Exception("unknow error")
-            }
+            verifyFridaOrThrow()
+            verifyApkCertificateOrThrow(context)
+            verifyApplicationClassOrThrow()
+            verifyThreadCountOrThrow()
+            verifyKnownPatchClassesOrThrow()
+            verifyMultiDexApplicationOrThrow()
+            verifyPluginAndPatchEnvironmentOrThrow(context)
+            verifyHookStackOrThrow()
+            verifyApkIntegritySignatureOrThrow(context)
             preVerifyPass = true
         } catch (_: Exception) {
             preVerifyPass = false

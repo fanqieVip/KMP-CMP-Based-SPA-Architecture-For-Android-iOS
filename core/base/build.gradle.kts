@@ -2,10 +2,12 @@ import com.codingfeline.buildkonfig.compiler.FieldSpec
 import com.frame.basic.buildsrc.ChannelConfig
 import com.frame.basic.buildsrc.ProjectBuildConfig
 import com.frame.basic.buildsrc.SignConfig
+import com.frame.basic.buildsrc.VmpConfig
 import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
 import com.frame.basic.utils.ApkSha1Utils
 import com.frame.basic.utils.getBuildEnvName
+import com.frame.basic.utils.isReleaseEnv
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -182,5 +184,8 @@ buildkonfig {
         buildConfigField(FieldSpec.Type.STRING, "DEEP_LINK_SCHEME", ProjectBuildConfig.Deeplink.scheme)
         buildConfigField(FieldSpec.Type.STRING, "DEEP_LINK_HOST", ProjectBuildConfig.Deeplink.host)
         buildConfigField(FieldSpec.Type.STRING, "APK_VERIFY_CODE", ApkSha1Utils.getSha1("${rootDir.absolutePath}/buildSrc/${SignConfig.storeFile}", SignConfig.keyAlias, SignConfig.storePassword))
+        // 仅生产环境注入 VMP so 名称；非生产环境为空，EnvCheckerUtils 会跳过 VMP 专属完整性校验。
+        buildConfigField(FieldSpec.Type.STRING, "VMP_NMMP_NAME", if (project.isReleaseEnv()) VmpConfig.nmmpName else "")
+        buildConfigField(FieldSpec.Type.STRING, "VMP_NMMVM_NAME", if (project.isReleaseEnv()) VmpConfig.nmmvmName else "")
     }
 }

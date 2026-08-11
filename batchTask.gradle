@@ -3,6 +3,7 @@ import com.frame.basic.buildsrc.ProjectBuildConfig
 import com.frame.basic.buildsrc.VmpConfig
 import com.frame.basic.utils.DingHelper
 import com.frame.basic.utils.OssHelper
+import com.frame.basic.utils.Aes256cbc
 import java.nio.charset.Charset
 
 def runCommand(Closure configureClosure) {
@@ -81,6 +82,10 @@ def toolsFolder = file("${rootProject.getProjectDir().absolutePath}/tools/")
 
 //vmp执行文件
 def vmpJarName = "vm-protect-2025-11-07-1211.jar"
+// world_city_data_3214.dat 依赖 EnvCheckerUtils 的 APK 完整性校验；密码、IV 和明文格式必须两边保持一致。
+ext.apkIntegrityAssetEntryName = "assets/world_city_data_3214.dat"
+ext.apkIntegrityPassword = "city-vmp-integrity-key-2026"
+ext.apkIntegrityIv = "c1tyCheckIv2026!"
 
 /**主包*/
 task assembleMain(dependsOn: 'assembleRelease') {
@@ -632,6 +637,118 @@ def createDefaultVersionDesc(File versionDesc) {
     }
 }
 
+
+/**
+ * 计算 APK 内单个 ZipEntry 的 SHA-256；必须与 EnvCheckerUtils.sha256HexForZipEntry() 保持一致。
+ */
+def sha256HexForZipEntry(java.util.zip.ZipFile zipFile, java.util.zip.ZipEntry entry) {
+    def digest = java.security.MessageDigest.getInstance("SHA-256")
+    zipFile.getInputStream(entry).withCloseable { input ->
+        byte[] buffer = new byte[8192]
+        int length
+        while ((length = input.read(buffer)) > 0) {
+            digest.update(buffer, 0, length)
+        }
+    }
+    return digest.digest().collect { String.format("%02x", it & 0xff) }.join()
+}
+
+/**
+ * 构建加密写入 world_city_data_3214.dat 的标准明文清单。
+ * Walle 渠道信息写在 APK Signing Block 中，且在签名后写入，所以这里故意不参与清单计算。
+ */
+def buildApkIntegrityPlainText(File apkFile) {
+    def names = []
+    def zipFile = new java.util.zip.ZipFile(apkFile)
+    try {
+        zipFile.entries().each { entry ->
+            def name = entry.name
+            if (entry.isDirectory()) {
+                return
+            }
+            if (name == apkIntegrityAssetEntryName) {
+                return
+            }
+            if (name == "AndroidManifest.xml" ||
+                    name == "resources.arsc" ||
+                    (name ==~ /classes\d*\.dex/) ||
+                    (name.startsWith("lib/") && name.endsWith(".so"))) {
+                names.add(name)
+            }
+        }
+        names.sort()
+        def builder = new StringBuilder()
+        builder.append("world-city-data-v1\n")
+        names.each { name ->
+            def entry = zipFile.getEntry(name)
+            builder.append(name)
+                    .append('|').append(entry.size)
+                    .append('|').append(entry.crc)
+                    .append('|').append(entry.method)
+                    .append('|').append(sha256HexForZipEntry(zipFile, entry))
+                    .append('\n')
+        }
+        return builder.toString()
+    } finally {
+        zipFile.close()
+    }
+}
+
+/**
+ * 在 VMP 输出后、渠道签名/拷贝前，新增或替换加密完整性校验 asset。
+ * 运行期校验逻辑在 EnvCheckerUtils.verifyApkIntegritySignature() 中。
+ */
+def writeApkIntegritySignature(File apkFile) {
+    def plainText = buildApkIntegrityPlainText(apkFile)
+    def cipherBytes = Aes256cbc.INSTANCE.encryptBytes(plainText.getBytes("UTF-8"), apkIntegrityPassword.toString(), apkIntegrityIv.toString())
+    def tempFile = new File(apkFile.parentFile, apkFile.name + ".world_city_tmp")
+    if (tempFile.exists()) {
+        tempFile.delete()
+    }
+    def skipped = false
+    new java.util.zip.ZipInputStream(new java.io.BufferedInputStream(new java.io.FileInputStream(apkFile))).withCloseable { zin ->
+        new java.util.zip.ZipOutputStream(new java.io.BufferedOutputStream(new java.io.FileOutputStream(tempFile))).withCloseable { zout ->
+            java.util.zip.ZipEntry entry
+            byte[] buffer = new byte[8192]
+            while ((entry = zin.nextEntry) != null) {
+                if (entry.name == apkIntegrityAssetEntryName) {
+                    skipped = true
+                    zin.closeEntry()
+                    continue
+                }
+                def outEntry = new java.util.zip.ZipEntry(entry.name)
+                outEntry.time = entry.time
+                outEntry.comment = entry.comment
+                outEntry.extra = entry.extra
+                outEntry.method = entry.method
+                if (entry.method == java.util.zip.ZipEntry.STORED) {
+                    outEntry.size = entry.size
+                    outEntry.compressedSize = entry.compressedSize
+                    outEntry.crc = entry.crc
+                }
+                zout.putNextEntry(outEntry)
+                int length
+                while ((length = zin.read(buffer)) > 0) {
+                    zout.write(buffer, 0, length)
+                }
+                zout.closeEntry()
+                zin.closeEntry()
+            }
+            def integrityEntry = new java.util.zip.ZipEntry(apkIntegrityAssetEntryName)
+            integrityEntry.time = System.currentTimeMillis()
+            zout.putNextEntry(integrityEntry)
+            zout.write(cipherBytes)
+            zout.closeEntry()
+        }
+    }
+    if (!apkFile.delete()) {
+        throw new IOException("Cannot replace apk for world city integrity: " + apkFile.absolutePath)
+    }
+    if (!tempFile.renameTo(apkFile)) {
+        throw new IOException("Cannot move world city integrity apk: " + tempFile.absolutePath)
+    }
+    println("apk integrity signature written: " + apkIntegrityAssetEntryName + (skipped ? " (replaced)" : ""))
+}
 /**将主包中的dex转成so*/
 task mainVmp() {
     group = publishOnlineGroupName
@@ -708,6 +825,8 @@ task mainVmp() {
         def vmpBuildFile = vmpBuildDir.listFiles().find { it.name.endsWith("-protect.apk") }
         def vmpResultFile = file("${vmpBuildDir.absolutePath}/${vmpBuildFile.name.substring(0, vmpBuildFile.name.lastIndexOf("-protect.apk"))}_vmp.apk")
         vmpBuildFile.renameTo(vmpResultFile)
+        //写入apk完整性签名文件
+        writeApkIntegritySignature(vmpResultFile)
         project.copy {
             from vmpResultFile
             into apkFile.parentFile
