@@ -51,7 +51,9 @@ class WKWebViewNavigatorDelegate(
 
                 "title" -> state.title = newValue as? String
                 "URL" -> state.updateCurrentUrlIfPresent((newValue as? NSURL)?.absoluteString)
-                "canGoBack" -> state.canGoBack = (newValue as? NSNumber)?.boolValue ?: false
+                "canGoBack" -> state.canGoBack =
+                    (ofObject as? WKWebView)?.hasEffectiveBackItem(state.currentUrl)
+                        ?: ((newValue as? NSNumber)?.boolValue ?: false)
                 "canGoForward" -> state.canGoForward =
                     (newValue as? NSNumber)?.boolValue ?: false
             }
@@ -72,6 +74,7 @@ class WKWebViewNavigatorDelegate(
     override fun webView(webView: WKWebView, didFinishNavigation: WKNavigation?) {
         state.scope?.launch(Dispatchers.Main) {
             state.loadingState = LoadingState.Finished
+            state.canGoBack = webView.hasEffectiveBackItem(state.currentUrl)
         }
     }
 
@@ -202,6 +205,47 @@ class WKWebViewNavigatorDelegate(
 internal fun WebViewState.updateCurrentUrlIfPresent(url: String?) {
     if (!url.isNullOrBlank() && url != "null" && url != "<null>") {
         currentUrl = url
+    }
+}
+
+/**
+ * 判断 WKWebView 是否存在用户可感知的有效后退页面。
+ *
+ * iOS 的 backForwardList 可能保留 about:blank、data、blob 或与当前页完全相同的历史项，
+ * 这些条目会让 canGoBack 返回 true，但用户看到的页面已经处于首层。安卓 X5 不会把这类
+ * 条目暴露成有效后退状态，因此这里在 iOS 平台层做一次语义归一化。
+ *
+ * @return true 表示存在有效后退页面，false 表示应视为已经退到底。
+ */
+private fun WKWebView.hasEffectiveBackItem(stateCurrentUrl: String?): Boolean {
+    if (!canGoBack) {
+        return false
+    }
+    val backUrl = backForwardList.backItem?.URL ?: return false
+    val scheme = backUrl.scheme?.lowercase()
+    val backAbsoluteString = backUrl.absoluteString
+    if (scheme != "http" && scheme != "https") {
+        return false
+    }
+    val currentUrls = listOfNotNull(
+        backForwardList.currentItem?.URL?.absoluteString,
+        URL?.absoluteString,
+        stateCurrentUrl
+    ).map { it.normalizeWebViewHistoryUrl() }
+    return backAbsoluteString.normalizeWebViewHistoryUrl() !in currentUrls
+}
+
+/**
+ * 归一化 WebView 历史 URL，避免尾斜杠等轻微差异导致同页重复历史项误判为有效返回。
+ *
+ * @return 可用于历史项比较的 URL 字符串。
+ */
+private fun String?.normalizeWebViewHistoryUrl(): String {
+    val url = this?.trim().orEmpty()
+    return if (url.length > 1 && url.endsWith("/")) {
+        url.dropLast(1)
+    } else {
+        url
     }
 }
 
