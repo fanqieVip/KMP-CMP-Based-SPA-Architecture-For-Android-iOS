@@ -1,6 +1,7 @@
 package com.basic.base.ktx
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -8,22 +9,29 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -306,34 +314,49 @@ fun ComposeEditText(
     )
 }
 
-
 /**
  * 构建稳定的可点击富文本，避免直接依赖 Text + LinkAnnotation 的点击命中。
  *
  * @param modifier 外层布局修饰符。
  * @param style 文本整体样式。
+ * @param inlineContent 内联内容（图标等）。
  * @param content 富文本构建内容。
  */
 @Composable
 fun LinkText(
     modifier: Modifier = Modifier,
     style: TextStyle = TextStyle(),
+    inlineContent: Map<String, InlineTextContent> = mapOf(),
     content: LinkTextBuilder.() -> Unit
 ) {
     val builder = LinkTextBuilder()
     builder.content()
     val linkText = builder.build()
-    ClickableText(
+    var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    BasicText(
         text = linkText.text,
-        modifier = modifier,
-        style = style,
-        onClick = { offset ->
-            linkText.actions.forEach { (tag, action) ->
-                if (linkText.text.getStringAnnotations(tag = tag, start = offset, end = offset).isNotEmpty()) {
-                    action()
-                    return@ClickableText
+        modifier = modifier.pointerInput(linkText.actions) {
+            detectTapGestures { pos ->
+                layoutResult?.let { layout ->
+                    val offset = layout.getOffsetForPosition(pos)
+                    linkText.actions.forEach { (tag, action) ->
+                        if (linkText.text.getStringAnnotations(
+                                tag = tag,
+                                start = offset,
+                                end = offset
+                            ).isNotEmpty()
+                        ) {
+                            action()
+                            return@detectTapGestures
+                        }
+                    }
                 }
             }
+        },
+        style = style,
+        inlineContent = inlineContent,
+        onTextLayout = {
+            layoutResult = it
         }
     )
 }
@@ -352,6 +375,16 @@ class LinkTextBuilder internal constructor() {
      */
     fun append(text: String) {
         builder.append(text)
+    }
+
+    /**
+     * 追加内联内容（如图标）。
+     *
+     * @param id 唯一标识符。
+     * @param alternateText 替代文本。
+     */
+    fun appendInlineContent(id: String, alternateText: String = "[icon]") {
+        builder.appendInlineContent(id, alternateText)
     }
 
     /**
