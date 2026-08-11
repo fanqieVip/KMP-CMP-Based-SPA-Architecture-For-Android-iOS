@@ -175,28 +175,16 @@ iosApp/Configuration/iosConfig.xcconfig
 - 网络 API 必须收敛到 `*Repository`。
 - 类、方法、成员变量必须补齐 KDoc 或注释。
 
-### 7. 编译期字符串保护进 Android 产物
+### 7. Android APK 安全防护
 
-`com.basic.protect-src` 用于保护 Android Release 产物中的敏感字符串常量。业务代码在 `commonMain` 中可以直接调用 `ProtectSrc(data: String?)`，保持 KMP 调用方式不变；Android 编译后，插件会把直接包裹的字符串字面量改写为加密后的 `ByteArray` 常量，并在运行期通过 `ProtectSrcRuntime` 组合密钥片段后解密。
+项目内置 Android APK 安全防护链路，覆盖编译期、发布期和运行期：
 
-典型用法：
+- `com.basic.protect-src`：保护密钥、请求头 key、JSBridge 名称、Hook/Frida/Patch 特征等敏感字符串，避免直接以明文进入 Android 产物。
+- `app/tasks/publish_online/mainVmp`：对生产 APK 执行 VMP 加固，并在加固后写入 APK 完整性签名。
+- `VmpConfig.kt`：集中维护 VMP 加密范围、VMP so 名和初始化类名，安全核心类必须纳入加固范围。
+- `EnvCheckerUtils.kt`：运行期环境校验核心类，负责证书、包体完整性、Hook、Frida、插件化和改包风险检测，必须被 VMP 保护。
 
-```kotlin
-import com.basic.base.utils.ProtectSrc
-
-val headerName = ProtectSrc("X-Sign")!!
-registerJsBridge<String, String>(ProtectSrc("createSign")!!) {
-    GlobalHeaders.buildSignData(it ?: "")
-}
-```
-
-插件特性：
-
-- 只处理 Android 产物，`commonMain`、iOS 编译仍保留普通 marker 函数语义。
-- 仅支持直接字符串字面量或 `null`，不处理变量、字符串拼接或运行期表达式。
-- 每次构建都会生成不同的 AES password 和 IV。
-- password、IV 会拆成多段 `ByteArray`，运行期 XOR 组合，不以明文字符串进入 APK。
-- 加密结果本身也以 `ByteArray` 指令生成，编译后不再保留被保护字符串的明文常量。
+具体接入规则、配置入口、双端一致性要求和发布验收清单见 [APK 安全防护知识库](./skills/knowledge/apk安全防护.md)。
 
 ## AI Agent 协作体系
 
@@ -319,8 +307,7 @@ project/<name>/
 - `core/base/src/commonMain/kotlin/com/basic/base/router/Router.kt`：路由注解和协议。
 - `buildSrc/src/main/kotlin/com/frame/basic/router/RouterSymbolProcessor.kt`：路由生成器。
 - `buildSrc/src/main/kotlin/com/frame/basic/lint/LintSymbolProcessor.kt`：架构红线。
-- `buildSrc/src/main/kotlin/com/frame/basic/plugin/ProtectSrcPlugin.kt`：Android 字符串字节码保护插件。
-- `buildSrc/src/main/kotlin/com/frame/basic/protect/ProtectSrcClassVisitor.kt`：`ProtectSrc` 调用字节码改写器。
+- `skills/knowledge/apk安全防护.md`：Android APK 安全防护入口，索引 `ProtectSrc`、VMP、完整性签名与运行期校验。
 - `buildSrc/src/main/kotlin/com/frame/basic/plugin/IosConfigPlugin.kt`：iOS 配置聚合。
 - `project/main/src/commonMain/kotlin/com/basic/main/ui/`：业务页面示例。
 
@@ -338,6 +325,7 @@ project/<name>/
 
 - [架构设计文档](./skills/knowledge/架构设计文档.md)
 - [架构 API 文档](./skills/knowledge/架构api文档.md)
+- [APK 安全防护知识库](./skills/knowledge/apk安全防护.md)
 - [AI Agent 总入口](./AGENTS.md)
 - [UI 开发工作流](./skills/workflows/UI开发工作流规范.md)
 - [SDK 集成工作流](./skills/workflows/SDK集成工作流规范.md)
