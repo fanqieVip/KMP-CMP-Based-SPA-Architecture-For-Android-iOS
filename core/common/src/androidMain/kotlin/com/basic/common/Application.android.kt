@@ -8,7 +8,7 @@ import kotlinx.coroutines.Dispatchers
 internal actual object Application {
     actual fun onCreate() {
         //apk运行环境自检
-        applicationScope.launchScope(Dispatchers.IO) {
+        applicationScope.launchScope(Dispatchers.Default) {
             checkEnv()
         }
     }
