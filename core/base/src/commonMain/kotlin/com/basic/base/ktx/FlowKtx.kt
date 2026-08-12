@@ -69,13 +69,15 @@ suspend fun <T> Flow<T>.takeOnce(
 }
 
 /**
- * 满足条件前会一直执行 then，直到满足条件后终止收集（满足条件当次不执行 then）。
+ * 满足条件前会一直执行 then，直到满足条件后终止收集（满足条件当次根据includeMatched决定是否执行 then）。
  * @param predicate 是否满足条件
  * @param timeout 超时时间，如果超过这个时间还没有满足条件终止，则终止收集，并执行最后一次 then，但数据是 null。 当 timeout <= 0 时，不使用超时机制
+ * @param includeMatched 满足条件的当次数据是否执行一次 then
  */
 suspend fun <T> Flow<T>.takeUntil(
     predicate: suspend (T) -> Boolean,
     timeout: Long = 0L,
+    includeMatched: Boolean = false,
     then: suspend (T?) -> Unit
 ) {
     coroutineScope {
@@ -94,6 +96,9 @@ suspend fun <T> Flow<T>.takeUntil(
                 }
                 val value = channelResult.getOrThrow()
                 if (predicate(value)) {
+                    if (includeMatched) {
+                        then(value)
+                    }
                     break
                 }
                 then(value)
