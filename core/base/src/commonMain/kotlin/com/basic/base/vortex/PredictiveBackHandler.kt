@@ -60,7 +60,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.math.min
 
 @Composable
 expect fun PredictiveBackHandler(
@@ -332,14 +331,7 @@ fun CurrentScreenPredictiveBack(
                 (offsetInDp / swipeMaxWidth).coerceIn(0f, 1f)
             } else 0f
 
-            val alpha = if (progress < 0.5f) {
-                // 前 50%：从 0.6 快速降至 0.3
-                0.6f - (progress / 0.5f) * 0.3f
-            } else {
-                // 后 50%：从 0.3 逐渐降至 0.0
-                0.3f - ((progress - 0.5f) / 0.5f) * 0.3f
-            }
-
+            val alpha = 0.3f * (1f - progress)
             Box(
                 modifier = Modifier.graphicsLayer {
                     translationX = -(offsetInDp.toPx())
