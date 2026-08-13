@@ -25,14 +25,18 @@
 ### 2.1 物理结构生成 (Physical Tree)
 
 1. 创建模块根目录 `project/<name>/`。
-2. 创建标准源码树：
+2. 创建 `libs/android/` 目录。
+3. 创建 `libs/ios/framework/` 目录。
+4. 创建标准源码树：
    - `src/commonMain/kotlin/com/basic/<suffix>/di/impl/`
    - `src/commonMain/composeResources/values/`
    - `src/androidMain/`
-3. 创建模块 `.gitignore`，内容必须使用 [模块 .gitignore 模板](#58-模块-gitignore-模板)。
-4. 创建基础清单：`src/androidMain/AndroidManifest.xml`。
-5. 创建基础混淆：`proguard-rules.pro`。
-6. `composeResources/values/strings.xml` 仅在模块确实需要字符串资源时创建；模板生成阶段不默认创建占位字符串。
+   - `src/iosMain/cinterop/`
+5. 创建基础 cinterop 文件：`src/iosMain/cinterop/<name>.def` 与 `src/iosMain/cinterop/<name>_umbrella.h`，其中 `<name>` 默认取模块名，除非特别说明；空 `libs/ios/framework/` 时 umbrella header 使用 `#import <Foundation/Foundation.h>` 作为最小内容。
+6. 创建模块 `.gitignore`，内容必须使用 [模块 .gitignore 模板](#58-模块-gitignore-模板)。
+7. 创建基础清单：`src/androidMain/AndroidManifest.xml`。
+8. 创建基础混淆：`proguard-rules.pro`。
+9. `composeResources/values/strings.xml` 仅在模块确实需要字符串资源时创建；模板生成阶段不默认创建占位字符串。
 
 ### 2.2 构建配置注入 (Gradle & Settings)
 
@@ -42,6 +46,8 @@
 4. **app 自动依赖**: 无需询问，必须自动在 `app/build.gradle.kts` 的 `commonMain`、`androidMain`、`iosMain` 依赖块中追加：
    - `api(projects.project.<nameAccessor>)`
 5. **本地 Android 包**: 若模块需要本地 AAR/JAR，必须放在 `project/<name>/libs/android/`，并使用模板中的 `compileOnly(fileTree(...))`；不得复制到 app 模块。
+6. **本地 iOS Framework**: 若模块需要本地 iOS `.framework`，必须放在 `project/<name>/libs/ios/framework/` 下，Gradle 模板必须通过 `linkerOpts(project.linkerOptsByDir("libs/ios/framework"))` 与 `compilerOpts(project.compilerOptsByDir("libs/ios/framework"))` 递归扫描并生成 `-F`、`-framework` 参数；cinterop 名默认取模块名 `<name>`，除非特别说明。
+7. **iOS 静态库限制**: `linkerOptsByDir` / `compilerOptsByDir` 仅自动处理 `libs/ios/framework/` 内的 `.framework`。纯 `.a` 文件不进入默认模板，后续遇到 `.a` SDK 时再单独适配。
 
 ### 2.3 代码模板生成 (DI & Service)
 
@@ -90,6 +96,8 @@
 
 ```kotlin
 import com.frame.basic.buildsrc.ProjectBuildConfig
+import com.frame.basic.ktx.compilerOptsByDir
+import com.frame.basic.ktx.linkerOptsByDir
 import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
 
@@ -126,7 +134,17 @@ kotlin {
     listOf(
         iosArm64(),
         iosSimulatorArm64()
-    )
+    ).forEach { iosTarget ->
+        iosTarget.binaries.all {
+            linkerOpts(project.linkerOptsByDir("libs/ios/framework"))
+        }
+        iosTarget.compilations.getByName("main") {
+            cinterops.create("<name>") {
+                defFile(project.file("src/iosMain/cinterop/<name>.def"))
+                compilerOpts(project.compilerOptsByDir("libs/ios/framework"))
+            }
+        }
+    }
 
     sourceSets {
         commonMain {
@@ -176,7 +194,25 @@ buildkonfig {
 }
 ```
 
-### 5.2 AndroidManifest.xml 模板
+### 5.2 iOS cinterop 模板
+
+- **`src/iosMain/cinterop/<name>.def`**:
+
+```properties
+package = com.basic.<suffix>.cinterop
+language = Objective-C
+headers = <name>_umbrella.h
+headerFilter = **
+compilerOpts = -I./src/iosMain/cinterop
+```
+
+- **`src/iosMain/cinterop/<name>_umbrella.h`**:
+
+```objc
+#import <Foundation/Foundation.h>
+```
+
+### 5.3 AndroidManifest.xml 模板
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
