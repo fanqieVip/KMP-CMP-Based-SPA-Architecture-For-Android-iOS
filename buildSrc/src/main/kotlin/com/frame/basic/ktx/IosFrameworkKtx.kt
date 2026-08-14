@@ -160,29 +160,55 @@ private fun File.frameworkImportHeaders(
 ): List<String> {
     val excludeSet = excludeHeaderFrameworks.toSet()
     val frameworkSearchPaths = frameworkSearchPaths()
-    // cinterop 只需要导入 Objective-C 可解析的 umbrella header；framework 链接由 podspec 全量处理。
+    // cinterop 只导入 Objective-C 可解析的公开头；framework 链接由 podspec 全量处理。
     val autoHeaders = frameworkDirs()
-        .filter { framework ->
-            framework.nameWithoutExtension !in excludeSet &&
-                    framework.isCInteropCandidateFramework() &&
-                    framework.isCInteropImportable(frameworkSearchPaths)
-        }
-        .map { framework ->
-            val frameworkName = framework.nameWithoutExtension
-            "$frameworkName/$frameworkName.h"
+        .filterNot { framework -> framework.nameWithoutExtension in excludeSet }
+        .flatMap { framework ->
+            framework.cInteropCandidateHeaders()
+                .filter { header -> header.isCInteropImportable(frameworkSearchPaths) }
+                .map { header -> header.importPath }
         }
 
     return (autoHeaders + extraHeaders).distinct()
 }
 
-private fun File.isCInteropCandidateFramework(): Boolean {
-    val frameworkName = nameWithoutExtension
-    return resolve("Headers/$frameworkName.h").exists()
-}
+private fun File.cInteropCandidateHeaders(): List<FrameworkHeader> {
+    val moduleMapHeaders = moduleMapExportedHeaders()
+    if (moduleMapHeaders.isNotEmpty()) return moduleMapHeaders
 
-private fun File.isCInteropImportable(frameworkSearchPaths: List<String>): Boolean {
     val frameworkName = nameWithoutExtension
     val header = resolve("Headers/$frameworkName.h")
+    if (!header.exists()) return emptyList()
+    return listOf(FrameworkHeader(importPath = "$frameworkName/$frameworkName.h", file = header))
+}
+
+private fun File.moduleMapExportedHeaders(): List<FrameworkHeader> {
+    val frameworkName = nameWithoutExtension
+    val moduleMap = resolve("Modules/module.modulemap")
+    if (!moduleMap.exists()) return emptyList()
+
+    return moduleMap.readText()
+        .lineSequence()
+        .mapNotNull { line -> line.moduleMapHeaderPath() }
+        .mapNotNull { headerPath ->
+            val header = resolve("Headers").resolve(headerPath)
+            if (!header.exists()) return@mapNotNull null
+            FrameworkHeader(
+                importPath = "$frameworkName/${headerPath.invariantSeparators()}",
+                file = header
+            )
+        }
+        .distinctBy { it.importPath }
+        .toList()
+}
+
+private fun String.moduleMapHeaderPath(): String? {
+    val trimmed = substringBefore("//").trim()
+    val match = moduleMapHeaderRegex.find(trimmed) ?: return null
+    return match.groupValues[1].trim().takeIf { it.isNotEmpty() }
+}
+
+private fun FrameworkHeader.isCInteropImportable(frameworkSearchPaths: List<String>): Boolean {
     val sdkPath = iosSimulatorSdkPath() ?: return true
     val command = buildList {
         add("xcrun")
@@ -196,7 +222,7 @@ private fun File.isCInteropImportable(frameworkSearchPaths: List<String>): Boole
         frameworkSearchPaths.forEach { searchPath ->
             add("-F$searchPath")
         }
-        add(header.absolutePath)
+        add(file.absolutePath)
     }
 
     return runCatching {
@@ -207,6 +233,13 @@ private fun File.isCInteropImportable(frameworkSearchPaths: List<String>): Boole
             .waitFor() == 0
     }.getOrDefault(true)
 }
+
+private data class FrameworkHeader(
+    val importPath: String,
+    val file: File,
+)
+
+private val moduleMapHeaderRegex = Regex("""^(?:umbrella\s+)?header\s+"([^"]+)"""")
 
 private fun iosSimulatorSdkPath(): String? =
     runCatching {
@@ -262,6 +295,9 @@ private fun StringBuilder.appendPodspecArray(name: String, values: List<String>)
 
 private fun java.nio.file.Path.invariantSeparatorsPath(): String =
     toString().replace(File.separatorChar, '/')
+
+private fun String.invariantSeparators(): String =
+    replace(File.separatorChar, '/')
 
 private fun String.podspecEscaped(): String =
     replace("\\", "\\\\").replace("'", "\\'")
