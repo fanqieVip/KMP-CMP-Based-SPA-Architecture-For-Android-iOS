@@ -25,14 +25,18 @@
 ### 2.1 物理结构生成 (Physical Tree)
 
 1. 创建模块根目录 `project/<name>/`。
-2. 创建标准源码树：
+2. 创建 `libs/android/` 目录。
+3. 创建 `libs/ios/framework/` 目录。
+4. 创建标准源码树：
    - `src/commonMain/kotlin/com/basic/<suffix>/di/impl/`
    - `src/commonMain/composeResources/values/`
    - `src/androidMain/`
-3. 创建模块 `.gitignore`，内容必须使用 [模块 .gitignore 模板](#58-模块-gitignore-模板)。
-4. 创建基础清单：`src/androidMain/AndroidManifest.xml`。
-5. 创建基础混淆：`proguard-rules.pro`。
-6. `composeResources/values/strings.xml` 仅在模块确实需要字符串资源时创建；模板生成阶段不默认创建占位字符串。
+5. 不再手动创建 `src/iosMain/cinterop/` 与 `.def/.h` 文件；iOS cinterop 文件由 `registerIosLocalFrameworkPod` 自动生成到 `build/generated/iosLocalFrameworkPods/<podName>/cinterop/`。
+6. `<name>Sdk.podspec` 这类本地 Podspec 由 `registerIosLocalFrameworkPod` 自动生成到模块根目录；Podfile 自动引用模块目录。
+7. 创建模块 `.gitignore`，内容必须使用 [模块 .gitignore 模板](#58-模块-gitignore-模板)。
+8. 创建基础清单：`src/androidMain/AndroidManifest.xml`。
+9. 创建基础混淆：`proguard-rules.pro`。
+10. `composeResources/values/strings.xml` 仅在模块确实需要字符串资源时创建；模板生成阶段不默认创建占位字符串。
 
 ### 2.2 构建配置注入 (Gradle & Settings)
 
@@ -42,6 +46,8 @@
 4. **app 自动依赖**: 无需询问，必须自动在 `app/build.gradle.kts` 的 `commonMain`、`androidMain`、`iosMain` 依赖块中追加：
    - `api(projects.project.<nameAccessor>)`
 5. **本地 Android 包**: 若模块需要本地 AAR/JAR，必须放在 `project/<name>/libs/android/`，并使用模板中的 `compileOnly(fileTree(...))`；不得复制到 app 模块。
+6. **本地 iOS Framework**: 若模块需要本地 iOS `.framework`，必须放在 `project/<name>/libs/ios/framework/` 下。Gradle 模板必须通过 `registerIosLocalFrameworkPod(...)` 生成模块根目录 Podspec，并通过 `localFrameworkPodLinkerOpts/localFrameworkPodDefFile/localFrameworkPodCompilerOpts` 接入 Kotlin/Native。
+7. **iOS 静态库限制**: `linkerOptsByDir` / `compilerOptsByDir` 仅自动处理 `libs/ios/framework/` 内的 `.framework`。纯 `.a` 文件不进入默认模板，后续遇到 `.a` SDK 时再单独适配。
 
 ### 2.3 代码模板生成 (DI & Service)
 
@@ -90,6 +96,12 @@
 
 ```kotlin
 import com.frame.basic.buildsrc.ProjectBuildConfig
+import com.frame.basic.ktx.IosFrameworkCInteropConfig
+import com.frame.basic.ktx.IosLocalFrameworkPodConfig
+import com.frame.basic.ktx.localFrameworkPodCompilerOpts
+import com.frame.basic.ktx.localFrameworkPodDefFile
+import com.frame.basic.ktx.localFrameworkPodLinkerOpts
+import com.frame.basic.ktx.registerIosLocalFrameworkPod
 import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
 
@@ -123,10 +135,30 @@ kotlin {
         }
     }
 
+    val <nameCamel>IosSdk = registerIosLocalFrameworkPod(
+        IosLocalFrameworkPodConfig(
+            name = "<name>Sdk",
+            frameworkDir = "libs/ios/framework",
+            cinterop = IosFrameworkCInteropConfig(
+                packageName = "$androidNameSpace.cinterop"
+            )
+        )
+    )
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
-    )
+    ).forEach { iosTarget ->
+        iosTarget.binaries.all {
+            linkerOpts(project.localFrameworkPodLinkerOpts(<nameCamel>IosSdk))
+        }
+        iosTarget.compilations.getByName("main") {
+            cinterops.create(<nameCamel>IosSdk.name) {
+                defFile(project.localFrameworkPodDefFile(<nameCamel>IosSdk))
+                compilerOpts(project.localFrameworkPodCompilerOpts(<nameCamel>IosSdk))
+            }
+        }
+    }
 
     sourceSets {
         commonMain {
@@ -176,7 +208,16 @@ buildkonfig {
 }
 ```
 
-### 5.2 AndroidManifest.xml 模板
+### 5.2 iOS 本地 Framework 生成规则
+
+- `IosLocalFrameworkPodConfig.name` 默认取当前模块名加 `Sdk`，例如 `pay` -> `paySdk`。
+- 变量名默认取当前模块名加 `IosSdk`，例如 `pay` -> `payIosSdk`。
+- `IosFrameworkCInteropConfig.packageName` 默认取当前模块 `androidNameSpace + ".cinterop"`。
+- 模板不写 `extraHeaders`；只有 SDK 缺少同名 umbrella header 或确实需要额外入口头时，才在具体模块中手动补充。
+- `.def` 与 umbrella header 自动生成到 `build/generated/iosLocalFrameworkPods/<podName>/cinterop/`，不得手动放入 `src/iosMain/cinterop/`。
+- Podspec 自动生成在模块根目录，`vendored_frameworks` 指向 `libs/ios/framework/**/*.framework`。
+
+### 5.3 AndroidManifest.xml 模板
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>

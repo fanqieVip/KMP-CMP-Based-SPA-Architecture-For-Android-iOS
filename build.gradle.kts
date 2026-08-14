@@ -92,6 +92,7 @@ if (canBuildAppleTargets){
         if (!podfile.exists()) return@projectsEvaluated
 
         val allPods = mutableMapOf<String, String?>() // Pod名称 -> 版本号
+        val localPods = mutableMapOf<String, String>() // Pod名称 -> 相对 iosApp/Podfile 的本地路径
         val orderedNames = mutableListOf<String>()
 
         subprojects.forEach { subproject ->
@@ -117,6 +118,22 @@ if (canBuildAppleTargets){
                     }
                 }
             }
+
+            val iosLocalPods = if (subproject.extensions.extraProperties.has("iosLocalPods")) {
+                subproject.extensions.extraProperties.get("iosLocalPods") as? Map<*, *>
+            } else {
+                null
+            }
+
+            iosLocalPods.orEmpty().forEach { (name, path) ->
+                val podName = name as? String ?: return@forEach
+                val podPath = path as? String ?: return@forEach
+                if (!allPods.containsKey(podName)) {
+                    allPods[podName] = null
+                    localPods[podName] = podPath
+                    orderedNames.add(podName)
+                }
+            }
         }
 
         if (orderedNames.isNotEmpty()) {
@@ -127,9 +144,14 @@ if (canBuildAppleTargets){
                 appendLine("  use_frameworks!")
                 appendLine("  platform :ios, '$targetVersion'")
                 orderedNames.forEach { name ->
-                    val version = allPods[name]
-                    val versionPart = if (version != null) ", '~> $version'" else ""
-                    appendLine("  pod '$name'$versionPart")
+                    val localPath = localPods[name]
+                    if (localPath != null) {
+                        appendLine("  pod '$name', :path => '$localPath'")
+                    } else {
+                        val version = allPods[name]
+                        val versionPart = if (version != null) ", '~> $version'" else ""
+                        appendLine("  pod '$name'$versionPart")
+                    }
                 }
                 appendLine("end")
                 appendLine("")

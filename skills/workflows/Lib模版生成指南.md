@@ -18,20 +18,26 @@
 ### 2.1 物理结构生成 (Physical Tree)
 1. 创建模块根目录 `libs/<name>/`。
 2. 创建 `libs/android/` 目录。
-3. 创建标准源码树：
+3. 创建 `libs/ios/framework/` 目录。
+4. 创建标准源码树：
     - `src/commonMain/kotlin/com/basic/xxx/di/impl/`
     - `src/androidMain/kotlin/com/basic/xxx/di/impl/`
     - `src/iosMain/kotlin/com/basic/xxx/di/impl/`
-4. 创建模块 `.gitignore`，内容必须使用 [模块 .gitignore 模板](#54-模块-gitignore-模板)。
-5. 创建基础清单：`src/androidMain/AndroidManifest.xml` (仅含基础 `manifest` 节点)。
-6. 创建基础混淆：`proguard-rules.pro` (仅含默认注释)。
+5. 不再手动创建 `src/iosMain/cinterop/` 与 `.def/.h` 文件；iOS cinterop 文件由 `registerIosLocalFrameworkPod` 自动生成到 `build/generated/iosLocalFrameworkPods/<podName>/cinterop/`。
+6. `<name>Sdk.podspec` 这类本地 Podspec 由 `registerIosLocalFrameworkPod` 自动生成到模块根目录；Podfile 自动引用模块目录。
+7. 创建模块 `.gitignore`，内容必须使用 [模块 .gitignore 模板](#55-模块-gitignore-模板)。
+8. 创建基础清单：`src/androidMain/AndroidManifest.xml` (仅含基础 `manifest` 节点)。
+9. 创建基础混淆：`proguard-rules.pro` (仅含默认注释)。
 
 ### 2.2 构建配置注入 (Gradle & Settings)
 1. **build.gradle.kts**: 必须使用 [内置 Gradle 模板](#51-buildgradlekts-模板)。
 2. **settings.gradle.kts**: 自动添加 `include("libs:<name>")`。
 3. **core/common/build.gradle.kts**: 只有该能力需要对公共业务层可见时，才在 `commonMain`、`androidMain`、`iosMain` 依赖块中添加 `api(projects.libs.<nameAccessor>)`；未接入业务链路的 SDK 模块只 include，不强行暴露。
 4. **Android 本地 SDK**: AAR/JAR 必须放在 `libs/<name>/libs/android/`，并使用模板中的 `compileOnly(fileTree(...))`。这是本项目框架规范，框架会处理最终依赖打包，AI 不得擅自改成 `implementation(files(...))`、`api(files(...))` 或复制到 app 模块。
-5. **iOS Info.plist 参数**: 模板默认引入 `com.basic.ios`。若 SDK 需要在 iOS `Info.plist` 添加 AppKey、AppId、URL Scheme 等参数，必须在当前 `libs/<name>/build.gradle.kts` 通过 `iosConfig { field(...) }` 声明，字段值统一从 `SDKKeyConfig` 读取，禁止直接硬编码到 `Info.plist`。
+5. **iOS 本地 Framework**: iOS 本地 `.framework` 必须放在 `libs/<name>/libs/ios/framework/` 下。Gradle 模板必须通过 `registerIosLocalFrameworkPod(...)` 生成模块根目录 Podspec，并通过 `localFrameworkPodLinkerOpts/localFrameworkPodDefFile/localFrameworkPodCompilerOpts` 接入 Kotlin/Native。
+6. **iOS cinterop def**: 默认不写入源码目录。`registerIosLocalFrameworkPod` 自动生成 `.def` 与 umbrella header 到 `build/generated/iosLocalFrameworkPods/<podName>/cinterop/`；cinterop 名与 Pod 名保持一致，默认 `<name>Sdk`。
+7. **iOS 静态库限制**: `linkerOptsByDir` / `compilerOptsByDir` 仅自动处理 `libs/ios/framework/` 内的 `.framework`。纯 `.a` 文件不进入默认模板，后续遇到 `.a` SDK 时再单独适配。
+8. **iOS Info.plist 参数**: 模板默认引入 `com.basic.ios`。若 SDK 需要在 iOS `Info.plist` 添加 AppKey、AppId、URL Scheme 等参数，必须在当前 `libs/<name>/build.gradle.kts` 通过 `iosConfig { field(...) }` 声明，字段值统一从 `SDKKeyConfig` 读取，禁止直接硬编码到 `Info.plist`。
 
 ### 2.3 代码模板生成 (DI & SPI)
 1. **ApplicationService 模板**: 必须使用 [内置 SPI 模板](#52-spi-生命周期模板)。
@@ -57,6 +63,12 @@
 ### 5.1 build.gradle.kts 模板
 ```kotlin
 import com.frame.basic.buildsrc.ProjectBuildConfig
+import com.frame.basic.ktx.IosFrameworkCInteropConfig
+import com.frame.basic.ktx.IosLocalFrameworkPodConfig
+import com.frame.basic.ktx.localFrameworkPodCompilerOpts
+import com.frame.basic.ktx.localFrameworkPodDefFile
+import com.frame.basic.ktx.localFrameworkPodLinkerOpts
+import com.frame.basic.ktx.registerIosLocalFrameworkPod
 import com.frame.basic.ktx.toResourceClassName
 
 plugins {
@@ -91,7 +103,31 @@ kotlin {
             consumerKeepRules.files.add(project.file("proguard-rules.pro"))
         }
     }
-    listOf(iosArm64(), iosSimulatorArm64())
+
+    val <nameCamel>IosSdk = registerIosLocalFrameworkPod(
+        IosLocalFrameworkPodConfig(
+            name = "<name>Sdk",
+            frameworkDir = "libs/ios/framework",
+            cinterop = IosFrameworkCInteropConfig(
+                packageName = "$androidNameSpace.cinterop"
+            )
+        )
+    )
+
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+        iosTarget.binaries.all {
+            linkerOpts(project.localFrameworkPodLinkerOpts(<nameCamel>IosSdk))
+        }
+        iosTarget.compilations.getByName("main") {
+            cinterops.create(<nameCamel>IosSdk.name) {
+                defFile(project.localFrameworkPodDefFile(<nameCamel>IosSdk))
+                compilerOpts(project.localFrameworkPodCompilerOpts(<nameCamel>IosSdk))
+            }
+        }
+    }
     cocoapods {
         summary = androidNameSpace
         homepage = "https://www.example.com"
@@ -138,7 +174,16 @@ compose.resources {
 }
 ```
 
-### 5.2 SPI 生命周期模板
+### 5.2 iOS 本地 Framework 生成规则
+
+- `IosLocalFrameworkPodConfig.name` 默认取当前模块名加 `Sdk`，例如 `alibc` -> `alibcSdk`。
+- 变量名默认取当前模块名加 `IosSdk`，例如 `alibc` -> `alibcIosSdk`。
+- `IosFrameworkCInteropConfig.packageName` 默认取当前模块 `androidNameSpace + ".cinterop"`。
+- 模板不写 `extraHeaders`；只有 SDK 缺少同名 umbrella header 或确实需要额外入口头时，才在具体模块中手动补充。
+- `.def` 与 umbrella header 自动生成到 `build/generated/iosLocalFrameworkPods/<podName>/cinterop/`，不得手动放入 `src/iosMain/cinterop/`。
+- Podspec 自动生成在模块根目录，`vendored_frameworks` 指向 `libs/ios/framework/**/*.framework`。
+
+### 5.3 SPI 生命周期模板
 - **commonMain (`di/impl/ApplicationServiceImpl.kt`)**:
 ```kotlin
 package com.basic.<suffix>.di.impl
@@ -166,7 +211,7 @@ actual val applicationServiceImpl: ApplicationService = object : ApplicationServ
 }
 ```
 
-### 5.3 DI 模块模板
+### 5.4 DI 模块模板
 - **commonMain (`di/DI.kt`)**:
 ```kotlin
 package com.basic.<suffix>.di
@@ -179,7 +224,7 @@ val <suffix>Module = module {
 }
 ```
 
-### 5.4 模块 .gitignore 模板
+### 5.5 模块 .gitignore 模板
 
 ```gitignore
 /build
