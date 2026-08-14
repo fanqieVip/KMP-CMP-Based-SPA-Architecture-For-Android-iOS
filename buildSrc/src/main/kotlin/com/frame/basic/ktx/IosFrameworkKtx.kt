@@ -68,8 +68,8 @@ data class IosLocalFrameworkPodConfig(
 
 data class IosFrameworkCInteropConfig(
     val packageName: String,
-    // 只影响 umbrella.h 自动 import 的头文件，不影响 podspec 中 framework 的全量链接。
-    val excludeHeaderFrameworks: List<String> = defaultCInteropExcludedFrameworks.toList(),
+    // 只影响 umbrella.h 自动 import 的头文件，不影响 podspec 中 framework 的全量链接；默认依赖脚本自动过滤不可解析头。
+    val excludeHeaderFrameworks: List<String> = emptyList(),
     // 用于补充非标准 umbrella header，例如 Foo.framework/Headers/Bar.h。
     val extraHeaders: List<String> = emptyList(),
     val headerFilter: String = "**",
@@ -159,10 +159,13 @@ private fun File.frameworkImportHeaders(
     extraHeaders: List<String>,
 ): List<String> {
     val excludeSet = excludeHeaderFrameworks.toSet()
+    val frameworkSearchPaths = frameworkSearchPaths()
     // cinterop 只需要导入 Objective-C 可解析的 umbrella header；framework 链接由 podspec 全量处理。
     val autoHeaders = frameworkDirs()
         .filter { framework ->
-            framework.nameWithoutExtension !in excludeSet && framework.isCInteropCandidateFramework()
+            framework.nameWithoutExtension !in excludeSet &&
+                    framework.isCInteropCandidateFramework() &&
+                    framework.isCInteropImportable(frameworkSearchPaths)
         }
         .map { framework ->
             val frameworkName = framework.nameWithoutExtension
@@ -177,14 +180,45 @@ private fun File.isCInteropCandidateFramework(): Boolean {
     return resolve("Headers/$frameworkName.h").exists()
 }
 
-private val defaultCInteropExcludedFrameworks = setOf(
-    "SecurityGuardSDK",
-    "SGIndieKit",
-    "SGMain",
-    "SGMiddleTier",
-    "SGNoCaptcha",
-    "SGSecurityBody",
-)
+private fun File.isCInteropImportable(frameworkSearchPaths: List<String>): Boolean {
+    val frameworkName = nameWithoutExtension
+    val header = resolve("Headers/$frameworkName.h")
+    val sdkPath = iosSimulatorSdkPath() ?: return true
+    val command = buildList {
+        add("xcrun")
+        add("clang")
+        add("-x")
+        add("objective-c-header")
+        add("-fsyntax-only")
+        add("-isysroot")
+        add(sdkPath)
+        add("-mios-simulator-version-min=${ProjectBuildConfig.Build.Ios.deploymentTarget}")
+        frameworkSearchPaths.forEach { searchPath ->
+            add("-F$searchPath")
+        }
+        add(header.absolutePath)
+    }
+
+    return runCatching {
+        ProcessBuilder(command)
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
+            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+            .start()
+            .waitFor() == 0
+    }.getOrDefault(true)
+}
+
+private fun iosSimulatorSdkPath(): String? =
+    runCatching {
+        ProcessBuilder("xcrun", "--sdk", "iphonesimulator", "--show-sdk-path")
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
+            .start()
+            .inputStream
+            .bufferedReader()
+            .readText()
+            .trim()
+            .takeIf { it.isNotEmpty() }
+    }.getOrNull()
 
 private const val localFrameworkPodVersion = "1.0.0"
 private const val localFrameworkPodSummary = "Local frameworks"
