@@ -56,6 +56,7 @@ class TinyPngTask extends DefaultTask {
     }
 
     static TinyPngResult compress(File rootDir, File resDir, Iterable<String> whiteList,
+                                  Iterable<String> fileNameWhiteList,
                                   Iterable<TinyPngInfo> compressedList, int skipSize, float compressThreshold) {
         def newCompressedList = new ArrayList<TinyPngInfo>()
         def accountError = false
@@ -68,6 +69,11 @@ class TinyPngTask extends DefaultTask {
             def filePath = formatRelativePath(rootDir, file)
             def legacyFilePath = file.path
             def fileName = file.name
+
+            if (fileNameWhiteList?.contains(fileName)) {
+                println("match file name white list, skip it >>>>>>>>>>>>> $filePath")
+                continue label
+            }
 
             for (String s : whiteList) {
                 if (fileName ==~/$s/) {
@@ -251,6 +257,7 @@ class TinyPngTask extends DefaultTask {
         targetDirs.each { drawDir ->
             if(!error) {
                 TinyPngResult result = compress(project.rootDir, drawDir, configuration.whiteList,
+                        configuration.fileNameWhiteList,
                         compressedList, skipSize, compressThreshold)
                 beforeSize += result.beforeSize
                 afterSize += result.afterSize

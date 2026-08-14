@@ -9,6 +9,7 @@ class TinyPngExtension {
     int skipSize
     int compressThreshold
     ArrayList<String> whiteList
+    ArrayList<String> fileNameWhiteList
     ArrayList<String> resourceDir
     ArrayList<String> resourcePattern
 
@@ -16,6 +17,7 @@ class TinyPngExtension {
         apiKey = ""
         compressThreshold = 0
         whiteList = []
+        fileNameWhiteList = []
         resourceDir = []
         resourcePattern = []
     }
@@ -25,6 +27,7 @@ class TinyPngExtension {
         return "TinyPngExtension{" +
                 "apiKey='" + apiKey + '\'' +
                 ", whiteList=" + whiteList +
+                ", fileNameWhiteList=" + fileNameWhiteList +
                 ", resourceDir=" + resourceDir +
                 ", resourcePattern=" + resourcePattern +
                 '}'
