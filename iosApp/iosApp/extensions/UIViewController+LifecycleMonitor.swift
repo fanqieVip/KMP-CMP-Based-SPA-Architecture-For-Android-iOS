@@ -21,6 +21,11 @@ extension UIViewController {
         return UIInterfaceOrientation(rawValue: Int(resolvedOrientation)) ?? defaultOrientation
     }
 
+    @objc func swizzled_preferredStatusBarStyle() -> UIStatusBarStyle {
+        let style = StatusBar.shared.getPreferredStatusBarStyle()
+        return UIStatusBarStyle(rawValue: Int(style)) ?? .default
+    }
+
     @objc func swizzled_viewDidLoad() {
         self.swizzled_viewDidLoad()
         AppDelegate.shared.onUICreate(viewController: self)
@@ -83,6 +88,12 @@ extension UIViewController {
         // --- 交换 preferredInterfaceOrientationForPresentation ---
         if let original = class_getInstanceMethod(self, #selector(getter: preferredInterfaceOrientationForPresentation)),
            let swizzled = class_getInstanceMethod(self, #selector(swizzled_preferredInterfaceOrientationForPresentation)) {
+            method_exchangeImplementations(original, swizzled)
+        }
+
+        // --- 交换 preferredStatusBarStyle ---
+        if let original = class_getInstanceMethod(self, #selector(getter: preferredStatusBarStyle)),
+           let swizzled = class_getInstanceMethod(self, #selector(swizzled_preferredStatusBarStyle)) {
             method_exchangeImplementations(original, swizzled)
         }
     }
