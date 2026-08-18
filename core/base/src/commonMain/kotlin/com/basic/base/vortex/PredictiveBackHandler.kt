@@ -331,7 +331,7 @@ fun CurrentScreenPredictiveBack(
                 (offsetInDp / swipeMaxWidth).coerceIn(0f, 1f)
             } else 0f
 
-            val alpha = 0.3f * (1f - progress)
+            val alpha = 0.2f * (1f - progress)
             Box(
                 modifier = Modifier.graphicsLayer {
                     translationX = -(offsetInDp.toPx())
