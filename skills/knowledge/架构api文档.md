@@ -1285,7 +1285,16 @@ framework {
 | `targetSdkVersion` | `36` |
 | `ndkVersion` | `23.2.8568313` |
 | `cmakeVersion` | `3.22.1` |
-| `designSize` | `375` |
+
+### `DesignConfig`
+
+| 字段 | 值 | 含义 |
+| --- | --- | --- |
+| `baselinePixel` | `1080` | 设计基准设备的短边像素数 |
+| `baselinePpi` | `440` | 设计基准设备的物理 PPI |
+| `measurementPpi` | `375` | 设计标注使用的逻辑测量宽度 |
+
+完整换算公式、Compose Provider 和原生互操作规则参考 [PPI 适配指南](./ppi适配指南.md)。
 
 ### `HttpUrlConfig`
 

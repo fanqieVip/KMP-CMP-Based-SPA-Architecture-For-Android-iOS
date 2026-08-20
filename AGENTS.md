@@ -60,6 +60,7 @@
 | **通用架构** | [架构设计文档.md](./skills/knowledge/架构设计文档.md) | 模块职责图谱、依赖关系、启动流 |
 | **交互组件库** | [UI组件手册.md](./skills/knowledge/UI组件手册.md) | 页面模板、`Coordinator` 滑动联动、组件实战 |
 | **架构 API** | [架构api文档.md](./skills/knowledge/架构api文档.md) | 路由、网络、SPI、弹窗栈等核心 API 定义 |
+| **PPI 适配** | [ppi适配指南.md](./skills/knowledge/ppi适配指南.md) | Compose 物理尺寸适配、设计参数配置与原生控件 Density 隔离 |
 | **SDK 集成案例** | [SDK集成案例手册.md](./skills/knowledge/SDK集成案例手册.md) | 同类型 SDK 的接口设计、用户流程、数据流转与模型案例 |
 | **APK 安全防护** | [apk安全防护.md](./skills/knowledge/apk安全防护.md) | `ProtectSrc`、VMP 加固、完整性签名、运行期环境校验 |
 
