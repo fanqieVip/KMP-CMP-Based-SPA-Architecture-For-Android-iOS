@@ -38,7 +38,6 @@ immersionbar = "2.0.2"                                          # https://github
 compottie = "2.2.4"                                             # https://github.com/alexzhirkevich/compottie
 konnectivity = "0.1-alpha01"                                    # https://github.com/Plus-Mobile-Apps/konnectivity
 xxPermission = "28.3"                                           # https://github.com/getActivity/XXPermissions
-autoSize = "v1.2.1"                                             # https://github.com/JessYanCoding/AndroidAutoSize
 
 
 [libraries]
@@ -112,7 +111,6 @@ compottie-network = { module = "io.github.alexzhirkevich:compottie-network", ver
 compottie-resources = { module = "io.github.alexzhirkevich:compottie-resources", version.ref = "compottie" }
 konnectivity = { module = "com.plusmobileapps:konnectivity", version.ref = "konnectivity" }
 xxPermission = { group = "com.github.getActivity", name = "XXPermissions", version.ref = "xxPermission" }
-autoSize = { group = "com.github.JessYanCoding", name = "AndroidAutoSize", version.ref = "autoSize" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
