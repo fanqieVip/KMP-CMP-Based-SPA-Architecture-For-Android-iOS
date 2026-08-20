@@ -11,7 +11,6 @@ import com.basic.base.ktx.launchScope
 import com.plusmobileapps.konnectivity.Konnectivity
 import com.plusmobileapps.konnectivity.NetworkConnection
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,7 +33,7 @@ data class AppState(
     private var _toastCountdown: MutableState<Long> = mutableStateOf(0L),
     private var _toastText: MutableState<String> = mutableStateOf("0L"),
     private var _toastUpdateTime: MutableState<Long> = mutableStateOf(0L),
-    private val _statusBarTextIsDark: MutableSharedFlow<Boolean> = MutableSharedFlow(),
+    private val _statusBarTextIsDark: MutableStateFlow<Boolean> = MutableStateFlow(true),
     private val _screenOrientation: MutableState<ScreenOrientation> = mutableStateOf(
         ScreenOrientation.PORTRAIT
     ),
@@ -43,6 +42,11 @@ data class AppState(
      * app前台状态
      */
     val appIsForeground: StateFlow<Boolean> get() = _appIsForeground
+
+    /**
+     * 状态栏图标颜色状态
+     */
+    val statusBarTextIsDark: StateFlow<Boolean> get() = _statusBarTextIsDark
 
     /**
      * 网络连接状态
@@ -85,7 +89,7 @@ data class AppState(
 
     init {
         applicationScope.launchScope {
-            _statusBarTextIsDark.conflate().debounce(50).collectLatest {
+            _statusBarTextIsDark.debounce(50).collectLatest {
                 withContext(Dispatchers.Main) {
                     StatusBar.setStatusBarTextDark(it)
                 }
