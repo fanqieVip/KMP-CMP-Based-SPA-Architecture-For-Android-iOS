@@ -17,9 +17,6 @@ object ProjectBuildConfig {
         const val applicationId = "com.basic.kmpdemo"
         //app名称
         const val appName = "KmpProject"
-        //设计图尺寸
-        const val designSize: Int = 375
-
         /**
          * 安卓特定配置
          */

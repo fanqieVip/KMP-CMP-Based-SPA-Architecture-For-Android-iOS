@@ -1,5 +1,6 @@
 import com.codingfeline.buildkonfig.compiler.FieldSpec
 import com.frame.basic.buildsrc.ChannelConfig
+import com.frame.basic.buildsrc.DesignConfig
 import com.frame.basic.buildsrc.ProjectBuildConfig
 import com.frame.basic.buildsrc.SignConfig
 import com.frame.basic.buildsrc.VmpConfig
@@ -176,7 +177,9 @@ buildkonfig {
     exposeObjectWithName = androidNameSpace.toBuildConfigClassName()
     defaultConfigs {
         buildConfigField(FieldSpec.Type.STRING, "APPLICATION_ID", ProjectBuildConfig.Build.applicationId)
-        buildConfigField(FieldSpec.Type.INT, "DESIGN_SIZE", "${ProjectBuildConfig.Build.designSize}")
+        buildConfigField(FieldSpec.Type.INT, "DESIGN_BASELINE_PIXEL", "${DesignConfig.baselinePixel}")
+        buildConfigField(FieldSpec.Type.INT, "DESIGN_BASELINE_PPI", "${DesignConfig.baselinePpi}")
+        buildConfigField(FieldSpec.Type.INT, "DESIGN_MEASUREMENT_PPI", "${DesignConfig.measurementPpi}")
         buildConfigField(FieldSpec.Type.STRING, "APP_NAME", ProjectBuildConfig.Build.appName)
         buildConfigField(FieldSpec.Type.STRING, "DEFAULT_CHANNEL", ChannelConfig.default_channel)
         buildConfigField(FieldSpec.Type.STRING, "VERSION_TYPE", project.getBuildEnvName())

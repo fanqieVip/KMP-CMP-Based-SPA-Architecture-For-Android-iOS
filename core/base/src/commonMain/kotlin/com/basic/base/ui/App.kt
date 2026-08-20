@@ -63,18 +63,20 @@ fun BaseApp(
     permissionController: PermissionController,
     isRoot: Boolean = true
 ) {
-    CompositionLocalProvider(
-        LocalAppState provides appState,
-        LocalPermissionController provides permissionController,
-        LocalUIContainer provides uiContainer,
-    ) {
-        MaterialTheme {
-            val uiConfig = remember { withImpl<UIConfigService>() }
-            if (uiConfig == null) {
-                RootUIConfig(screen = screen, uiConfig = uiConfig)
-            } else {
-                uiConfig.RootUiConfig(isRoot) {
+    DesignDensityProvider {
+        CompositionLocalProvider(
+            LocalAppState provides appState,
+            LocalPermissionController provides permissionController,
+            LocalUIContainer provides uiContainer,
+        ) {
+            MaterialTheme {
+                val uiConfig = remember { withImpl<UIConfigService>() }
+                if (uiConfig == null) {
                     RootUIConfig(screen = screen, uiConfig = uiConfig)
+                } else {
+                    uiConfig.RootUiConfig(isRoot) {
+                        RootUIConfig(screen = screen, uiConfig = uiConfig)
+                    }
                 }
             }
         }

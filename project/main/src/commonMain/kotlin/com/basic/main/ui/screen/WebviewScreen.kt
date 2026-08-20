@@ -151,8 +151,10 @@ class WebviewScreen : BasicScreen() {
  * WebView 状态模型
  */
 class WebviewScreenModel : BasicScreenModel() {
-    private val url = "http://192.168.30.29:8083/test.html"
-//    private val url = "https://baidu.com"
+//    private val url = "http://192.168.30.29:8083/test.html"
+    //
+    private val url = "https://baidu.com"
+    //
     val webviewState = WebViewState(scope = screenModelScope)
     override fun onInit(context: ScreenContext) {
         webviewState.loadUrl(url)
