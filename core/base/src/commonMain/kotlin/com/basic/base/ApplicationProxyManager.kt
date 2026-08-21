@@ -2,6 +2,7 @@ package com.basic.base
 
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
+import com.basic.base.utils.initializeMmkv
 import com.basic.base.di.service.AndroidIntent
 import com.basic.base.di.service.ApplicationService
 import com.basic.base.di.service.IosNSUserActivity
@@ -21,6 +22,7 @@ import io.github.vinceglb.filekit.coil.addPlatformFileSupport
 object ApplicationProxyManager : ApplicationService {
     private val proxies by lazy { SPIRegisterCenter.all<ApplicationService>() }
     override fun onCreate() {
+        initializeMmkv()
         initNapier()
         initCoil()
         appState.autoCheckNetworkPermission()

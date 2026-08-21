@@ -23,7 +23,6 @@ ktorVersion = "3.5.2"                                           # https://klibs.
 ktorMonitor = "1.14.4"                                          # https://github.com/CosminMihuMDC/KtorMonitor
 lifecycleProcess = "2.11.0"
 utilcodex = "1.31.1"
-multiplatform-settings = "1.3.0"                                # https://klibs.io/project/russhwolf/multiplatform-settings
 filekit = "0.15.0"                                              # https://klibs.io/project/vinceglb/FileKit
 imagepicker = "1.1.5"                                           # https://github.com/ismoy/ImagePickerKMP
 moko-permissions = "0.20.1"                                     # https://klibs.io/project/icerockdev/moko-permissions
@@ -38,6 +37,7 @@ immersionbar = "2.0.2"                                          # https://github
 compottie = "2.2.4"                                             # https://github.com/alexzhirkevich/compottie
 konnectivity = "0.1-alpha01"                                    # https://github.com/Plus-Mobile-Apps/konnectivity
 xxPermission = "28.3"                                           # https://github.com/getActivity/XXPermissions
+mmkv = "2.4.2"                                                  # https://github.com/Tencent/MMKV
 
 
 [libraries]
@@ -78,7 +78,6 @@ ktor-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = 
 ktor-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktorVersion" }
 ktor-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktorVersion" }
 kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
-multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatform-settings" }
 filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit" }
 filekit-dialogs = { module = "io.github.vinceglb:filekit-dialogs", version.ref = "filekit" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
@@ -111,6 +110,7 @@ compottie-network = { module = "io.github.alexzhirkevich:compottie-network", ver
 compottie-resources = { module = "io.github.alexzhirkevich:compottie-resources", version.ref = "compottie" }
 konnectivity = { module = "com.plusmobileapps:konnectivity", version.ref = "konnectivity" }
 xxPermission = { group = "com.github.getActivity", name = "XXPermissions", version.ref = "xxPermission" }
+mmkv = { module = "com.tencent:mmkv-kmp", version.ref = "mmkv" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

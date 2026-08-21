@@ -114,7 +114,7 @@ kotlin {
             api(libs.androidx.lifecycle.runtimeCompose)
             api(libs.kotlinx.datetime)
             api(libs.kotlinx.serialization)
-            api(libs.multiplatform.settings)
+            api(libs.mmkv)
 
             api(libs.vortex)
 
@@ -181,6 +181,7 @@ buildkonfig {
         buildConfigField(FieldSpec.Type.INT, "DESIGN_BASELINE_PPI", "${DesignConfig.baselinePpi}")
         buildConfigField(FieldSpec.Type.INT, "DESIGN_MEASUREMENT_PPI", "${DesignConfig.measurementPpi}")
         buildConfigField(FieldSpec.Type.STRING, "APP_NAME", ProjectBuildConfig.Build.appName)
+        buildConfigField(FieldSpec.Type.STRING, "VERSION_NAME", ProjectBuildConfig.Build.Ios.versionName)
         buildConfigField(FieldSpec.Type.STRING, "DEFAULT_CHANNEL", ChannelConfig.default_channel)
         buildConfigField(FieldSpec.Type.STRING, "VERSION_TYPE", project.getBuildEnvName())
         buildConfigField(FieldSpec.Type.STRING, "DEEP_LINK_SCHEME", ProjectBuildConfig.Deeplink.scheme)

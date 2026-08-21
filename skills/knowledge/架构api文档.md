@@ -42,7 +42,7 @@
 - `DownloadManager`：下载管理器
 
 ### 数据存储 API
-- `Settings`：DataStore 全局设置
+- `defaultMmkv`：MMKV 全局默认实例与 StateFlow 响应式存储入口
 
 ### 平台能力 API
 - `ApplicationService`：应用生命周期、DeepLink
@@ -948,24 +948,26 @@ fun dismiss()
 
 ## 9. 响应式存储 API
 
-### `settings`
+### `defaultMmkv`
 
-| 项 | 内容 |
-| --- | --- |
-| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/datastore/PubSetting.kt` |
-| Android | SharedPreferences，文件名 `pub_Settings`。 |
-| iOS | NSUserDefaults，文件名 `pub_Settings`。 |
+| 项 | 内容                                                                  |
+| --- |---------------------------------------------------------------------|
+| 位置 | `core/base/src/commonMain/kotlin/com/basic/base/utils/MmkvUtils.kt` |
+| 类型 | `MMKV`，默认实例由 `MMKV.defaultMMKV()` 创建。                               |
+| Android | 应用启动时通过 `MMKV.initialize(Utils.getApp())` 初始化。                      |
+| iOS | 应用启动时通过 `MMKV.initialize()` 初始化。                                    |
 
 扩展：
 
 ```kotlin
-fun Settings.asFlowInt(key: String, initialValue: Int? = null)
-fun Settings.asFlowDouble(key: String, initialValue: Double? = null)
-fun Settings.asFlowString(key: String, initialValue: String? = null)
-fun Settings.asFlowBoolean(key: String, initialValue: Boolean? = null)
-fun Settings.asFlowFloat(key: String, initialValue: Float? = null)
-fun Settings.asFlowLong(key: String, initialValue: Long? = null)
-inline fun <reified T : Any> Settings.asFlowJson(key: String, initialValue: T? = null)
+fun MMKV.asFlowInt(key: String, initialValue: Int)
+fun MMKV.asFlowDouble(key: String, initialValue: Double)
+fun MMKV.asFlowString(key: String, initialValue: String? = null)
+fun MMKV.asFlowBoolean(key: String, initialValue: Boolean)
+fun MMKV.asFlowFloat(key: String, initialValue: Float)
+fun MMKV.asFlowLong(key: String, initialValue: Long)
+fun MMKV.asFlowByteArray(key: String, initialValue: ByteArray? = null)
+inline fun <reified T : Any> MMKV.asFlowJson(key: String, initialValue: T? = null)
 ```
 
 返回对象通用能力：
@@ -1453,7 +1455,7 @@ core/base/src/iosMain/... actual API
 | 分页交互 | `PagingControl`、`RefreshState`、`BasicRefreshLazyListInteraction` | `project/main/ui/screen/interaction/PagingInteractionScreen.kt` |
 | 混合交互 | `BasicHazeScaffold`、`CoordinatorLayout`、`rememberCoordinatorLayoutState` | `project/main/ui/screen/interaction/MixInteractionScreen.kt` |
 | 网络请求 | `TestRepository`、`Data.throwFail()`、`launchScope.catch` | `project/main/ui/screen/NetScreen.kt` |
-| 响应式磁盘数据 | `settings.asFlowString`、`settings.asFlowJson`、`setValue` | `project/main/ui/screen/diskdata` |
+| 响应式磁盘数据 | `defaultMmkv.asFlowString`、`defaultMmkv.asFlowJson`、`setValue` | `project/main/ui/screen/diskdata` |
 | 普通弹窗 | `LocalDialogController.current.showNow`、`BasicDialog.dismiss`、`onDismiss` | `project/main/ui/screen/dialog/NormalDialogScreen.kt` |
 | 优先级弹窗 | `showPriority(priority, dialog, group)` | `project/main/ui/screen/dialog/PriorityDialogScreen.kt` |
 | 原生弹窗 | `BasicNativeDialog`、`show(uiContainer)`、`LocalUIContainer` | `project/main/ui/screen/dialog/NativeDialogScreen.kt` |

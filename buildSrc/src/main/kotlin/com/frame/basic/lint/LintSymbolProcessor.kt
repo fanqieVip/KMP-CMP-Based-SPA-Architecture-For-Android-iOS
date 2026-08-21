@@ -24,7 +24,6 @@ private const val KOTLINX_SERIALIZABLE_TYPE = "kotlinx.serialization.Serializabl
 private const val VORTEX_SERIALIZABLE_TYPE = "io.github.hristogochev.vortex.util.Serializable"
 private const val FORBIDDEN_REMEMBER_METHOD = "io.github.hristogochev.vortex.model.rememberScreenModel"
 private const val FORBIDDEN_SCREEN_IMPORT = "io.github.hristogochev.vortex.screen.Screen"
-private const val FORBIDDEN_SETTINGS_IMPORT = "com.russhwolf.settings.Settings"
 private const val KTORFIT_ANNOTATION_PACKAGE = "de.jensklingenberg.ktorfit.http"
 
 class LintSymbolProcessor(
@@ -47,7 +46,6 @@ class LintSymbolProcessor(
         val vortexSerializableType = resolver.getClassDeclarationByName(resolver.getKSNameFromString(VORTEX_SERIALIZABLE_TYPE))?.asStarProjectedType()
 
         val screenImportRegex = Regex("import\\s+${FORBIDDEN_SCREEN_IMPORT.replace(".", "\\.")}(\\s+|$)")
-        val settingsImportRegex = Regex("import\\s+${FORBIDDEN_SETTINGS_IMPORT.replace(".", "\\.")}(\\s+|$)")
 
         resolver.getAllFiles().forEach { file ->
             val filePath = file.filePath
@@ -58,7 +56,7 @@ class LintSymbolProcessor(
             val fileLines = File(filePath).readLines()
 
             // 1. 导入检查
-            checkImportRules(file, moduleName, fileLines, screenImportRegex, settingsImportRegex)
+            checkImportRules(file, moduleName, fileLines, screenImportRegex)
 
             // 2. 声明检查 (顶级函数与类)
             file.declarations.forEach { declaration ->
@@ -74,7 +72,7 @@ class LintSymbolProcessor(
         return emptyList()
     }
 
-    private fun checkImportRules(file: KSFile, moduleName: String, fileLines: List<String>, screenRegex: Regex, settingsRegex: Regex) {
+    private fun checkImportRules(file: KSFile, moduleName: String, fileLines: List<String>, screenRegex: Regex) {
         if (moduleName == "base") return
         fileLines.takeWhile { line ->
             val trimmed = line.trim()
@@ -85,9 +83,6 @@ class LintSymbolProcessor(
             }
             if (screenRegex.containsMatchIn(line)) {
                 logger.error("架构红线 [Forbidden]: 禁止直接使用 Vortex 的 Screen 作为基类。请统一继承项目封装的 BaseScreen。", file)
-            }
-            if (settingsRegex.containsMatchIn(line)) {
-                logger.error("架构红线 [Forbidden]: 禁止直接使用 Settings。请统一使用 core/base 封装的 settings.asFlowXXX 系列 API。", file)
             }
         }
     }

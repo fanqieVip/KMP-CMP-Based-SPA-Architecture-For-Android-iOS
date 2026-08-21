@@ -26,7 +26,7 @@
 | 生命周期 | `BaseScreen` + `BaseScreenModel` + 可见性分发                 |
 | DI / SPI | Koin + `SPIRegisterCenter`                               |
 | 网络 | Ktor + Ktorfit + KtorMonitor                             |
-| 持久化 | Multiplatform Settings / DataStore 风格封装                  |
+| 持久化 | MMKV KMP / StateFlow 响应式封装                              |
 | 平台桥接 | `expect/actual`、Android 原生壳、iOS SwiftUI 壳                |
 | 构建治理 | Gradle Kotlin DSL、buildSrc 插件、BuildKonfig、CocoaPods 自动汇总 |
 | AI 协作 | `AGENTS.md` + `skills/` 分层规范                             |
@@ -172,7 +172,6 @@ iosApp/Configuration/iosConfig.xcconfig
 - Screen 子类（含抽象类）的成员变量（包括构造器属性）如果字段本身或字段类型声明带 `kotlinx.serialization.Serializable`，字段类型必须同时实现 `io.github.hristogochev.vortex.util.Serializable`，避免页面恢复失败。
 - 非抽象 Screen 必须有 `@Router`。
 - 构造参数必须有 `@Params` 或默认值。
-- 业务代码不能直接使用原始 Settings。
 - 网络 API 必须收敛到 `*Repository`。
 - 类、方法、成员变量必须补齐 KDoc 或注释。
 
