@@ -12,6 +12,7 @@
 - 业务以 `Screen` 为基本单元，页面路由、参数传递、生命周期和弹窗栈都走统一框架。
 - 公共能力沉到 `core/base` 与 `core/common`，业务只在 `project/*` 中扩展。
 - SDK、支付、统计、登录等三方能力预留在 `libs/*`，通过 SPI 和模块内配置接入，避免污染宿主。
+- 基于设备物理 PPI 统一 Android 与 iOS 的 Compose 设计尺度，让同一套间距、控件和字号标注在不同设备上保持接近的物理尺寸，同时不污染原生页面与第三方 SDK 的 Density。
 - Android Studio 与 Xcode 的环境切换、iOS `Info.plist` 参数、Podfile 汇总尽量由 Gradle 管理。
 - 架构约束不是靠口头约定，而是通过 `buildSrc` 内的 KSP processor 和自定义 lint 插件在编译期拦截。
 
@@ -186,6 +187,14 @@ iosApp/Configuration/iosConfig.xcconfig
 
 具体接入规则、配置入口、双端一致性要求和发布验收清单见 [APK 安全防护知识库](./skills/knowledge/apk安全防护.md)。
 
+### 8. PPI 适配统一跨端物理尺寸
+
+Android 与 iOS 的系统 Density、物理 PPI 和逻辑坐标体系不同，同一个 `dp` / `sp` 标注直接跨端使用时，实际看到的控件、间距和字号可能大小不一。架构根据设计基准和设备物理 PPI 为 Compose 提供统一的设计 Density，使业务可以复用同一套设计标注，并让它们在不同设备上的物理尺寸尽量接近。
+
+这套适配只作用于 Compose 范围，不修改 Android `Resources` 或 iOS UIKit 的全局配置，因此原生页面、原生控件和第三方 SDK 仍按平台规则显示；独立 Compose 弹窗、原生互操作控件和自研 WebView 也有明确的 Density 边界，避免重复缩放或比例错乱。横竖屏、平板和分屏下，控件物理尺寸保持稳定，页面排布仍交给响应式布局处理。
+
+它解决的是跨设备的物理尺寸一致性，而不是让所有设备显示完全相同的内容量，也不是把整张设计稿按屏幕宽度等比缩放。实现原理、适配边界和验证方式见 [PPI 适配指南](./skills/knowledge/ppi适配指南.md)。
+
 ## AI Agent 协作体系
 
 这个项目把 AI Agent 当成工程协作者来设计，而不是临时问答工具。根目录的 `AGENTS.md` 是总入口，要求 Agent 先读工作流，再读补丁，最后按任务类型读取规约和知识手册，避免一上来全量扫文档、乱猜架构。
@@ -308,6 +317,7 @@ project/<name>/
 - `buildSrc/src/main/kotlin/com/frame/basic/router/RouterSymbolProcessor.kt`：路由生成器。
 - `buildSrc/src/main/kotlin/com/frame/basic/lint/LintSymbolProcessor.kt`：架构红线。
 - `skills/knowledge/apk安全防护.md`：Android APK 安全防护入口，索引 `ProtectSrc`、VMP、完整性签名与运行期校验。
+- `skills/knowledge/ppi适配指南.md`：Android、iOS、原生控件与 WebView 的跨端物理尺寸适配边界。
 - `buildSrc/src/main/kotlin/com/frame/basic/plugin/IosConfigPlugin.kt`：iOS 配置聚合。
 - `project/main/src/commonMain/kotlin/com/basic/main/ui/`：业务页面示例。
 
@@ -326,6 +336,7 @@ project/<name>/
 - [架构设计文档](./skills/knowledge/架构设计文档.md)
 - [架构 API 文档](./skills/knowledge/架构api文档.md)
 - [APK 安全防护知识库](./skills/knowledge/apk安全防护.md)
+- [PPI 适配指南](./skills/knowledge/ppi适配指南.md)
 - [AI Agent 总入口](./AGENTS.md)
 - [UI 开发工作流](./skills/workflows/UI开发工作流规范.md)
 - [SDK 集成工作流](./skills/workflows/SDK集成工作流规范.md)
