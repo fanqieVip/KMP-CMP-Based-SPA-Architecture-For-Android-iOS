@@ -31,7 +31,8 @@ Android 与 iOS 的屏幕分辨率、系统 Density、物理 PPI 和逻辑坐标
 | Android 原生 Activity/View | 平台原生 Density | 平台自身规则 | 不修改 `Resources` |
 | iOS UIView/UIViewController | 平台原生坐标体系 | 平台自身规则 | 不修改 UIKit 全局配置 |
 | 第三方 SDK 原生页面 | 平台原生 Density | 平台自身规则 | 不参与 Compose Density 适配 |
-| WebView 网页内部 CSS | WebView 自身规则 | WebView 自身规则 | Compose 只控制原生 WebView 容器 |
+| 自研 WebView H5 | App 设计 Density 换算为 CSS Scale | H5 根字号统一控制 | App 提供 `currentDensity`，H5 动态设置 `rem` 根字号 |
+| 第三方 WebView 页面 | WebView 自身规则 | WebView 自身规则 | 不注入设计 Density |
 
 物理尺寸一致依赖设备 PPI 的准确性。Android 厂商上报错误、iOS 新机型尚未收录或模拟器环境不完整时会进入回退逻辑，此时只能保证可用性，不能承诺严格的物理尺寸一致。
 
@@ -256,7 +257,208 @@ NativeDensityProvider {
 
 这些修改会污染原生页面和第三方 SDK，破坏当前方案的隔离边界。
 
-## 9. 字体规则
+## 9. 自研 WebView H5 适配
+
+### 9.1 适配边界
+
+自研 H5 与原生 WebView 外壳采用分层适配：
+
+```text
+Compose WebView 容器
+    -> NativeDensityProvider
+    -> 使用平台原生 Density
+
+自研 H5 页面
+    -> App 提供 currentDensity
+    -> H5 除以 window.devicePixelRatio
+    -> 动态设置 rem 根字号
+```
+
+`NativeWebView.android.kt` 和 `NativeWebView.ios.kt` 继续使用 `NativeDensityProvider`，确保 WebView 原生容器和平台内部实现不受 Compose 设计 Density 影响。App 不修改 WebView 自身 Density，只需向自研 H5 提供获取当前设计 Density 的方法。
+
+第三方 H5、第三方 SDK WebView 和无法修改源码的网页不接入此协议，继续使用 WebView 默认规则。
+
+### 9.2 App Density 方法约定
+
+App 需要提供获取当前设计 Density 的方法，H5 在初始化根字号时调用：
+
+```typescript
+getCurrentDensity(): Promise<number>
+```
+
+`getCurrentDensity()` 返回的 `currentDensity` 必须满足：
+
+- 类型为有限正数。
+- 单位是“每个设计标注单位对应的设备物理像素数”。
+- 数值与 Compose `DesignDensityProvider` 当前使用的设计 Density 一致。
+- App 每次根据当前设备计算并注入，H5 不得硬编码某台设备的 Density。
+- App 返回原始 `currentDensity`，不要提前除以 DPR，也不要返回百分比。
+
+H5 的实际 CSS 缩放倍率为：
+
+```text
+designScale = currentDensity / window.devicePixelRatio
+```
+
+原因是 `currentDensity` 描述物理像素，而 H5 尺寸使用 CSS px；`window.devicePixelRatio` 描述一个 CSS px 对应的设备像素数。
+
+例如：
+
+```text
+currentDensity = 2.89185
+window.devicePixelRatio = 3
+
+designScale = 2.89185 / 3
+            = 0.96395
+```
+
+不得直接把 `2.89185` 用作 CSS `transform: scale(...)` 或根字号倍率，否则会把物理像素倍率再次当作 CSS 倍率，造成重复放大。
+
+### 9.3 根字号初始化实现
+
+当前自研 H5 使用以下实现：
+
+```typescript
+const BASE_ROOT_FONT_SIZE_PX = 50
+const DENSITY_BRIDGE_TIMEOUT_MS = 500
+
+function applyRootFontSize(scale = 1) {
+  const normalizedScale = Number.isFinite(scale) && scale > 0 ? scale : 1
+  document.documentElement.style.fontSize = `${BASE_ROOT_FONT_SIZE_PX * normalizedScale}px`
+  document.documentElement.style.setProperty('--design-scale', String(normalizedScale))
+}
+
+async function initRootFontSize() {
+  applyRootFontSize()
+  if (!hasAppBridge()) {
+    return
+  }
+
+  try {
+    const currentDensity = await Promise.race([
+      getCurrentDensity(),
+      new Promise<undefined>((resolve) => {
+        window.setTimeout(resolve, DENSITY_BRIDGE_TIMEOUT_MS)
+      }),
+    ])
+    const devicePixelRatio = window.devicePixelRatio || 1
+    if (typeof currentDensity === 'number' && Number.isFinite(currentDensity) && currentDensity > 0) {
+      applyRootFontSize(currentDensity / devicePixelRatio)
+    }
+  } catch {
+    // Keep the fixed browser baseline when the native method is unavailable.
+  }
+}
+```
+
+`initRootFontSize()` 必须在 H5 应用初始化阶段调用。初始化流程如下：
+
+1. 立即执行 `applyRootFontSize()`，将根字号设置为浏览器基准值 `50px`。
+2. 检查 App Density 方法是否可用；普通浏览器或方法不可用时直接保留 `50px`。
+3. App 环境中并行等待 `getCurrentDensity()` 和 `500ms` 超时。
+4. App 方法在超时前返回有限正数时，读取 `window.devicePixelRatio`。
+5. 计算 `currentDensity / devicePixelRatio`，更新根字号和 `--design-scale`。
+6. App 方法超时、抛出异常或返回非法数据时保持 `50px`，页面继续可用。
+
+`Promise.race` 只负责限制 App Density 方法的等待时间，不应取消或修改原生 Density。
+
+### 9.4 `50px` 基准与设计标注换算
+
+`BASE_ROOT_FONT_SIZE_PX = 50` 对应当前 H5 的 `750` rem 坐标约定。在 `375` 逻辑测量宽度下：
+
+```text
+375 / 7.5 = 50px
+```
+
+设计标注值转换为 rem：
+
+```text
+remValue = measurementValue / 50
+```
+
+例如：
+
+```text
+14 设计单位 -> 0.28rem
+24 设计单位 -> 0.48rem
+48 设计单位 -> 0.96rem
+```
+
+当 `currentDensity = 2.89185`、`devicePixelRatio = 3` 时：
+
+```text
+rootFontSize = 50 * (2.89185 / 3)
+             = 48.1975 CSS px
+```
+
+以 `0.48rem` 的 24 单位间距为例：
+
+```text
+CSS length = 0.48 * 48.1975
+           = 23.1348 CSS px
+
+physical length = 23.1348 * 3
+                = 69.4044 device px
+
+Compose length = 24 * 2.89185
+               = 69.4044 device px
+```
+
+两端最终使用相同的物理像素长度。
+
+动态注入方案启用后，禁止再使用以下规则控制根字号：
+
+```scss
+html {
+  font-size: calc(100vw / 7.5);
+}
+```
+
+根字号只能由 `applyRootFontSize()` 统一设置。否则页面会重新按视口宽度缩放，与 App 提供的 PPI Scale 形成重复或覆盖关系。
+
+### 9.5 rem 与响应式单位的职责
+
+接入 PPI 适配后，`rem` 不再承担“把整张页面按视口宽度等比缩放”的职责，而是表示需要与 Compose 保持物理尺寸一致的设计单位。
+
+适合使用 `rem` 的属性：
+
+- 字体大小。
+- 内边距和外边距。
+- 按钮高度。
+- 圆角。
+- 图标尺寸。
+- 固定高度组件。
+
+需要铺满父容器或跟随可用空间变化的布局，应继续使用：
+
+- 百分比，例如 `width: 100%`。
+- Flex 或 Grid 的弹性轨道。
+- `vw`、`vh`、`vmin` 等视口单位。
+- `min()`、`max()`、`clamp()` 和媒体查询。
+
+安全区 `env(safe-area-inset-*)` 已经由浏览器按 CSS px 提供，不要再次乘以 `--design-scale`。全屏宽度、流式列表和响应式网格也不要为了 PPI 对齐全部改成固定 rem。
+
+`--design-scale` 用于少量无法通过 rem 表达的特殊计算、调试和组件适配。已经使用 rem 的尺寸不得再次乘以 `--design-scale`。
+
+### 9.6 H5 样式基线
+
+推荐保留以下基础样式：
+
+```scss
+html {
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-size: 0.28rem;
+}
+```
+
+其中 `0.28rem` 对应 `14` 个设计标注单位。`text-size-adjust` 用于避免 WebView 对文本进行额外自动放大，保证字号只受根 rem 和项目自定义规则控制。
+
+## 10. 字体规则
 
 当前设计 Density 和 `NativeDensityProvider` 都使用：
 
@@ -274,7 +476,7 @@ effectiveFontScale = customAppFontScale
 
 在全局自定义参数正式落地前，固定值保持为 `1.0`。
 
-## 10. 横竖屏与响应式布局
+## 11. 横竖屏与响应式布局
 
 `baselinePixel` 表示设计基准设备的短边像素，但运行时 Density 只由设备 PPI 和设计参数决定，不读取当前窗口长边或短边。因此：
 
@@ -285,7 +487,7 @@ effectiveFontScale = customAppFontScale
 
 页面仍必须使用 `fillMaxWidth`、`weight`、`BoxWithConstraints`、窗口尺寸分类、可滚动容器等响应式手段处理空间变化。PPI 适配负责尺寸单位，响应式布局负责内容排布，两者不能互相替代。
 
-## 11. 新增代码检查清单
+## 12. 新增代码检查清单
 
 新增或修改 UI 时检查：
 
@@ -294,13 +496,17 @@ effectiveFontScale = customAppFontScale
 - 独立 Compose 宿主是否重新提供 `DesignDensityProvider`。
 - `NativeDialog` 等独立弹窗是否处于设计 Density 作用域。
 - 每个 `AndroidView`、`UIKitView` 是否由 `NativeDensityProvider` 直接包裹。
+- App 是否提供获取 `currentDensity` 的方法，H5 是否将结果除以 `window.devicePixelRatio`。
+- H5 根字号是否只由 `applyRootFontSize()` 设置，未继续使用 `100vw / 7.5`。
+- H5 固定设计尺寸是否使用 rem，铺满和弹性布局是否使用百分比或视口单位。
+- App Density 方法缺失、超时、异常和返回非法值时是否都能回退到 `50px` 根字号。
 - 全原生页面和第三方 SDK 是否保持平台默认 Density。
 - 是否错误地修改了 Android 全局 `Resources` Density。
 - 是否错误地把 iOS `scale/nativeScale` 当作 PPI。
 - 是否依赖系统字体无障碍倍率；当前项目明确固定为 `1.0`。
 - 横竖屏、手机、平板和分屏场景是否仍具备响应式布局能力。
 
-## 12. 验证建议
+## 13. 验证建议
 
 至少覆盖以下验证矩阵：
 
@@ -312,17 +518,20 @@ effectiveFontScale = customAppFontScale
 | iOS | iPad 与 iPad mini | 264/326 PPI 差异、横竖屏布局 |
 | 双端 | 横竖屏切换 | Density 不突变、页面不溢出、NativeView 比例正常 |
 | 双端 | NativeDialog | 独立 Composition 中的尺寸与普通页面一致 |
-| 双端 | WebView/第三方 SDK | 原生内容继续使用平台默认适配 |
+| 双端 | 自研 WebView H5 | App Density、DPR 换算、rem 物理尺寸 |
+| 双端 | App Density 方法异常 | 方法不可用、超过 `500ms`、异常和非法返回值均回退到 `50px` |
+| 双端 | 第三方 WebView/SDK | 原生内容继续使用平台默认适配 |
 
 推荐使用实际尺子或固定物理参照物测量关键控件，不要只比较截图像素。截图像素不同是预期结果，目标是不同 PPI 设备上的物理长度接近。
 
-## 13. 已知限制
+## 14. 已知限制
 
 - Android `xdpi/ydpi` 由设备系统上报，部分厂商数据可能不准确。
 - iOS 精确 PPI 依赖硬件型号数据，新设备需要持续维护。
 - 未识别设备使用原生 Density 推算 PPI，只是可用性回退。
 - 外接显示器、桌面窗口化、远程显示和特殊缩放模式不在当前保证范围内。
 - 固定 `fontScale = 1.0` 会忽略系统字体无障碍设置，这是当前产品明确选择。
+- 自研 H5 获取 App Density 超过 `500ms` 或返回非法值时会使用固定 `50px` 基线，本次页面生命周期内不保证再次自动校准。
 - 物理尺寸一致不等于视觉截图像素一致，也不等于所有设备显示相同内容量。
 
 出现全局统一偏大或偏小时，应依次检查设计参数、设备 PPI、回退路径和 Provider 边界，不要在业务组件中增加局部缩放倍率。
