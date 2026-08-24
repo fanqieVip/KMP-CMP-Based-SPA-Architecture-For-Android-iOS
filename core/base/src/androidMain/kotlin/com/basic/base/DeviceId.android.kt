@@ -1,8 +1,8 @@
 package com.basic.base
 
 import android.provider.Settings
-import com.basic.base.datastore.settings
 import com.basic.base.ktx.resumeIfActive
+import com.basic.base.utils.defaultMmkv
 import com.blankj.utilcode.util.Utils
 import com.github.gzuliyujiang.oaid.DeviceID
 import com.github.gzuliyujiang.oaid.IGetter
@@ -18,9 +18,9 @@ actual suspend fun getDeviceId(): DeviceId {
         return deviceId!!
     }
     val oaid = run {
-        val result = settings.getString(CACHE_OAID_KEY, "").ifEmpty {
+        val result = defaultMmkv.decodeString(CACHE_OAID_KEY, "")?:"".ifEmpty {
             val data = getByGithubGzu()
-            settings.putString(CACHE_OAID_KEY, data)
+            defaultMmkv.encodeString(CACHE_OAID_KEY, data)
             data
         }
         if (result == CACHE_OAID_FAIL_TAG) {
@@ -29,9 +29,9 @@ actual suspend fun getDeviceId(): DeviceId {
             result
         }
     }
-    val androidId = settings.getString(CACHE_ANDROID_KEY, "").ifEmpty {
+    val androidId = defaultMmkv.decodeString(CACHE_ANDROID_KEY, "")?:"".ifEmpty {
         val data = runCatching { Settings.Secure.getString(Utils.getApp().contentResolver, Settings.Secure.ANDROID_ID) }.getOrNull()?:""
-        settings.putString(CACHE_ANDROID_KEY, data)
+        defaultMmkv.encodeString(CACHE_ANDROID_KEY, data)
         data
     }
     deviceId = DeviceId(

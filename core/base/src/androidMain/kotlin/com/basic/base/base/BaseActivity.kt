@@ -5,15 +5,11 @@ import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.lifecycleScope
-import com.basic.base.StatusBar
 import com.basic.base.local.PermissionController
-import com.basic.base.local.appState
 import dev.icerock.moko.permissions.PermissionsController
 import dev.icerock.moko.permissions.PermissionsControllerImpl
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.init
-import kotlinx.coroutines.launch
 
 open class BaseActivity : FragmentActivity(), PermissionController {
     companion object {
@@ -64,10 +60,5 @@ open class BaseActivity : FragmentActivity(), PermissionController {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         enableEdgeToEdge()
-        // 旋转屏后状态栏会被重置，需要重新设置沉浸式和文字颜色(立即设置没用，必须延迟一下)
-        lifecycleScope.launch {
-            kotlinx.coroutines.delay(10)
-            StatusBar.setStatusBarTextDark(appState.statusBarTextIsDark.value)
-        }
     }
 }

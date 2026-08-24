@@ -7,6 +7,12 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import androidx.annotation.RequiresApi
+import com.basic.base.StatusBar
+import com.basic.base.ktx.applicationScope
+import com.basic.base.local.WindowOrientation
+import com.basic.base.local.appState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Activity生命周期监听
@@ -19,13 +25,20 @@ class ActivityLifecycleCallbacksImpl : Application.ActivityLifecycleCallbacks, C
 
     override fun onActivityCreated(activity: Activity, bundle: Bundle?) {
         ActivityStackManager.addActivityToStack(activity)
+        appState.updateWindowOrientation(
+            when (activity.resources.configuration.orientation) {
+                Configuration.ORIENTATION_PORTRAIT -> WindowOrientation.PORTRAIT
+                Configuration.ORIENTATION_LANDSCAPE -> WindowOrientation.LANDSCAPE
+                else -> WindowOrientation.UNKNOWN
+            }
+        )
     }
 
     override fun onActivityStarted(activity: Activity) {
     }
 
     override fun onActivityResumed(activity: Activity) {
-        AndroidScreenStateHelper.syncWindowOrientation(activity)
+
     }
 
     override fun onActivityPaused(activity: Activity) {
@@ -45,7 +58,17 @@ class ActivityLifecycleCallbacksImpl : Application.ActivityLifecycleCallbacks, C
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
-        AndroidScreenStateHelper.syncWindowOrientation(newConfig)
+        applicationScope.launch {
+            delay(10)
+            appState.updateWindowOrientation(
+                when (newConfig.orientation) {
+                    Configuration.ORIENTATION_PORTRAIT -> WindowOrientation.PORTRAIT
+                    Configuration.ORIENTATION_LANDSCAPE -> WindowOrientation.LANDSCAPE
+                    else -> WindowOrientation.UNKNOWN
+                }
+            )
+            StatusBar.setStatusBarTextDark(appState.statusBarTextIsDark.value)
+        }
     }
 
     override fun onLowMemory() = Unit
