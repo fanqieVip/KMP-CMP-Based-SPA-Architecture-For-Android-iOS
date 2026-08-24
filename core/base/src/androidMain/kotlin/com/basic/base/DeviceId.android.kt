@@ -18,7 +18,7 @@ actual suspend fun getDeviceId(): DeviceId {
         return deviceId!!
     }
     val oaid = run {
-        val result = defaultMmkv.decodeString(CACHE_OAID_KEY, "")?:"".ifEmpty {
+        val result = (defaultMmkv.decodeString(CACHE_OAID_KEY, "")?:"").ifEmpty {
             val data = getByGithubGzu()
             defaultMmkv.encodeString(CACHE_OAID_KEY, data)
             data
@@ -29,7 +29,7 @@ actual suspend fun getDeviceId(): DeviceId {
             result
         }
     }
-    val androidId = defaultMmkv.decodeString(CACHE_ANDROID_KEY, "")?:"".ifEmpty {
+    val androidId = (defaultMmkv.decodeString(CACHE_ANDROID_KEY, "")?:"").ifEmpty {
         val data = runCatching { Settings.Secure.getString(Utils.getApp().contentResolver, Settings.Secure.ANDROID_ID) }.getOrNull()?:""
         defaultMmkv.encodeString(CACHE_ANDROID_KEY, data)
         data
