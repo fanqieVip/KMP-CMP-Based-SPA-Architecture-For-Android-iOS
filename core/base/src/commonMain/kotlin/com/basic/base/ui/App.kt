@@ -63,12 +63,12 @@ fun BaseApp(
     permissionController: PermissionController,
     isRoot: Boolean = true
 ) {
-    DesignDensityProvider {
-        CompositionLocalProvider(
-            LocalAppState provides appState,
-            LocalPermissionController provides permissionController,
-            LocalUIContainer provides uiContainer,
-        ) {
+    CompositionLocalProvider(
+        LocalAppState provides appState,
+        LocalPermissionController provides permissionController,
+        LocalUIContainer provides uiContainer,
+    ) {
+        DesignDensityProvider {
             MaterialTheme {
                 val uiConfig = remember { withImpl<UIConfigService>() }
                 if (uiConfig == null) {

@@ -67,13 +67,14 @@ abstract class NativeDialog(
         onDismissCall: () -> Unit
     ) {
         if (dialogStateHostKey == null) {
-            dialogStateHostKey = "${NativeDialog::class.multiplatformName}:${this::class.multiplatformName}:${key}"
+            dialogStateHostKey =
+                "${NativeDialog::class.multiplatformName}:${this::class.multiplatformName}:${key}"
         }
-        DesignDensityProvider {
-            CompositionLocalProvider(
-                LocalUIContainer provides uiContainer,
-                LocalAppState provides appState
-            ) {
+        CompositionLocalProvider(
+            LocalUIContainer provides uiContainer,
+            LocalAppState provides appState
+        ) {
+            DesignDensityProvider {
                 val visible = remember { MutableTransitionState(false) }
                 LaunchedEffect(visible.currentState, visible.targetState) {
                     if (visible.currentState == visible.targetState) {
