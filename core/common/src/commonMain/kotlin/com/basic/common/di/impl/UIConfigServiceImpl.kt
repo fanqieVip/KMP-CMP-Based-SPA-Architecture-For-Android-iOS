@@ -103,17 +103,17 @@ fun PubLoadingUI(text: String?) {
         contentDescription = null,
         contentScale = ContentScale.Crop,
         modifier = Modifier
-            .size(64.dp)
+            .size(40.dp)
             .rotate(rotationAngle)
     )
     if (!text.isNullOrEmpty()) {
         Text(
             text,
-            color = Color.White,
-            fontSize = 16.sp,
-            lineHeight = 16.sp,
+            color = Color.Gray,
+            fontSize = 14.sp,
+            lineHeight = 14.sp,
             fontWeight = FontWeight.W400,
-            modifier = Modifier.padding(top = 32.dp)
+            modifier = Modifier.padding(top = 10.dp)
         )
     }
 }
