@@ -15,10 +15,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -37,6 +37,9 @@ data class AppState(
     private val _screenOrientation: MutableState<ScreenOrientation> = mutableStateOf(
         ScreenOrientation.PORTRAIT
     ),
+    private val _windowOrientation: MutableStateFlow<WindowOrientation> = MutableStateFlow(
+        WindowOrientation.UNKNOWN
+    ),
 ) {
     /**
      * app前台状态
@@ -47,6 +50,11 @@ data class AppState(
      * 状态栏图标颜色状态
      */
     val statusBarTextIsDark: StateFlow<Boolean> get() = _statusBarTextIsDark
+
+    /**
+     * 当前应用窗口的实际横竖屏方向。
+     */
+    val windowOrientation: StateFlow<WindowOrientation> get() = _windowOrientation
 
     /**
      * 网络连接状态
@@ -60,6 +68,17 @@ data class AppState(
     internal fun updateAppIsForeground(isForeground: Boolean) {
         applicationScope.launch {
             _appIsForeground.emit(isForeground)
+        }
+    }
+
+    /**
+     * 更新应用窗口当前实际方向。
+     *
+     * @param windowOrientation 最新窗口方向。
+     */
+    internal fun updateWindowOrientation(windowOrientation: WindowOrientation) {
+        if (_windowOrientation.value != windowOrientation) {
+            _windowOrientation.value = windowOrientation
         }
     }
 
@@ -127,6 +146,21 @@ class NetworkStatus(private val konnectivity: Konnectivity) {
      * 当前网络连接方式
      */
     fun currentNetworkConnection(): NetworkConnection = konnectivity.currentNetworkConnection
+}
+
+/**
+ * 应用窗口当前实际方向。
+ */
+@Serializable
+enum class WindowOrientation {
+    /** 应用窗口当前为竖屏。 */
+    PORTRAIT,
+
+    /** 应用窗口当前为横屏。 */
+    LANDSCAPE,
+
+    /** 应用窗口方向尚未确定。 */
+    UNKNOWN
 }
 
 /**

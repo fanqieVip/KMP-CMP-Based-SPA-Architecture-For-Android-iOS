@@ -2,6 +2,8 @@ package com.basic.base.utils
 
 import android.app.Activity
 import android.app.Application
+import android.content.ComponentCallbacks
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import androidx.annotation.RequiresApi
@@ -13,7 +15,7 @@ import androidx.annotation.RequiresApi
  * @since 4/20/21 9:10 AM
  */
 @RequiresApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-class ActivityLifecycleCallbacksImpl : Application.ActivityLifecycleCallbacks {
+class ActivityLifecycleCallbacksImpl : Application.ActivityLifecycleCallbacks, ComponentCallbacks {
 
     override fun onActivityCreated(activity: Activity, bundle: Bundle?) {
         ActivityStackManager.addActivityToStack(activity)
@@ -23,6 +25,7 @@ class ActivityLifecycleCallbacksImpl : Application.ActivityLifecycleCallbacks {
     }
 
     override fun onActivityResumed(activity: Activity) {
+        AndroidScreenStateHelper.syncWindowOrientation(activity)
     }
 
     override fun onActivityPaused(activity: Activity) {
@@ -40,4 +43,10 @@ class ActivityLifecycleCallbacksImpl : Application.ActivityLifecycleCallbacks {
     override fun onActivityDestroyed(activity: Activity) {
         ActivityStackManager.popActivityToStack(activity)
     }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        AndroidScreenStateHelper.syncWindowOrientation(newConfig)
+    }
+
+    override fun onLowMemory() = Unit
 }

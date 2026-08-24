@@ -6,6 +6,18 @@ import UIKit
 class SwiftSceneDelegate: NSObject, UIWindowSceneDelegate {
     func sceneDidBecomeActive(_ scene: UIScene) {
         SwiftAppDelegate.syncKeyWindow()
+        if let windowScene = scene as? UIWindowScene {
+            syncOrientation(windowScene.interfaceOrientation)
+        }
+    }
+
+    func windowScene(
+        _ windowScene: UIWindowScene,
+        didUpdate previousCoordinateSpace: UICoordinateSpace,
+        interfaceOrientation previousInterfaceOrientation: UIInterfaceOrientation,
+        traitCollection previousTraitCollection: UITraitCollection
+    ) {
+        syncOrientation(windowScene.interfaceOrientation)
     }
 
     // 处理 Universal Link (如微信 SDK 要求的地方)
@@ -20,7 +32,16 @@ class SwiftSceneDelegate: NSObject, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         SwiftAppDelegate.syncKeyWindow()
+        if let windowScene = scene as? UIWindowScene {
+            syncOrientation(windowScene.interfaceOrientation)
+        }
         AppDelegate.shared.sceneWillConnectToOptions(userActivities: connectionOptions.userActivities, urlContexts: connectionOptions.urlContexts)
+    }
+
+    private func syncOrientation(_ orientation: UIInterfaceOrientation) {
+        IOSScreenStateHelper.shared.updateWindowOrientation(
+            interfaceOrientation: Int64(orientation.rawValue)
+        )
     }
 }
 

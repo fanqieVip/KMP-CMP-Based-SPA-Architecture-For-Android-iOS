@@ -23,7 +23,10 @@ class Application  : MultiDexApplication(), LifecycleObserver {
     }
 
     private fun registerActivityLifecycle(){
-        registerActivityLifecycleCallbacks(ActivityLifecycleCallbacksImpl())
+        ActivityLifecycleCallbacksImpl().also {
+            registerActivityLifecycleCallbacks(it)
+            registerComponentCallbacks(it)
+        }
     }
 
     private fun registerAppLifecycle() {
