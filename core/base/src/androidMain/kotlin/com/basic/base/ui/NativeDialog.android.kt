@@ -22,6 +22,7 @@ import com.basic.base.R
 import com.basic.base.local.UIContainer
 import com.basic.base.ui.AndroidNativeDialog.Companion.NativeDialogKey
 import com.basic.base.utils.ActivityStackManager
+import com.basic.base.utils.suppressAccessibilityTree
 import com.benasher44.uuid.uuid4
 import io.github.hristogochev.vortex.model.ScreenModelStore
 
@@ -57,6 +58,7 @@ internal class AndroidNativeDialog : DialogFragment() {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        dialog?.window?.suppressAccessibilityTree()
         dialog?.window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         dialog?.window?.requestFeature(Window.FEATURE_NO_TITLE)
         dialog?.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))

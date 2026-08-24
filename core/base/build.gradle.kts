@@ -184,6 +184,11 @@ buildkonfig {
         buildConfigField(FieldSpec.Type.STRING, "VERSION_NAME", ProjectBuildConfig.Build.Ios.versionName)
         buildConfigField(FieldSpec.Type.STRING, "DEFAULT_CHANNEL", ChannelConfig.default_channel)
         buildConfigField(FieldSpec.Type.STRING, "VERSION_TYPE", project.getBuildEnvName())
+        buildConfigField(
+            FieldSpec.Type.BOOLEAN,
+            "DISABLE_ACCESSIBILITY_SERVICE",
+            "${ProjectBuildConfig.Build.Android.disableAccessibilityService}"
+        )
         buildConfigField(FieldSpec.Type.STRING, "DEEP_LINK_SCHEME", ProjectBuildConfig.Deeplink.scheme)
         buildConfigField(FieldSpec.Type.STRING, "DEEP_LINK_HOST", ProjectBuildConfig.Deeplink.host)
         buildConfigField(FieldSpec.Type.STRING, "APK_VERIFY_CODE", ApkSha1Utils.getSha1("${rootDir.absolutePath}/buildSrc/${SignConfig.storeFile}", SignConfig.keyAlias, SignConfig.storePassword))

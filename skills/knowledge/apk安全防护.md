@@ -1,6 +1,6 @@
 # APK 安全防护知识库
 
-> 本文档沉淀当前项目 Android APK 安全防护能力。涉及敏感字符串保护、VMP 加固、APK 完整性签名、运行期环境校验与发布前验收。本文只记录机制、入口和维护规则，不记录真实密钥值。
+> 本文档沉淀当前项目 Android APK 安全防护能力。涉及敏感字符串保护、VMP 加固、APK 完整性签名、运行期环境校验、自动点击与积分墙防作弊及发布前验收。本文只记录机制、入口和维护规则，不记录真实密钥值。
 
 ## 1. 防护分层总览
 
@@ -10,6 +10,7 @@
 | 发布期 VMP 加固 | `mainVmp` | Android Studio Gradle 面板 `app/tasks/publish_online/mainVmp`、`batchTask.gradle` | 将指定范围 dex 方法转为 VMP so，提高静态反编译和动态 Patch 成本 |
 | APK 完整性签名 | `mainVmp` 写入加密 asset | `batchTask.gradle` + `EnvCheckerUtils.kt` | 对 Manifest、resources、dex、so 等关键条目生成清单，运行期重建并比对 |
 | 运行期环境校验 | `EnvCheckerUtils.checkEnv()` | `core/base/src/androidMain/.../EnvCheckerUtils.kt` | 检测破签、改包、插件化、Hook、Frida、完整性篡改等风险 |
+| 自动点击与积分墙防作弊 | 无障碍树隐藏、手势服务拦截、触摸特征检测 | `ProjectBuildConfig.kt`、`core/base` | 提高 Android 无障碍自动点击器的操作成本 |
 
 安全能力必须组合使用：`ProtectSrc` 负责隐藏字符串，VMP 负责提升核心逻辑逆向成本，完整性签名负责发现产物被改写，`EnvCheckerUtils` 负责运行期判定与熔断。
 
@@ -155,7 +156,35 @@ buildSrc/src/main/kotlin/com/frame/basic/buildsrc/VmpConfig.kt
 - 新增高成本检测要考虑调用频率，避免明显拖慢启动或高频业务路径。
 - 如果修改 VMP so 名、完整性 asset 名、密钥、IV 或清单格式，必须同步修改生成侧与运行期，并完成 release 包验证。
 
-## 6. 发布与验收清单
+## 6. 自动点击与积分墙防作弊
+
+### 6.1 什么情况下开启
+
+当 Android 应用存在积分墙、奖励领取等容易被无障碍自动点击器批量操作的场景时开启。开关位于 `ProjectBuildConfig.Build.Android.disableAccessibilityService`，默认值为 `true`。
+
+防护仅在“开关开启且为生产环境”时生效；开发、测试和预发环境不执行，避免影响调试和 UI 自动化。没有积分作弊风险，或产品必须支持 TalkBack 等无障碍功能时，应关闭该开关。
+
+### 6.2 作用
+
+- 隐藏 Activity、NativeActivity 和 NativeDialog 的无障碍节点树，使自动化工具无法按控件文字、ID 或层级定位。
+- 检测已启用且具备手势执行能力的无障碍服务，阻止其使用 `dispatchGesture` 自动点击。
+- 通过压力、接触面积和输入源组合特征，补充拦截部分模拟触摸事件。
+
+### 6.3 副作用与边界
+
+- TalkBack、Switch Access 等合法辅助功能无法读取页面。
+- 具备手势执行能力的无障碍服务开启期间，自动点击和用户手指点击都会被拦截。
+- Appium、UIAutomator 等依赖无障碍节点的生产包测试会失效。
+- 不能保证阻止 ADB、Root、Hook 或已知坐标的测试注入。
+
+### 6.4 核心处理方式
+
+1. `core/base` 通过 BuildKonfig 注入 `DISABLE_ACCESSIBILITY_SERVICE`，运行期与 `VersionStatus.RELEASE` 共同判断是否启用。
+2. `AccessibilityTreeGuard.kt` 在 Window 根节点设置 `IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS`，无需逐个 Composable 添加 Modifier。
+3. `BaseActivity.dispatchTouchEvent` 检查 `CAPABILITY_CAN_PERFORM_GESTURES` 及触摸组合特征，命中后吞掉事件。
+4. `AndroidNativeDialog` 单独处理自己的 Window，避免弹窗节点树遗漏。
+
+## 7. 发布与验收清单
 
 发布或修改 APK 安全能力后，至少按以下清单验收：
 
@@ -170,6 +199,8 @@ buildSrc/src/main/kotlin/com/frame/basic/buildsrc/VmpConfig.kt
 | 生成/运行一致性 | 完整性签名密钥、IV、固定头、asset 名、清单格式两侧一致 |
 | 证书校验 | 构建期注入的 APK 签名校验值来自当前发布证书 |
 | 运行期调用 | `checkEnv()` 在 Android 启动链路中执行，且敏感业务可按需增加二次触发 |
+| 自动点击配置 | `disableAccessibilityService` 已按产品策略配置，且仅在开关开启与生产环境同时满足时生效 |
+| 自动点击覆盖 | `BaseActivity`、`NativeActivity`、`AndroidNativeDialog` 以及新增独立 Window 均已核对 |
 | 产物验证 | Release/VMP APK 反编译后，被保护字符串不再以明文出现，VMP so 与完整性校验均存在 |
 
 建议验证命令按任务风险选择：
@@ -183,7 +214,7 @@ buildSrc/src/main/kotlin/com/frame/basic/buildsrc/VmpConfig.kt
 
 VMP 与完整性签名必须以实际 release/VMP 产物为准，普通 debug 包不能替代发布验收。
 
-## 7. 常见风险
+## 8. 常见风险
 
 - 只使用 `ProtectSrc`，但未执行 VMP：字符串更难被直接搜索，但核心校验逻辑仍可能被静态分析和 Patch。
 - 只执行 VMP，未保护特征字符串：攻击者仍可通过明文特征快速定位安全逻辑。
@@ -191,3 +222,6 @@ VMP 与完整性签名必须以实际 release/VMP 产物为准，普通 debug �
 - 删除或放松 `EnvCheckerUtils` 的 VMP 规则：运行期校验逻辑更容易被定位和篡改。
 - 将真实密钥、IV、签名材料写进文档或日志：安全材料扩散后，即使代码保护仍会降低防护收益。
 - VMP 规则扩大后未做真机和 release 验证：可能引入启动失败、so 加载失败或兼容性问题。
+- 只隐藏无障碍节点树但未拦截手势服务：自动点击器仍可使用固定坐标执行 `dispatchGesture`。
+- 把 `pressure == 1f` 单独视为脚本点击：大量真实设备会被误拦截，导致页面完全不可操作。
+- 未评估无障碍副作用就开启生产防护：TalkBack、Switch Access 和依赖节点树的生产自动化测试会失效。

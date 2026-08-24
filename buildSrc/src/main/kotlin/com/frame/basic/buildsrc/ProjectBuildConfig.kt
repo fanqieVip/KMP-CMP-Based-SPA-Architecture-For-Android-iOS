@@ -29,6 +29,15 @@ object ProjectBuildConfig {
             const val versionCode = 1
             const val versionName = "1.0.0"
 
+            /**
+             * 是否在生产环境禁止无障碍服务读取和操作应用界面，默认开启。
+             *
+             * 开启后会隐藏 Android 窗口的无障碍节点树，并在检测到具备手势执行能力的
+             * 无障碍服务时拦截触摸事件。副作用是 TalkBack、Switch Access 等合法辅助功能
+             * 无法使用，且依赖无障碍节点的 Appium/UI 自动化测试无法在生产包中运行。
+             */
+            const val disableAccessibilityService = true
+
             //ndk官方版 https://github.com/android/ndk（存放android-sdk/ndk/）
             //ndk23.2.8568313 ollvm windows整合包 https://github.com/Ant-tree/ObfuscatorNDK
             const val ndkVersion = "23.2.8568313"
