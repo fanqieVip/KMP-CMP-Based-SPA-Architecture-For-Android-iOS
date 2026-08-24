@@ -13,7 +13,7 @@ Android 与 iOS 的屏幕分辨率、系统 Density、物理 PPI 和逻辑坐标
 - 不修改平台全局 `Resources`、`UIScreen` 或原生窗口 Density。
 - Compose 与原生 UI 的 Density 相互隔离，原生页面、原生控件和第三方 SDK 继续遵循平台默认适配规则。
 - 横竖屏切换时 Density 不随窗口宽高变化，控件物理尺寸保持稳定；页面布局仍根据当前窗口约束重新排版。
-- Compose 字体与原生互操作容器的 `fontScale` 固定为 `1.0`，忽略系统字体无障碍缩放。
+- Compose 字体与原生互操作容器使用 App 自定义 `fontScale`，默认值为 `1.0`，不读取系统字体无障碍缩放。
 
 该方案追求的是跨设备物理尺寸一致，不是让所有设备显示完全相同数量的内容，也不是把整张设计稿按屏幕宽度等比缩放。物理屏幕更大的设备应当自然展示更多内容，页面仍需使用响应式布局处理可用空间差异。
 
@@ -25,9 +25,9 @@ Android 与 iOS 的屏幕分辨率、系统 Density、物理 PPI 和逻辑坐标
 
 | 场景 | 使用的 Density | 字体缩放 | 处理方式 |
 | --- | --- | --- | --- |
-| `BaseApp` 内的 Compose 页面 | 设计 Density | 固定 `1.0` | `DesignDensityProvider` 全局提供 |
-| `NativeDialog` 内的 Compose 内容 | 设计 Density | 固定 `1.0` | 独立原生弹窗入口重新提供 |
-| `AndroidView` / `UIKitView` 外层互操作区域 | 平台原生 Density | 固定 `1.0` | 使用 `NativeDensityProvider` |
+| `BaseApp` 内的 Compose 页面 | 设计 Density | App 自定义，默认 `1.0` | `DesignDensityProvider` 全局提供 |
+| `NativeDialog` 内的 Compose 内容 | 设计 Density | App 自定义，默认 `1.0` | 独立原生弹窗入口重新提供 |
+| `AndroidView` / `UIKitView` 外层互操作区域 | 平台原生 Density | App 自定义，默认 `1.0` | 使用 `NativeDensityProvider` |
 | Android 原生 Activity/View | 平台原生 Density | 平台自身规则 | 不修改 `Resources` |
 | iOS UIView/UIViewController | 平台原生坐标体系 | 平台自身规则 | 不修改 UIKit 全局配置 |
 | 第三方 SDK 原生页面 | 平台原生 Density | 平台自身规则 | 不参与 Compose Density 适配 |
@@ -240,7 +240,7 @@ NativeDensityProvider {
 `NativeDensityProvider` 会：
 
 - 恢复进入 `DesignDensityProvider` 前保存的平台原生尺寸 Density。
-- 将 `fontScale` 固定为 `1.0`。
+- 使用 `LocalAppState` 配置的 `fontScale`，默认值为 `1.0`。
 - 只影响当前 Compose 子树，不修改 Android `Resources` 或 UIKit 全局配置。
 
 原生控件内部如果自行读取系统字体设置，仍可能跟随平台字体策略。`NativeDensityProvider` 固定的是 Compose 互操作作用域的 `LocalDensity.fontScale`，不是对第三方原生 SDK 的全局字体拦截。
@@ -460,13 +460,13 @@ body {
 
 ## 10. 字体规则
 
-当前设计 Density 和 `NativeDensityProvider` 都使用：
+当前设计 Density 和 `NativeDensityProvider` 都读取 `LocalAppState.current.fontScale`，默认使用：
 
 ```kotlin
 fontScale = 1f
 ```
 
-因此 Compose `sp` 不跟随 Android/iOS 系统字体无障碍倍率。未来如需全局自定义字号倍率，应增加项目自己的全局字体参数，并在创建 `Density` 时统一乘入，不要重新读取系统 `fontScale`，也不要在业务页面逐个修改字号。
+因此 Compose `sp` 不跟随 Android/iOS 系统字体无障碍倍率，而是由 App 自己统一配置。业务通过 `LocalAppState.current.setFontScale(...)` 修改倍率，不要重新读取系统 `fontScale`，也不要在业务页面逐个修改字号。
 
 建议的统一公式为：
 
@@ -503,7 +503,7 @@ effectiveFontScale = customAppFontScale
 - 全原生页面和第三方 SDK 是否保持平台默认 Density。
 - 是否错误地修改了 Android 全局 `Resources` Density。
 - 是否错误地把 iOS `scale/nativeScale` 当作 PPI。
-- 是否依赖系统字体无障碍倍率；当前项目明确固定为 `1.0`。
+- 是否错误依赖系统字体无障碍倍率；当前项目使用 App 自定义倍率，默认值为 `1.0`。
 - 横竖屏、手机、平板和分屏场景是否仍具备响应式布局能力。
 
 ## 13. 验证建议
@@ -530,7 +530,7 @@ effectiveFontScale = customAppFontScale
 - iOS 精确 PPI 依赖硬件型号数据，新设备需要持续维护。
 - 未识别设备使用原生 Density 推算 PPI，只是可用性回退。
 - 外接显示器、桌面窗口化、远程显示和特殊缩放模式不在当前保证范围内。
-- 固定 `fontScale = 1.0` 会忽略系统字体无障碍设置，这是当前产品明确选择。
+- App 自定义 `fontScale` 不读取系统字体无障碍设置，默认值为 `1.0`。
 - 自研 H5 获取 App Density 超过 `500ms` 或返回非法值时会使用固定 `50px` 基线，本次页面生命周期内不保证再次自动校准。
 - 物理尺寸一致不等于视觉截图像素一致，也不等于所有设备显示相同内容量。
 

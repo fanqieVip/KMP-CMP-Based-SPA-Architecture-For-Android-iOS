@@ -7,6 +7,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import buildkonfig.BuildConfig_com_basic_base
+import com.basic.base.local.LocalAppState
 
 /**
  * @Description: 隔离 Compose 设计密度与平台原生控件密度
@@ -17,26 +18,24 @@ import buildkonfig.BuildConfig_com_basic_base
 // 未识别设备 PPI 时，用平台原生 Density 估算物理 PPI。
 private const val STANDARD_DENSITY_DPI = 160f
 
-// Compose 与原生互操作作用域均忽略系统字体缩放。
-private const val FIXED_FONT_SCALE = 1f
-
 // 保存进入设计密度作用域前的平台原生 Density，嵌套 Provider 时不会重复缩放。
 private val LocalNativeDensity = staticCompositionLocalOf<Density?> { null }
 
 /**
- * 为 Compose 内容提供按设计参数校准的 Density，并固定字体缩放倍率为 1。
+ * 为 Compose 内容提供按设计参数校准的 Density，并应用 App 全局字体缩放倍率。
  *
  * @param content 使用设计 Density 的 Compose 内容。
  */
 @Composable
 internal fun DesignDensityProvider(content: @Composable () -> Unit) {
     val nativeDensity = LocalNativeDensity.current ?: LocalDensity.current
+    val fontScale = LocalAppState.current.fontScale.value
     val devicePpi = remember { getDevicePhysicalPpi() }
         ?: nativeDensity.density * STANDARD_DENSITY_DPI
-    val designDensity = remember(nativeDensity.density, devicePpi) {
+    val designDensity = remember(nativeDensity.density, devicePpi, fontScale) {
         Density(
             density = calculateDesignDensity(devicePpi),
-            fontScale = FIXED_FONT_SCALE
+            fontScale = fontScale
         )
     }
     CompositionLocalProvider(
@@ -47,7 +46,7 @@ internal fun DesignDensityProvider(content: @Composable () -> Unit) {
 }
 
 /**
- * 临时恢复平台原生尺寸 Density，并把字体缩放倍率固定为 1。
+ * 临时恢复平台原生尺寸 Density，并应用 App 全局字体缩放倍率。
  * 供 AndroidView、UIKitView 等原生互操作组件使用。
  *
  * @param content 使用平台原生 Density 的 Compose 内容。
@@ -55,10 +54,11 @@ internal fun DesignDensityProvider(content: @Composable () -> Unit) {
 @Composable
 fun NativeDensityProvider(content: @Composable () -> Unit) {
     val nativeDensity = LocalNativeDensity.current ?: LocalDensity.current
-    val densityWithoutSystemFontScale = remember(nativeDensity.density) {
+    val fontScale = LocalAppState.current.fontScale.value
+    val densityWithoutSystemFontScale = remember(nativeDensity.density, fontScale) {
         Density(
             density = nativeDensity.density,
-            fontScale = FIXED_FONT_SCALE
+            fontScale = fontScale
         )
     }
     CompositionLocalProvider(

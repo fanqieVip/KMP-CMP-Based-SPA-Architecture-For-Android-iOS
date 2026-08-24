@@ -37,6 +37,7 @@ data class AppState(
     private val _screenOrientation: MutableState<ScreenOrientation> = mutableStateOf(
         ScreenOrientation.PORTRAIT
     ),
+    private val _fontScale: MutableState<Float> = mutableStateOf(1f),
     private val _windowOrientation: MutableStateFlow<WindowOrientation> = MutableStateFlow(
         WindowOrientation.UNKNOWN
     ),
@@ -50,6 +51,11 @@ data class AppState(
      * 状态栏图标颜色状态
      */
     val statusBarTextIsDark: StateFlow<Boolean> get() = _statusBarTextIsDark
+
+    /**
+     * Compose 全局字体缩放倍率。
+     */
+    val fontScale: State<Float> get() = _fontScale
 
     /**
      * 当前应用窗口的实际横竖屏方向。
@@ -104,6 +110,18 @@ data class AppState(
      */
     fun setScreenOrientation(screenOrientation: ScreenOrientation) {
         _screenOrientation.value = screenOrientation
+    }
+
+    /**
+     * 设置全局字体缩放倍率。
+     *
+     * @param fontScale 字体缩放倍率，必须为大于 0 的有限值。
+     */
+    fun setFontScale(fontScale: Float) {
+        require(fontScale.isFinite() && fontScale > 0f) {
+            "fontScale must be a finite value greater than zero."
+        }
+        _fontScale.value = fontScale
     }
 
     init {
