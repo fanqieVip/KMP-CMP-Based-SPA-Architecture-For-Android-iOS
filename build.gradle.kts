@@ -1,4 +1,9 @@
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+import org.gradle.api.Project
+import org.jetbrains.kotlin.gradle.ExternalKotlinTargetApi
+import org.jetbrains.kotlin.gradle.plugin.ide.IdeAdditionalArtifactResolver
+import org.jetbrains.kotlin.gradle.plugin.ide.IdeDependencyResolver
+import org.jetbrains.kotlin.gradle.plugin.ide.IdeMultiplatformImport
 import java.io.OutputStream
 import com.frame.basic.buildsrc.ProjectBuildConfig
 
@@ -36,7 +41,38 @@ fun isAppleRelatedTask(taskName: String): Boolean {
             name.contains("apple")
 }
 
+@OptIn(ExternalKotlinTargetApi::class)
+fun Project.disableNativeIdeDependencyResolution() {
+    pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+        val ideImport = IdeMultiplatformImport.instance(this@disableNativeIdeDependencyResolution)
+        val nativeSuppressionPriority = IdeMultiplatformImport.Priority(Int.MAX_VALUE)
+        listOf(
+            IdeMultiplatformImport.DependencyResolutionPhase.SourceDependencyResolution,
+            IdeMultiplatformImport.DependencyResolutionPhase.BinaryDependencyResolution,
+            IdeMultiplatformImport.DependencyResolutionPhase.SourcesAndDocumentationResolution
+        ).forEach { phase ->
+            ideImport.registerDependencyResolver(
+                resolver = IdeDependencyResolver.empty,
+                constraint = IdeMultiplatformImport.SourceSetConstraint.isNative,
+                phase = phase,
+                priority = nativeSuppressionPriority
+            )
+        }
+        ideImport.registerAdditionalArtifactResolver(
+            resolver = IdeAdditionalArtifactResolver.empty,
+            constraint = IdeMultiplatformImport.SourceSetConstraint.isNative,
+            phase = IdeMultiplatformImport.AdditionalArtifactResolutionPhase.SourcesAndDocumentationResolution,
+            priority = nativeSuppressionPriority
+        )
+    }
+}
+
 subprojects {
+    if (!canBuildAppleTargets) {
+        // Windows/Linux IDE 不解析 Native 二进制，避免将 iOS .klib 当作本地目录索引。
+        disableNativeIdeDependencyResolution()
+    }
+
     // 未安装完整 Xcode 时禁止执行 Apple 相关任务，避免 Android 同步/编译被 xcodeVersion 阻断。
     tasks.configureEach {
         if (!canBuildAppleTargets && isAppleRelatedTask(name)) {
@@ -77,6 +113,7 @@ gradle.projectsEvaluated {
         }
     }
 }
+
 //buildscript {
 //    dependencies {
 //        classpath(libs.agp)

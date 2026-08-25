@@ -1,5 +1,5 @@
 [versions]
-agp = "9.3.1"                                                   # https://developer.android.google.cn/reference/tools/gradle-api
+agp = "9.3.2"                                                   # https://developer.android.google.cn/reference/tools/gradle-api
 coreKtx = "1.19.0"
 androidx-activity = "1.13.0"
 androidx-lifecycle = "2.11.0"
