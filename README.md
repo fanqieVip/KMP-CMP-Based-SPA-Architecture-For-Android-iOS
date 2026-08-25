@@ -183,6 +183,7 @@ iosApp/Configuration/iosConfig.xcconfig
 - `app/tasks/publish_online/mainVmp`：对生产 APK 执行 VMP 加固，并在加固后写入 APK 完整性签名。
 - `VmpConfig.kt`：集中维护 VMP 加密范围、VMP so 名和初始化类名，安全核心类必须纳入加固范围。
 - `EnvCheckerUtils.kt`：运行期环境校验核心类，负责证书、包体完整性、Hook、Frida、插件化和改包风险检测，必须被 VMP 保护。
+- 反无障碍自动点击 / 反积分墙作弊：生产环境隐藏无障碍节点树，并基于 Android 8.0+ 标准 `dispatchGesture` 的虚拟设备及固定触摸特征拦截自动点击，正常手指操作不受无障碍服务开启状态影响。
 
 具体接入规则、配置入口、双端一致性要求和发布验收清单见 [APK 安全防护知识库](./skills/knowledge/apk安全防护.md)。
 
