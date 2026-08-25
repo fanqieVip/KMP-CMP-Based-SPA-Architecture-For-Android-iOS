@@ -30,11 +30,10 @@ object ProjectBuildConfig {
             const val versionName = "1.0.0"
 
             /**
-             * 是否在生产环境禁止无障碍服务读取和操作应用界面，默认开启。
+             * 是否在生产环境开启无障碍自动点击防护，默认开启。
              *
-             * 开启后会隐藏 Android 窗口的无障碍节点树，并在检测到具备手势执行能力的
-             * 无障碍服务时拦截触摸事件。副作用是 TalkBack、Switch Access 等合法辅助功能
-             * 无法使用，且依赖无障碍节点的 Appium/UI 自动化测试无法在生产包中运行。
+             * 开启后会隐藏 Android 窗口的无障碍节点树，并拦截虚拟设备和固定触摸特征自动点击；仅开启无障碍服务不会屏蔽正常手指操作。
+             * 副作用是 TalkBack、Switch Access 无法读取页面，且依赖无障碍节点的 Appium/UI 自动化测试无法在生产包中运行。
              */
             const val disableAccessibilityService = true
 

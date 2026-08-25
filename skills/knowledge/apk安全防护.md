@@ -167,21 +167,21 @@ buildSrc/src/main/kotlin/com/frame/basic/buildsrc/VmpConfig.kt
 ### 6.2 作用
 
 - 隐藏 Activity、NativeActivity 和 NativeDialog 的无障碍节点树，使自动化工具无法按控件文字、ID 或层级定位。
-- 检测已启用且具备手势执行能力的无障碍服务，阻止其使用 `dispatchGesture` 自动点击。
-- 通过压力、接触面积和输入源组合特征，补充拦截部分模拟触摸事件。
+- 根据虚拟设备、未知工具类型以及固定压力/接触面积的组合特征，拦截 Android 8.0 以上标准 `dispatchGesture` 自动点击。
+- 仅开启无障碍服务不会触发拦截，正常手指操作可以继续使用。
 
 ### 6.3 副作用与边界
 
 - TalkBack、Switch Access 等合法辅助功能无法读取页面。
-- 具备手势执行能力的无障碍服务开启期间，自动点击和用户手指点击都会被拦截。
 - Appium、UIAutomator 等依赖无障碍节点的生产包测试会失效。
 - 不能保证阻止 ADB、Root、Hook 或已知坐标的测试注入。
+- 厂商修改系统注入参数或工具使用非标准注入链路时，可能绕过事件特征检测。
 
 ### 6.4 核心处理方式
 
 1. `core/base` 通过 BuildKonfig 注入 `DISABLE_ACCESSIBILITY_SERVICE`，运行期与 `VersionStatus.RELEASE` 共同判断是否启用。
 2. `AccessibilityTreeGuard.kt` 在 Window 根节点设置 `IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS`，无需逐个 Composable 添加 Modifier。
-3. `BaseActivity.dispatchTouchEvent` 检查 `CAPABILITY_CAN_PERFORM_GESTURES` 及触摸组合特征，命中后吞掉事件。
+3. `BaseActivity.dispatchTouchEvent` 仅拦截同时命中虚拟设备、`TOOL_TYPE_UNKNOWN`、固定压力和接触面积的事件，正常物理触摸直接放行。
 4. `AndroidNativeDialog` 单独处理自己的 Window，避免弹窗节点树遗漏。
 
 ## 7. 发布与验收清单
@@ -221,7 +221,4 @@ VMP 与完整性签名必须以实际 release/VMP 产物为准，普通 debug �
 - 修改 `batchTask.gradle` 的完整性参数但忘记同步 `EnvCheckerUtils.kt`：运行期会误判或校验失效。
 - 删除或放松 `EnvCheckerUtils` 的 VMP 规则：运行期校验逻辑更容易被定位和篡改。
 - 将真实密钥、IV、签名材料写进文档或日志：安全材料扩散后，即使代码保护仍会降低防护收益。
-- VMP 规则扩大后未做真机和 release 验证：可能引入启动失败、so 加载失败或兼容性问题。
-- 只隐藏无障碍节点树但未拦截手势服务：自动点击器仍可使用固定坐标执行 `dispatchGesture`。
-- 把 `pressure == 1f` 单独视为脚本点击：大量真实设备会被误拦截，导致页面完全不可操作。
-- 未评估无障碍副作用就开启生产防护：TalkBack、Switch Access 和依赖节点树的生产自动化测试会失效。
+- 反无障碍服务：TalkBack、Switch Access 和依赖节点树的生产自动化测试会失效。
