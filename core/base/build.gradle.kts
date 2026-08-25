@@ -145,8 +145,6 @@ kotlin {
 
             api(libs.uuid)
 
-            api(libs.konnectivity)
-
             api(libs.coil.ktor.network)
 
             api(libs.compottie)

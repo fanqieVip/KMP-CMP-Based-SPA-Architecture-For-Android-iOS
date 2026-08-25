@@ -6,10 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.basic.base.ScreenOrientation
 import com.basic.base.StatusBar
+import com.basic.base.konnectivity.Konnectivity
+import com.basic.base.konnectivity.NetworkConnection
 import com.basic.base.ktx.applicationScope
 import com.basic.base.ktx.launchScope
-import com.plusmobileapps.konnectivity.Konnectivity
-import com.plusmobileapps.konnectivity.NetworkConnection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

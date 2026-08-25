@@ -35,7 +35,6 @@ cnOaid = "4.2.17"                                               # https://github
 coil = "3.5.0"                                                  # https://coil-kt.github.io/coil/network/#ktor-network-engines
 immersionbar = "2.0.2"                                          # https://github.com/yuzhiqiang1993/immersionbar
 compottie = "2.2.4"                                             # https://github.com/alexzhirkevich/compottie
-konnectivity = "0.1-alpha01"                                    # https://github.com/Plus-Mobile-Apps/konnectivity
 xxPermission = "28.3"                                           # https://github.com/getActivity/XXPermissions
 mmkv = "2.4.2"                                                  # https://github.com/Tencent/MMKV
 
@@ -108,7 +107,6 @@ compottie-lite = { module = "io.github.alexzhirkevich:compottie-lite", version.r
 compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
 compottie-network = { module = "io.github.alexzhirkevich:compottie-network", version.ref = "compottie" }
 compottie-resources = { module = "io.github.alexzhirkevich:compottie-resources", version.ref = "compottie" }
-konnectivity = { module = "com.plusmobileapps:konnectivity", version.ref = "konnectivity" }
 xxPermission = { group = "com.github.getActivity", name = "XXPermissions", version.ref = "xxPermission" }
 mmkv = { module = "com.tencent:mmkv-kmp", version.ref = "mmkv" }
 
