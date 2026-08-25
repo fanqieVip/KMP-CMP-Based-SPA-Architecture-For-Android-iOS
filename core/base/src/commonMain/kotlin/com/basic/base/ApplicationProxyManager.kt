@@ -21,13 +21,13 @@ import io.github.vinceglb.filekit.coil.addPlatformFileSupport
  */
 object ApplicationProxyManager : ApplicationService {
     private val proxies by lazy { SPIRegisterCenter.all<ApplicationService>() }
-    override fun onCreate() {
+    override fun onCreate(isMainProcess: Boolean) {
         initializeMmkv()
         initNapier()
         initCoil()
         appState.autoCheckNetworkPermission()
         proxies.forEach { proxy ->
-            runCatching { proxy.onCreate() }
+            runCatching { proxy.onCreate(isMainProcess) }
         }
     }
 

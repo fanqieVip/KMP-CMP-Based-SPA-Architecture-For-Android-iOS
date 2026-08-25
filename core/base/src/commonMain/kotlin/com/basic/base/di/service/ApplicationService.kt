@@ -4,7 +4,7 @@ expect class IosNSUserActivity
 expect class IosUIOpenURLContext
 expect class AndroidIntent
 interface ApplicationService {
-    fun onCreate()
+    fun onCreate(isMainProcess: Boolean)
     fun onBackground()
     fun onForeground()
     fun iosSceneContinueUserActivity(userActivity: IosNSUserActivity){}

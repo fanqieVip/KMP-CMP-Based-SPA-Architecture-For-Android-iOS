@@ -10,7 +10,7 @@ import com.basic.common.Application
  * ApplicationService的SPI实现类
  */
 class ApplicationServiceImpl : ApplicationService {
-    override fun onCreate() {
+    override fun onCreate(isMainProcess: Boolean) {
         Application.onCreate()
         //预初始化webkit
         applicationScope.launchScope { preloadWebkit() }

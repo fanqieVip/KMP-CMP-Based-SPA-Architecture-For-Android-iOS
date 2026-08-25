@@ -8,7 +8,7 @@ import platform.UIKit.UIViewController
 object AppDelegate {
     fun onAppCreate() {
         initKoin()
-        ApplicationProxyManager.onCreate()
+        ApplicationProxyManager.onCreate(isMainProcess = true)
     }
 
     fun onAppBackground() {

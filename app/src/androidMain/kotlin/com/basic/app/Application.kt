@@ -7,6 +7,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.multidex.MultiDexApplication
 import com.basic.base.ApplicationProxyManager
 import com.basic.base.utils.ActivityLifecycleCallbacksImpl
+import com.basic.base.utils.ProcessUtils
 
 /**
  * @Description:
@@ -30,7 +31,7 @@ class Application  : MultiDexApplication(), LifecycleObserver {
     }
 
     private fun registerAppLifecycle() {
-        ApplicationProxyManager.onCreate()
+        ApplicationProxyManager.onCreate(ProcessUtils.isMainProcess(this))
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 super.onStart(owner)
