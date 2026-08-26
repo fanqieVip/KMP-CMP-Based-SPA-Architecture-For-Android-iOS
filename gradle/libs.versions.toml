@@ -1,15 +1,15 @@
 [versions]
-agp = "9.3.2"                                                   # https://developer.android.google.cn/reference/tools/gradle-api
+agp = "9.3.1"                                                   # https://developer.android.google.cn/reference/tools/gradle-api
 coreKtx = "1.19.0"
 androidx-activity = "1.13.0"
 androidx-lifecycle = "2.11.0"
 androidx-splashscreen = "1.2.0"
 constraintLayout = "2.2.2"
-haze = "2.0.0-alpha05"                                          # https://chrisbanes.github.io/haze/latest/
+haze = "2.0.0-beta01"                                           # https://chrisbanes.github.io/haze/latest/
 material = "1.14.0"
 composeMaterial3 = "1.9.0"
 composeHotReload = "1.2.0"
-composeMultiplatform = "1.11.1"                                 # https://github.com/JetBrains/compose-multiplatform
+composeMultiplatform = "1.12.0"                                 # https://github.com/JetBrains/compose-multiplatform
 kotlin = "2.4.10"                                               # https://github.com/JetBrains/kotlin
 kotlinxDatetime = "0.8.0"                                       # https://klibs.io/project/Kotlin/kotlinx-datetime
 ksp = "2.3.11"                                                  # https://github.com/google/ksp
@@ -24,7 +24,7 @@ ktorMonitor = "1.14.4"                                          # https://github
 lifecycleProcess = "2.11.0"
 utilcodex = "1.31.1"
 filekit = "0.15.0"                                              # https://klibs.io/project/vinceglb/FileKit
-imagepicker = "1.1.5"                                           # https://github.com/ismoy/ImagePickerKMP
+imagepicker = "1.1.6"                                           # https://github.com/ismoy/ImagePickerKMP
 moko-permissions = "0.20.1"                                     # https://klibs.io/project/icerockdev/moko-permissions
 pullrefresh = "1.4.0-beta03"                                    # https://klibs.io/project/MateriiApps/pullrefresh
 uuid = "0.8.4"                                                  # https://klibs.io/project/benasher44/uuid
@@ -34,7 +34,7 @@ multiDex = "2.0.1"
 cnOaid = "4.2.17"                                               # https://github.com/gzu-liyujiang/Android_CN_OAID
 coil = "3.5.0"                                                  # https://coil-kt.github.io/coil/network/#ktor-network-engines
 immersionbar = "2.0.2"                                          # https://github.com/yuzhiqiang1993/immersionbar
-compottie = "2.2.4"                                             # https://github.com/alexzhirkevich/compottie
+compottie = "2.3.0"                                             # https://github.com/alexzhirkevich/compottie
 xxPermission = "28.3"                                           # https://github.com/getActivity/XXPermissions
 mmkv = "2.4.2"                                                  # https://github.com/Tencent/MMKV
 
