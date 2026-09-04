@@ -26,7 +26,6 @@ utilcodex = "1.31.1"
 filekit = "0.15.0"                                              # https://klibs.io/project/vinceglb/FileKit
 imagepicker = "1.1.7"                                           # https://github.com/ismoy/ImagePickerKMP
 moko-permissions = "0.20.1"                                     # https://klibs.io/project/icerockdev/moko-permissions
-pullrefresh = "1.4.0-beta03"                                    # https://klibs.io/project/MateriiApps/pullrefresh
 uuid = "0.8.4"                                                  # https://klibs.io/project/benasher44/uuid
 buildkonfig = "0.22.0"                                          # https://github.com/yshrsmz/BuildKonfig
 walle = "1.0.5"                                                 # https://github.com/Petterpx/walle
@@ -93,7 +92,6 @@ permissions-microphone = { module = "dev.icerock.moko:permissions-microphone", v
 permissions-motion = { module = "dev.icerock.moko:permissions-motion", version.ref = "moko-permissions" }
 permissions-notifications = { module = "dev.icerock.moko:permissions-notifications", version.ref = "moko-permissions" }
 permissions-storage = { module = "dev.icerock.moko:permissions-storage", version.ref = "moko-permissions" }
-pullrefresh = { module = "dev.materii.pullrefresh:pullrefresh", version.ref = "pullrefresh" }
 uuid = { module = "com.benasher44:uuid", version.ref = "uuid" }
 github-walle = { group = "com.github.Petterpx.walle", name = "library", version.ref = "walle" }
 androidx-multiDex = { group = "androidx.multidex", name = "multidex", version.ref = "multiDex" }

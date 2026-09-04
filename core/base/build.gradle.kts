@@ -141,8 +141,6 @@ kotlin {
             api(libs.ktor.negotiation)
             api(libs.ktor.logging)
 
-            api(libs.pullrefresh)
-
             api(libs.uuid)
 
             api(libs.coil.ktor.network)

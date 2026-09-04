@@ -24,10 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.basic.base.pullrefresh.DragRefreshLayout
+import com.basic.base.pullrefresh.PullRefreshDefaults
+import com.basic.base.pullrefresh.rememberPullRefreshState
 import com.basic.base.ui.LocalHazeScaffoldState
-import dev.materii.pullrefresh.DragRefreshLayout
-import dev.materii.pullrefresh.PullRefreshDefaults
-import dev.materii.pullrefresh.rememberPullRefreshState
 
 @Composable
 fun RefreshLazyGrid(
