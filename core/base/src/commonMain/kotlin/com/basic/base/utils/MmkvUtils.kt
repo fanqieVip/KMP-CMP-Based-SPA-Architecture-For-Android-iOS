@@ -149,7 +149,7 @@ inline fun <reified T : Any> MMKV.asFlowJson(key: String, initialValue: T? = nul
         sets = this,
         key = adapterEnvironment(key),
         initialValue = initialValue,
-        deserializer = T::class.serializer()
+        deserializer = serializer<T>()
     )
 
 class DataStoreFlowJson<T : Any>(
