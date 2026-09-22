@@ -385,9 +385,31 @@ def getTestApkServerAddress() {
  * @return
  */
 def getLocalIp() {
-    def process = "wmic nicconfig where IPEnabled=true get IPAddress".execute()
-    def ip = process.text.split("\n")[1].trim().replaceAll(/[{}]/, "")
-    return ip.split(",")[0].trim().replaceAll(/"/, "")
+    try {
+        def ipList = []
+        def interfaces = java.net.NetworkInterface.getNetworkInterfaces()
+        while (interfaces.hasMoreElements()) {
+            def ni = interfaces.nextElement()
+            if (!ni.isUp() || ni.isLoopback() || ni.isVirtual()) continue
+            def addresses = ni.getInetAddresses()
+            while (addresses.hasMoreElements()) {
+                def addr = addresses.nextElement()
+                if (addr instanceof java.net.Inet4Address && !addr.isLoopbackAddress()) {
+                    def ip = addr.getHostAddress()
+                    if (ip.startsWith("192.168.") || ip.startsWith("10.")) {
+                        return ip
+                    }
+                    ipList.add(ip)
+                }
+            }
+        }
+        if (!ipList.isEmpty()) {
+            return ipList[0]
+        }
+        return java.net.InetAddress.getLocalHost().getHostAddress()
+    } catch (Exception ignored) {
+        return "127.0.0.1"
+    }
 }
 
 /**
