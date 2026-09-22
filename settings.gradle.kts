@@ -3,6 +3,15 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     repositories {
+        exclusiveContent {
+            forRepository {
+                mavenCentral()
+            }
+            filter {
+                includeGroup("com.codingfeline.buildkonfig")
+                includeGroup("com.squareup")
+            }
+        }
         maven(url = uri("https://mirrors.cloud.tencent.com/nexus/repository/gradle-plugins/"))
         maven(url = uri("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/"))
         maven(url = uri("https://maven.aliyun.com/nexus/content/groups/public"))
@@ -55,6 +64,14 @@ dependencyResolutionManagement {
             }
             filter {
                 includeGroup("com.xeonyu")
+            }
+        }
+        exclusiveContent {
+            forRepository {
+                mavenCentral()
+            }
+            filter {
+                includeGroup("com.codingfeline.buildkonfig")
             }
         }
         mavenCentral()
