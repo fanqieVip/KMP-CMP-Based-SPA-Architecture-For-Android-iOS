@@ -11,7 +11,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,8 +30,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import com.basic.base.Os
 import com.basic.base.getPlatform
 import com.basic.base.ktx.click
@@ -41,6 +38,7 @@ import com.basic.base.local.LocalUIContainer
 import com.basic.base.local.UIContainer
 import com.basic.base.local.appState
 import com.benasher44.uuid.uuid4
+import io.github.hristogochev.vortex.util.BackHandler
 import io.github.hristogochev.vortex.util.multiplatformName
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -120,43 +118,22 @@ abstract class NativeDialog(
                         )
                     }
                 ) {
-                    val isIos = getPlatform().os == Os.IOS
-                    if (!isIos) {
-                        Popup(
-                            onDismissRequest = {
-                                dismiss()
-                            },
-                            properties = PopupProperties(
-                                focusable = true,
-                                dismissOnBackPress = cancelAble,
-                                dismissOnClickOutside = false,
-                                clippingEnabled = false
-                            )
-                        ) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = alignment) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize().clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null
-                                    ) {
-                                        if (cancelAble) {
-                                            dismiss()
-                                        }
-                                    })
-                                CreateUIContent(visible)
-                            }
-                        }
-                    } else {
-                        Box(modifier = Modifier.fillMaxSize().clickable {
+                    val isAndroid = getPlatform().os == Os.ANDROID
+                    if (isAndroid) {
+                        BackHandler(true) {
                             if (cancelAble) {
                                 dismiss()
                             }
-                        })
-                        Box(modifier = Modifier.align(alignment)) {
-                            CreateUIContent(visible)
                         }
                     }
-
+                    Box(modifier = Modifier.fillMaxSize().clickable {
+                        if (cancelAble) {
+                            dismiss()
+                        }
+                    })
+                    Box(modifier = Modifier.align(alignment)) {
+                        CreateUIContent(visible)
+                    }
                 }
             }
         }
