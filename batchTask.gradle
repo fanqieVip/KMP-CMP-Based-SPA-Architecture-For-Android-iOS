@@ -61,7 +61,7 @@ def testApkVersionDesc = file("${testApkRootFolder.absolutePath}/version_desc")
 /**
  * 生产渠道包目录
  */
-def channelApkFolder = file("${projectFolder}/channel/v${ProjectBuildConfig.Build.Android.versionName}")
+def channelApkFolder = file("${projectFolder}/channel/v${ProjectBuildConfig.Build.versionName}")
 /**
  * 渠道配置文本
  */
@@ -261,7 +261,7 @@ def parseLocalProperties() {
 /**上传所有channel文件*/
 task publishOss() {
     group = publishOnlineGroupName
-    description = "上传channel_v${ProjectBuildConfig.Build.Android.versionName}文件"
+    description = "上传channel_v${ProjectBuildConfig.Build.versionName}文件"
     doLast {
         File apkFolder = file("${channelApkFolder.absolutePath}/")
         OssHelper.uploadDir(apkFolder)
@@ -270,7 +270,7 @@ task publishOss() {
 /**上传所有channel文件并且钉钉通知*/
 task publishOssDing() {
     group = publishOnlineGroupName
-    description = "上传channel_v${ProjectBuildConfig.Build.Android.versionName}文件并且钉钉通知"
+    description = "上传channel_v${ProjectBuildConfig.Build.versionName}文件并且钉钉通知"
     doLast {
         File apkFolder = file("${channelApkFolder.absolutePath}/")
         def result = OssHelper.uploadDir(apkFolder)

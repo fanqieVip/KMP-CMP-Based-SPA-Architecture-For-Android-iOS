@@ -17,6 +17,10 @@ object ProjectBuildConfig {
         const val applicationId = "com.basic.kmpdemo"
         //app名称
         const val appName = "KmpProject"
+        //内部版本号
+        const val versionCode = 1
+        //用户版本号
+        const val versionName = "1.0.0"
         /**
          * 安卓特定配置
          */
@@ -26,8 +30,6 @@ object ProjectBuildConfig {
             //vmp加密要求24以上，多个依赖库要求最低26起
             const val minSdkVersion = 26
             const val targetSdkVersion = 37
-            const val versionCode = 1
-            const val versionName = "1.0.0"
 
             /**
              * 是否在生产环境开启无障碍自动点击防护，默认开启。
@@ -67,8 +69,6 @@ object ProjectBuildConfig {
          * iOS特定配置
          */
         object Ios {
-            const val versionName = "1.0.0"
-            const val versionCode = 1
             //cocoapods无法读取动态值，所以项目的最低支持版本还是在xcode中配置
             const val deploymentTarget = "15.0"
         }

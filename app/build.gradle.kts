@@ -21,14 +21,14 @@ plugins {
     id("com.waynell.tinypng")
     id("com.basic.ios")
 }
-apply(from = "../batchTask.gradle")
+//apply(from = "../batchTask.gradle")
 val androidNameSpace = "com.basic.app"
 
 //ios模块中可以$(fieldName)这样进行引用, 如：$(APPLICATION_ID)
 iosConfig {
     field("APP_NAME", ProjectBuildConfig.Build.appName)
-    field("VERSION_NAME", ProjectBuildConfig.Build.Ios.versionName)
-    field("VERSION_CODE", "${ProjectBuildConfig.Build.Ios.versionCode}")
+    field("VERSION_NAME", ProjectBuildConfig.Build.versionName)
+    field("VERSION_CODE", "${ProjectBuildConfig.Build.versionCode}")
     field("APPLICATION_ID", ProjectBuildConfig.Build.applicationId)
 }
 
@@ -101,8 +101,8 @@ android {
         targetSdk = ProjectBuildConfig.Build.Android.targetSdkVersion
         compileSdk = ProjectBuildConfig.Build.Android.compileSdkVersion
         minSdk = ProjectBuildConfig.Build.Android.minSdkVersion
-        versionCode = ProjectBuildConfig.Build.Android.versionCode
-        versionName = ProjectBuildConfig.Build.Android.versionName
+        versionCode = ProjectBuildConfig.Build.versionCode
+        versionName = ProjectBuildConfig.Build.versionName
         ndk {
             abiFilters += "arm64-v8a"
         }
