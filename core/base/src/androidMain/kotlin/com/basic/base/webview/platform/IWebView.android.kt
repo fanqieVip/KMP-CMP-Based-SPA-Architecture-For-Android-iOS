@@ -2,6 +2,7 @@ package com.basic.base.webview.platform
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import android.view.View.LAYER_TYPE_HARDWARE
 import com.basic.base.local.UIContainer
 import com.basic.base.webview.jsbridge.JsBridgeHelper
 import com.basic.base.webview.jsbridge.recycleAll
@@ -27,7 +28,7 @@ actual fun createWebView(uiContainer: UIContainer, state: WebViewState): IWebVie
             // 启用 H5 定位
             setGeolocationEnabled(true)
             // 必须开启 LAYER_TYPE_HARDWARE，否则搭配 Haze 毛玻璃效果会无线闪烁
-            // setLayerType(LAYER_TYPE_HARDWARE, null)
+             setLayerType(LAYER_TYPE_HARDWARE, null)
         }
         addJavascriptInterface(JsBridgeHelper(state), WebViewState.jsNamespace)
         register(
