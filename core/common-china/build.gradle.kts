@@ -20,10 +20,6 @@ plugins {
 }
 
 val androidNameSpace = "com.basic.common.distribution"
-val kspAndroidMainGeneratedSources = layout.buildDirectory.dir(
-    "generated/ksp/android/androidMain/kotlin"
-)
-
 kotlin {
     androidLibrary {
         namespace = androidNameSpace
@@ -38,32 +34,54 @@ kotlin {
         }
     }
 
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    )
+
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     sourceSets {
-        androidMain.dependencies {
-            compileOnly(
-                fileTree(
-                    mapOf(
-                        "dir" to "libs/android",
-                        "include" to listOf("**/*.jar", "**/*.aar")
+        commonMain {
+            dependencies {
+                implementation(libs.compose.multiplatform.components)
+                implementation(libs.koin.core)
+                implementation(libs.koin.annotations)
+                implementation(libs.koin.compose)
+                api(projects.core.common)
+            }
+        }
+
+        androidMain {
+            dependencies {
+                compileOnly(
+                    fileTree(
+                        mapOf(
+                            "dir" to "libs/android",
+                            "include" to listOf("**/*.jar", "**/*.aar")
+                        )
                     )
                 )
-            )
-            api(projects.core.common)
-            implementation(libs.compose.multiplatform.components)
-            implementation(libs.koin.core)
-            implementation(libs.koin.annotations)
-            implementation(libs.koin.compose)
-            implementation(libs.koin.android)
-            val oaidLib = libs.github.cnOaid.get().let { "${it.group}:${it.name}:${it.version}" }
-            implementation(oaidLib) {
-                exclude(group = "com.huawei.hms", module = "ads-identifier")
-                exclude(group = "com.hihonor.mcs", module = "ads-identifier")
+                api(projects.core.common)
+                implementation(libs.compose.multiplatform.components)
+                implementation(libs.koin.core)
+                implementation(libs.koin.annotations)
+                implementation(libs.koin.compose)
+                implementation(libs.koin.android)
+                val oaidLib = libs.github.cnOaid.get().let { "${it.group}:${it.name}:${it.version}" }
+                implementation(oaidLib) {
+                    exclude(group = "com.huawei.hms", module = "ads-identifier")
+                    exclude(group = "com.hihonor.mcs", module = "ads-identifier")
+                }
+                runtimeOnly("com.huawei.hms:ads-identifier:3.4.62.300")
+                runtimeOnly("com.hihonor.mcs:ads-identifier:1.0.3.300")
             }
-            runtimeOnly("com.huawei.hms:ads-identifier:3.4.62.300")
-            runtimeOnly("com.hihonor.mcs:ads-identifier:1.0.3.300")
         }
-        getByName("androidMain").generatedKotlin.srcDir(kspAndroidMainGeneratedSources)
+
+        iosMain {
+            dependencies {
+                api(projects.core.common)
+            }
+        }
     }
 }
 

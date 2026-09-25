@@ -4,6 +4,7 @@ import com.frame.basic.buildsrc.SignConfig
 import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
 import com.frame.basic.utils.isAlphaEnv
+import com.frame.basic.utils.isPlayDimension
 import com.frame.basic.utils.isReleaseEnv
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -78,6 +79,13 @@ kotlin {
             )))
             implementation(libs.coil.ktor.android)
             api(projects.project.main)
+            if (isPlayDimension()){
+                api(projects.project.mainPlay)
+                api(projects.core.commonPlay)
+            }else{
+                api(projects.project.mainChina)
+                api(projects.core.commonChina)
+            }
         }
         commonMain.dependencies {
             implementation(libs.koin.core)
@@ -85,9 +93,23 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.compose.multiplatform.components)
             api(projects.project.main)
+            if (isPlayDimension()){
+                api(projects.project.mainPlay)
+                api(projects.core.commonPlay)
+            }else{
+                api(projects.project.mainChina)
+                api(projects.core.commonChina)
+            }
         }
         iosMain.dependencies {
             api(projects.project.main)
+            if (isPlayDimension()){
+                api(projects.project.mainPlay)
+                api(projects.core.commonPlay)
+            }else{
+                api(projects.project.mainChina)
+                api(projects.core.commonChina)
+            }
         }
     }
 }
@@ -193,10 +215,6 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.multiplatform.ui.tooling )
-    add("chinaImplementation", projects.core.commonChina)
-    add("playImplementation", projects.core.commonPlay)
-    add("chinaImplementation", projects.project.mainChina)
-    add("playImplementation", projects.project.mainPlay)
 }
 compose.resources {
     publicResClass = true

@@ -1,187 +1,194 @@
 # Google Play 模块剪裁生成指南
 
-> 本指南用于把存在 China / Google Play 平台依赖差异的能力拆成两个 Android 实现模块，并由 App 的 product flavor 在构建期选择其一。默认只生成**空协议、空实现和 DI 骨架**；不得把设备标识、OAID、GMS 或任何业务能力擅自写入模板。
+> 本指南定义了如何对指定的源模块（Lib 模块或 Project 模块）进行剪裁，生成 `<目标模块>-china` 和 `<目标模块>-play` 两个发行渠道模块，实现编译期包体与依赖裁剪。
 
-## 1. 触发范围与关键词
+---
 
-下列表述均应加载本指南：
+## 1. 触发条件与概念定义 (Trigger & Concepts)
 
-- 为 `<模块>` 生成 Google Play 剪裁模块、Play 版模块或海外版模块。
-- 为 `<模块>` 拆分 China / Play、国内 / 海外、国内 / Google Play 实现。
-- 按发行渠道隔离 `<SDK/权限/依赖/功能>`，或为 Google Play 移除中国渠道依赖。
-- 为 `<模块>` 增加发行渠道 flavor 实现、渠道包体裁剪、渠道专属依赖。
+### 1.1 触发场景
+- 当需要将某一源模块（如 `libs/xxx` 或 `project/xxx`）中存在国内（China）与海外（Google Play）依赖/能力差异的部分进行拆分时。
+- 命令行或用户指令示例：
+  - “对 `project/main` 进行 Google Play 模块剪裁”
+  - “剪裁 `libs/pay` 模块为 china/play 渠道”
+  - “为 `<源模块>` 生成 China / Play 渠道拆分模块”
 
-不适用：仅隐藏 UI、仅修改一个 Manifest 属性、没有 China / Play 二选一实现的普通功能。这些任务不应为了“预留”而新建空模块。
+### 1.2 剪裁母版 (Mother Templates)
+剪裁生成的渠道模块以原模块的类型（**Lib 母版** 或 **Project 母版**）作为基础架构规范：
+- **Lib 母版剪裁**：以 Lib 模版为母版。保留多平台规范（含 Android 与 iOS），将母版中的 `api(projects.core.base)` 替换为依赖源模块 `api(projects.libs.<源模块Accessor>)`。
+- **Project 母版剪裁**：以 Project 模版为母版。保留多平台规范（含 Android 与 iOS），将母版中的 `api(projects.core.common)` 替换为依赖源模块 `api(projects.project.<源模块Accessor>)`。
 
-## 2. 目标与边界
+---
 
-目标是在**编译依赖图**中裁掉不属于当前发行渠道的代码和三方依赖：
+## 2. 核心架构与设计规范 (Core Architecture)
 
-```text
-<modulePath>                      # 公共协议；如需 iOS，实现也留在这里
-        ↑
-<modulePath>-china                # 仅 Android，国内实现和国内专属依赖
-<modulePath>-play                 # 仅 Android，Google Play 实现和 Play 专属依赖
-        ↑（App flavor 二选一）
-app: chinaImplementation / playImplementation
-```
+### 2.1 物理路径与命名规则
+假设源模块路径为 `<modulePath>`（如 `project/main` 或 `libs/pay`），其 Android namespace 为 `<parentNamespace>`（如 `com.basic.main` 或 `com.basic.pay`）：
 
-- `<modulePath>` 不能依赖 `-china` 或 `-play`，否则会形成循环依赖。
-- 选择实现的依赖只能放在 `app` 的 `chinaImplementation` / `playImplementation`。
-- 不能在 `<modulePath>`、`core/base` 或其他公共模块里通过任务名、`isPlayDimension()` 或 `if` 动态依赖两个子模块。
-- 两个渠道模块可以拥有相同的 Kotlin 包名和 DI 入口；因为一个 App 变体的 classpath 中只能存在其中一个。
-- 新模块默认只放渠道差异能力。公共 API、跨端模型和通用业务逻辑仍留在父模块。
+| 概念 | 规范与模板 | 示例（以 `project/main` 为例） |
+| :--- | :--- | :--- |
+| **源模块路径 / Gradle path** | `<modulePath>` / `:<moduleGradlePath>` | `project/main` / `:project:main` |
+| **China 模块路径 / Gradle path** | `<modulePath>-china` / `:<moduleGradlePath>-china` | `project/main-china` / `:project:main-china` |
+| **Play 模块路径 / Gradle path** | `<modulePath>-play` / `:<moduleGradlePath>-play` | `project/main-play` / `:project:main-play` |
+| **剪裁模块 Namespace** | `<parentNamespace>.distribution` | `com.basic.main.distribution` |
+| **Common 源码包路径** | `src/commonMain/kotlin/<distributionPackagePath>/` | `src/commonMain/kotlin/com/basic/main/distribution/` |
+| **iOS 源码包路径** | `src/iosMain/kotlin/<distributionPackagePath>/` | `src/iosMain/kotlin/com/basic/main/distribution/` |
+| **Distribution Service 接口** | `<CapabilityPascal>DistributionService`（位于源模块 `di/service/`） | `MainDistributionService` |
+| **Service 多平台实现变量** | `<capabilityCamel>DistributionServiceImpl` | `mainDistributionServiceImpl` |
+| **Android & iOS 统一 DI 变量名** | `<capabilityCamel>DistributionModule` | `mainDistributionModule` |
 
-## 3. 命名与目录模板
+### 2.2 多平台范围与路径一致性规范
+- **对齐多平台配置**：China 模块 (`<源模块>-china`) 与 Play 模块 (`<源模块>-play`) **均保留完整的多平台能力**（包含 Android 与 iOS）。构建脚本均包含 `iosArm64()`、`iosSimulatorArm64()` 及对应的 `commonMain` / `androidMain` / `iosMain` 结构。
+- **物理路径完全对齐**：`-china` 与 `-play` 两个剪裁模块的文件路径、Package 命名、DI 变量名必须完全一致，确保在 App 模块中可以无需分支代码直接挂载。
 
-从用户指定的目标模块推导以下变量：`<modulePath>` 是不带前导冒号的文件系统路径，例如 `core/common` 或 `project/main`；`<moduleGradlePath>` 是对应 Gradle path，例如 `core:common` 或 `project:main`；`<capability>` 是末级模块名，标准化为 kebab-case；`<CapabilityPascal>` 是其 PascalCase 形式；`<parentNamespace>` 是目标模块现有的 Android namespace；`<distributionNamespace>` 固定为 `<parentNamespace>.distribution`；`<distributionPackagePath>` 是将 `<distributionNamespace>` 的点替换为斜杠后的源码路径。
+---
 
-| 项目 | 模板 |
-| :--- | :--- |
-| 公共模块 | `<modulePath>` |
-| China 模块目录 / Gradle path | `<modulePath>-china` / `:<moduleGradlePath>-china` |
-| Play 模块目录 / Gradle path | `<modulePath>-play` / `:<moduleGradlePath>-play` |
-| Android namespace | `<parentNamespace>.distribution` |
-| Kotlin 实现包 / 物理目录 | `<distributionNamespace>` / `src/androidMain/kotlin/<distributionPackagePath>/` |
-| 公共 Service 包 / 物理目录 | `<parentNamespace>.di.service` / `<modulePath>/src/commonMain/kotlin/<parentNamespacePath>/di/service/` |
-| 公共协议 | `<CapabilityPascal>DistributionService`（位于 `di/service`） |
-| China 实现 | `China<CapabilityPascal>DistributionServiceImpl` |
-| Play 实现 | `Play<CapabilityPascal>DistributionServiceImpl` |
-| iOS 实现（需要时） | `Ios<CapabilityPascal>DistributionServiceImpl` |
-| Android DI 变量 | `<capabilityCamel>DistributionModule` |
-| iOS DI 变量 | `<capabilityCamel>IosModule` |
+## 3. 分层代码架构与注入规范 (SPI & DI Architecture)
 
-例如，目标模块 namespace 为 `com.basic.demo` 时，公共 Service 接口位于 `src/commonMain/kotlin/com/basic/demo/di/service/`，两个渠道模块的 namespace 均为 `com.basic.demo.distribution`，Service 实现源码必须位于 `src/androidMain/kotlin/com/basic/demo/distribution/di/impl/`。目标模块为 `core/common` 时，两个同级模块就是 `core/common-china` 与 `core/common-play`，命名分别为：`CommonDistributionService`、`ChinaCommonDistributionServiceImpl`、`PlayCommonDistributionServiceImpl`、`IosCommonDistributionServiceImpl`、`distributionModule`、`commonIosModule`。
+采用 **源模块定义接口 + 剪裁模块实现接口 + App 统一 commonMain 注入** 的分层设计：
 
-每个新增渠道模块必须一次性创建以下完整骨架，不能遗漏空目录和发布配置：
-
-```text
-<modulePath>-china/
-├── .gitignore
-├── build.gradle.kts
-├── proguard-rules.pro
-├── libs/android/.gitkeep
-└── src/androidMain/
-    ├── AndroidManifest.xml
-    └── kotlin/<distributionPackagePath>/
-        └── di/
-            ├── DI.kt
-            └── impl/
-                ├── ApplicationServiceImpl.kt
-                └── China<CapabilityPascal>DistributionServiceImpl.kt
-
-<modulePath>-play/
-├── .gitignore
-├── build.gradle.kts
-├── proguard-rules.pro
-├── libs/android/.gitkeep
-└── src/androidMain/
-    ├── AndroidManifest.xml
-    └── kotlin/<distributionPackagePath>/
-        └── di/
-            ├── DI.kt
-            └── impl/
-                ├── ApplicationServiceImpl.kt
-                └── Play<CapabilityPascal>DistributionServiceImpl.kt
-```
-
-`.gitignore` 固定为：
-
-```gitignore
-/build
-/.gradle
-```
-
-`proguard-rules.pro` 默认只保留说明注释；未有真实 SDK 规则时不得编造 keep 规则。`AndroidManifest.xml` 默认只保留基础 `manifest` 节点。`libs/android/.gitkeep` 用于让空目录可被 Git 保留；本地 AAR/JAR 到位后放在该目录，并由 Gradle 的 `compileOnly(fileTree(...))` 接入。
-
-Kotlin 的 `package` 与物理文件夹必须逐段一致。例如父模块 namespace 为 `com.basic.demo` 时，公共 Service 接口的 package 是 `com.basic.demo.di.service`，位于 `src/commonMain/kotlin/com/basic/demo/di/service/`；渠道 Service 实现的 package 是 `com.basic.demo.distribution.di.impl`，DI 的 package 是 `com.basic.demo.distribution.di`，分别位于渠道模块的 `src/androidMain/kotlin/com/basic/demo/distribution/di/impl/` 与其 `di/` 子目录；不得仍使用 `com.basic.<capability>` 之类的固定路径。
-
-## 4. 协议、实现与 DI 模板
-
-### 4.1 公共协议：默认为空
-
-在 `<modulePath>/src/commonMain/kotlin/<parentNamespacePath>/di/service/` 定义协议，package 为 `<parentNamespace>.di.service`。新建时接口没有成员；只有用户明确要求某项渠道差异能力时，才把那项能力加到协议中。
-
+### 3.1 源模块（Source Module）
+位于 `<modulePath>`：
+声明 Service 接口：位于 `src/commonMain/kotlin/<parentNamespacePath>/di/service/<CapabilityPascal>DistributionService.kt`
 ```kotlin
 package <parentNamespace>.di.service
 
+/**
+ * <CapabilityPascal> 发行渠道公共能力接口。
+ */
 interface <CapabilityPascal>DistributionService
 ```
 
-不得把 DeviceId、OAID、Android ID、广告 ID、权限、SDK 初始化或业务方法作为模板默认内容。若后续新增方法，必须同步补齐 China、Play 和 iOS（如适用）实现，并重新做隐私与包体依赖审计。
+### 3.2 剪裁模块（Clipped Modules: China / Play）
+分别位于 `<modulePath>-china` 和 `<modulePath>-play`（两者物理文件路径完全一致）：
+1. **ApplicationService 基础实现**：位于 `src/commonMain/kotlin/<distributionPackagePath>/di/impl/ApplicationServiceImpl.kt`
+   ```kotlin
+   package <distributionNamespace>.di.impl
 
-### 4.2 空实现：默认不引入任何专属依赖
+   import com.basic.base.di.service.ApplicationService
 
-```kotlin
-class China<CapabilityPascal>DistributionServiceImpl : <CapabilityPascal>DistributionService
+   class ApplicationServiceImpl : ApplicationService {
+       override fun onCreate(isMainProcess: Boolean) = Unit
+       override fun onBackground() = Unit
+       override fun onForeground() = Unit
+   }
+   ```
+2. **DistributionService 接口与多平台实现**：
+   - **`commonMain` 声明**：位于 `src/commonMain/kotlin/<distributionPackagePath>/di/impl/<capabilityCamel>DistributionServiceImpl.kt`
+     ```kotlin
+     package <distributionNamespace>.di.impl
 
-class Play<CapabilityPascal>DistributionServiceImpl : <CapabilityPascal>DistributionService
-```
+     import <parentNamespace>.di.service.<CapabilityPascal>DistributionService
 
-上述 Service 实现均放在 `<distributionNamespace>.di.impl` 包；若公共模块支持 iOS，同样提供空的 `Ios<CapabilityPascal>DistributionServiceImpl`，并注册到 iOS Koin 模块。iOS 不依赖 China / Play Android 子模块。
+     expect val <capabilityCamel>DistributionServiceImpl: <CapabilityPascal>DistributionService
+     ```
+   - **`androidMain` 实现**：位于 `src/androidMain/kotlin/<distributionPackagePath>/di/impl/<capabilityCamel>DistributionServiceImpl.android.kt`
+     ```kotlin
+     package <distributionNamespace>.di.impl
 
-所有新 Kotlin 文件必须遵循项目通用代码规范，包含文件头、KDoc 和真实作者/时间；不能直接复制示例中的占位元数据。
+     import <parentNamespace>.di.service.<CapabilityPascal>DistributionService
 
-### 4.3 应用生命周期服务与 DI 模板
+     actual val <capabilityCamel>DistributionServiceImpl: <CapabilityPascal>DistributionService = object : <CapabilityPascal>DistributionService {
+         // 默认空实现或 Android 特定发行渠道能力
+     }
+     ```
+   - **`iosMain` 实现**：位于 `src/iosMain/kotlin/<distributionPackagePath>/di/impl/<capabilityCamel>DistributionServiceImpl.ios.kt`
+     ```kotlin
+     package <distributionNamespace>.di.impl
 
-每个 China / Play 模块都必须提供一个同包名的空 `ApplicationServiceImpl`，作为该模块接入应用生命周期的标准入口。两个实现可拥有相同的全限定名，因为 App 每次只会选择一个渠道模块；未有真实需求时，不能在生命周期方法中加入任何业务、SDK 初始化或权限行为。
+     import <parentNamespace>.di.service.<CapabilityPascal>DistributionService
 
-```kotlin
-package <distributionNamespace>.di.impl
+     actual val <capabilityCamel>DistributionServiceImpl: <CapabilityPascal>DistributionService = object : <CapabilityPascal>DistributionService {
+         // 默认空实现或 iOS 特定发行渠道能力
+     }
+     ```
+3. **DI 模块注入**：位于 `src/commonMain/kotlin/<distributionPackagePath>/di/DI.kt`
+   ```kotlin
+   package <distributionNamespace>.di
 
-import com.basic.base.di.service.ApplicationService
+   import com.basic.base.di.service.ApplicationService
+   import com.basic.base.spi.registerSPI
+   import <parentNamespace>.di.service.<CapabilityPascal>DistributionService
+   import <distributionNamespace>.di.impl.<capabilityCamel>DistributionServiceImpl
+   import <distributionNamespace>.di.impl.ApplicationServiceImpl
+   import org.koin.dsl.module
 
-class ApplicationServiceImpl : ApplicationService {
-    override fun onCreate(isMainProcess: Boolean) = Unit
+   val <capabilityCamel>DistributionModule = module {
+       registerSPI<ApplicationService> { ApplicationServiceImpl() }
+       registerSPI<<CapabilityPascal>DistributionService> {
+           <capabilityCamel>DistributionServiceImpl
+       }
+   }
+   ```
+   *注意：China 与 Play 两个剪裁模块的 DI.kt 及变量完全对齐，均统一引用 `<capabilityCamel>DistributionServiceImpl`。*
 
-    override fun onBackground() = Unit
+4. **iOS 源码目录**：位于 `src/iosMain/kotlin/<distributionPackagePath>/`（含 `.gitkeep` 或 iOS 平台特定实现）。
 
-    override fun onForeground() = Unit
-}
-```
+### 3.3 App 模块统一注册 (App Common Hooks)
 
-若渠道能力需要处理 Activity Intent 或 iOS Scene 回调，只能在用户明确要求后覆盖 `ApplicationService` 的对应方法；Android 渠道模块不应替 iOS 添加实现。
+1. **`settings.gradle.kts` 依赖包含**：
+   在根目录 `settings.gradle.kts` 中包含剪裁出来的两个渠道模块：
+   ```kotlin
+   include("<moduleGradlePath>-china")
+   include("<moduleGradlePath>-play")
 
-China 和 Play 的 `DI.kt` 使用相同 package、相同变量名；除绑定各自 Distribution Service 外，必须注册模块自身的 `ApplicationServiceImpl`：
+   // 示例 1（core/common 模块）：
+   // include("core:common-china")
+   // include("core:common-play")
 
-```kotlin
-package <distributionNamespace>.di
+   // 示例 2（project/main 模块）：
+   // include("project:main-china")
+   // include("project:main-play")
+   ```
 
-import com.basic.base.di.service.ApplicationService
-import com.basic.base.spi.registerSPI
-import <parentNamespace>.di.service.<CapabilityPascal>DistributionService
-import <distributionNamespace>.di.impl.China<CapabilityPascal>DistributionServiceImpl
-import <distributionNamespace>.di.impl.ApplicationServiceImpl
-import org.koin.dsl.module
+2. **`app/build.gradle.kts` 渠道依赖配置**：
+   在 `app/build.gradle.kts` 的 `sourceSets` 中根据 `isPlayDimension()` 动态引入对应的渠道模块：
+   ```kotlin
+   if (isPlayDimension()){
+       api(projects.<modulePlayAccessor>)
+   } else {
+       api(projects.<moduleChinaAccessor>)
+   }
 
-val <capabilityCamel>DistributionModule = module {
-    registerSPI<ApplicationService> { ApplicationServiceImpl() }
-    registerSPI<<CapabilityPascal>DistributionService> {
-        China<CapabilityPascal>DistributionServiceImpl()
-    }
-}
-```
+   // 示例：
+   // if (isPlayDimension()){
+   //     api(projects.project.mainPlay)
+   //     api(projects.core.commonPlay)
+   // } else {
+   //     api(projects.project.mainChina)
+   //     api(projects.core.commonChina)
+   // }
+   ```
 
-Play 版本只将 Service 实现替换为 `Play<CapabilityPascal>DistributionServiceImpl`，其 `ApplicationServiceImpl` 路径和注册写法保持相同。iOS 的 `<capabilityCamel>IosModule` 在公共模块的 `iosMain` 注册 `Ios<CapabilityPascal>DistributionServiceImpl`；只有 iOS 也存在对应生命周期行为时，才在公共模块的 iOS 实现中注册 iOS 生命周期服务。
+3. **`commonMain` 统一 Koin 注册 (`app/src/commonMain/kotlin/com/basic/app/App.kt`)**：
+   直接在 `commonMain` 的 `initKoin()` 中注册渠道模块（不需要在 Android/iOS 宿主中单独注入平台模块）：
+   ```kotlin
+   import <distributionNamespace>.di.<capabilityCamel>DistributionModule
 
-## 5. Gradle 与 App 接入模板
+   fun initKoin() {
+       startKoin {
+           modules(
+               commonModule,
+               mainModule,
+               <capabilityCamel>DistributionModule
+           )
+       }
+   }
+   ```
 
-### 5.1 Settings
+4. **宿主入口无参调用**：
+   Android 端的 `Application.kt` 与 iOS 端的 `AppDelegate.kt` 均只需无参调用 `initKoin()`。
 
-```kotlin
-include("<moduleGradlePath>-china")
-include("<moduleGradlePath>-play")
-```
+---
 
-### 5.2 渠道模块基础依赖
+## 4. 自动化构建配置模板 (Gradle Templates)
 
-两个渠道模块都使用完整的 Android-only KMP 库基线。以下配置是创建渠道模块时的必备项：Android 资源、Java API、源码 Jar、消费者混淆规则、Compose 资源公开 `R` 类，以及 Compose / KSP / 序列化 / Ktorfit / 源码保护插件必须在 China 与 Play 模块保持对称。
+`China` 模块与 `Play` 模块基于对应母版完整保留 iOS/Android 平台能力，`api` 替换为源模块：
 
 ```kotlin
 import com.frame.basic.buildsrc.ProjectBuildConfig
 import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -189,6 +196,7 @@ plugins {
     alias(libs.plugins.androidLint)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.composeHotReload)
     alias(libs.plugins.ksp)
     alias(libs.plugins.serialization)
     alias(libs.plugins.ktorfit)
@@ -200,15 +208,12 @@ plugins {
 }
 
 val androidNameSpace = "<parentNamespace>.distribution"
-val kspAndroidMainGeneratedSources = layout.buildDirectory.dir(
-    "generated/ksp/android/androidMain/kotlin"
-)
 
 kotlin {
     androidLibrary {
         namespace = androidNameSpace
-        minSdk = ProjectBuildConfig.Build.Android.minSdkVersion
         compileSdk = ProjectBuildConfig.Build.Android.compileSdkVersion
+        minSdk = ProjectBuildConfig.Build.Android.minSdkVersion
         androidResources.enable = true
         withJava()
         withSourcesJar(true)
@@ -218,27 +223,43 @@ kotlin {
         }
     }
 
-@OptIn(ExperimentalKotlinGradlePluginApi::class)
-sourceSets {
-    androidMain.dependencies {
-        compileOnly(
-            fileTree(
-                mapOf(
-                    "dir" to "libs/android",
-                    "include" to listOf("**/*.jar", "**/*.aar")
-                )
-            )
-        )
-        api(projects.<moduleAccessor>)
-        implementation(libs.compose.multiplatform.components)
-        implementation(libs.koin.core)
-        implementation(libs.koin.annotations)
-        implementation(libs.koin.compose)
-        implementation(libs.koin.android)
-    }
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    )
 
-    getByName("androidMain").generatedKotlin.srcDir(kspAndroidMainGeneratedSources)
-}
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(libs.compose.multiplatform.components)
+                implementation(libs.koin.core)
+                implementation(libs.koin.annotations)
+                implementation(libs.koin.compose)
+                api(projects.<源模块Accessor>) // Lib母版为 api(projects.libs.<Accessor>)，Project母版为 api(projects.project.<Accessor>)
+            }
+        }
+
+        androidMain {
+            dependencies {
+                compileOnly(
+                    fileTree(
+                        mapOf(
+                            "dir" to "libs/android",
+                            "include" to listOf("**/*.jar", "**/*.aar")
+                        )
+                    )
+                )
+                implementation(libs.koin.android)
+                api(projects.<源模块Accessor>)
+            }
+        }
+
+        iosMain {
+            dependencies {
+                api(projects.<源模块Accessor>)
+            }
+        }
+    }
 }
 
 compose.resources {
@@ -255,41 +276,44 @@ buildkonfig {
 }
 ```
 
-China-only Maven/AAR/Manifest/ProGuard 内容只进入 `-china`；Play-only Maven/AAR/Manifest/ProGuard 内容只进入 `-play`。公共模块、App 的非 flavor 依赖和另一渠道模块都不得带入这些内容。
+---
 
-上述是新渠道模块的固定编译与发布基线。具体能力额外需要的 Maven/AAR、权限、Manifest、ProGuard 或业务依赖，再分别添加到对应渠道模块；不得用删减这组基线的方式处理渠道差异。
+## 5. 自动化生成步骤 (Pipeline Execution Steps)
 
-使用 Ktorfit 或其他 KSP 生成代码时，必须保留 `generatedKotlin.srcDir(kspAndroidMainGeneratedSources)`。它会把 Android KSP 输出登记为 IDE 的生成源码根目录，确保生成的 API 工厂可解析、可跳转，而不仅是在 Gradle 编译时可见。
+收到剪裁模块创建指令时（如 `剪裁 project/main 模块`），AI 必须连续执行以下步骤：
 
-### 5.3 App flavor 与选择依赖
+1. **识别源模块与母版类型**：
+   - 确定源模块路径 `<modulePath>`，判断是 Lib 模块 (`libs/xxx`) 还是 Project 模块 (`project/xxx`)。
+   - 读取源模块 namespace `<parentNamespace>`。
+2. **创建剪裁模块物理树**：
+   - 创建 `<modulePath>-china/` 和 `<modulePath>-play/`。
+   - 分别创建 `libs/android/` 与 `libs/ios/framework/` 目录及 `.gitignore`。
+   - 分别创建 `proguard-rules.pro` 与基础 `src/androidMain/AndroidManifest.xml`。
+   - 物理源码路径必须一致：
+     - Common 源码路径：`src/commonMain/kotlin/<distributionPackagePath>/`（建立 `di/` 与 `di/impl/`）。
+     - iOS 源码路径：`src/iosMain/kotlin/<distributionPackagePath>/`（含 `.gitkeep`）。
+3. **注入 build.gradle.kts 与 settings.gradle.kts**：
+   - 两个渠道模块均注入包含 Android/iOS 的多平台 `build.gradle.kts`（模板 4）。
+   - 在 `settings.gradle.kts` 中添加 `include("<moduleGradlePath>-china")` 和 `include("<moduleGradlePath>-play")`。
+4. **生成代码骨架**：
+   - 在源模块 `di/service/` 下创建 `<CapabilityPascal>DistributionService.kt` 接口。
+   - 在 China 和 Play 模块中生成 `ApplicationServiceImpl.kt` 及 `DI.kt`。
+   - 对于 `DistributionService` 的实现：
+     - 在 `commonMain` 中生成 `expect val <capabilityCamel>DistributionServiceImpl: <CapabilityPascal>DistributionService`。
+     - 在 `androidMain` 与 `iosMain` 中生成对应平台的 `actual val` 实现（默认提供空实现对象或平台特化实现）。
+5. **App 模块统一挂载**：
+   - 在 `settings.gradle.kts` 中配置 `include(...)`；在 `app/build.gradle.kts` 的 `sourceSets` 中使用 `if (isPlayDimension())` 判定引入对应渠道依赖（如 `api(projects.xxxPlay)` / `api(projects.xxxChina)`）。
+   - 在 `app/src/commonMain/kotlin/com/basic/app/App.kt` 的 `initKoin()` 中直接注册 `<capabilityCamel>DistributionModule`。
+   - Android `Application.kt` 与 iOS `AppDelegate.kt` 中均无参调用 `initKoin()`。
+6. **校验与构建**：
+   - 执行 `:app:assemblePlayDebug` 与 `:app:assembleChinaDebug` 验证工程无误。
 
-若 App 尚未定义发行维度，创建：
+---
 
-```kotlin
-flavorDimensions += "distribution"
-productFlavors {
-    create("china") { dimension = "distribution" }
-    create("play") { dimension = "distribution" }
-}
-```
+## 6. 质量红线 (Quality Redline)
 
-App 根 `dependencies` 中选择实现：
-
-```kotlin
-add("chinaImplementation", projects.<moduleChinaAccessor>)
-add("playImplementation", projects.<modulePlayAccessor>)
-```
-
-App 的 Android `Application` 传入 `<capabilityCamel>DistributionModule`；共享 `initKoin` 应接收 `vararg Module`。iOS `AppDelegate` 传入 `<capabilityCamel>IosModule`。Android Gradle Plugin 会自动识别 `src/china`、`src/play`，不要额外添加冗余 `sourceSets { getByName("china").java.srcDir(...) }`。
-
-## 6. 执行顺序与验收
-
-1. 先确认目标能力确实存在 China / Play 的编译依赖差异，并识别要迁移的源码、Maven/AAR、Manifest、ProGuard 和资源。
-2. 创建两个模块的完整目录骨架（含 `libs/android/.gitkeep`、Manifest、ProGuard、`.gitignore`）。
-3. 创建空协议、空实现和 DI；没有用户明确要求时不写任何实际能力。
-4. 接入 `settings.gradle.kts`、App flavors 和 `chinaImplementation` / `playImplementation`。
-5. 将原先位于公共模块的渠道专属依赖、实现、Manifest 或 ProGuard 规则迁移到对应子模块；确认公共模块不再引用它们。
-6. 分别执行 `:app:assemblePlayDebug` 与 `:app:assembleChinaDebug`。若项目的构建保护禁止同一 Gradle 命令混用两个渠道任务，必须分两次执行。
-7. 检查 `git diff --check`、渠道模块目录完整性、旧渠道专属依赖是否仍残留在公共模块，以及 Play 产物是否没有 China 专属依赖。
-
-交付时应列出：新增模块、裁掉/迁移的依赖、两个变体的构建结果，以及仍需用户决定的实际能力和隐私配置。
+- ❌ **剪裁模块平台与路径必须完全一致**：`-china` 与 `-play` 必须具备完全相同的多平台 Target（Android + iOS）、包名路径及变量定义。
+- ❌ **Kotlin 源码统一置于 commonMain**：通用代码、DI 及 Services 实现必须放在 `src/commonMain/kotlin/` 下，严禁误写入 `src/androidMain/kotlin/`。
+- ❌ **禁止在平台宿主重复注入**：App 模块的 Android/iOS 入口统一调用 `initKoin()`，不得在各自平台中二次注册渠道模块。
+- ❌ **禁止循环依赖与跨渠道引用**：源模块不能反向依赖剪裁模块，渠道专属依赖只置于对应剪裁模块中。
+- ✅ **遵守通用代码规范**：新建 Kotlin 文件需写明文件头注释、KDoc 与注释。

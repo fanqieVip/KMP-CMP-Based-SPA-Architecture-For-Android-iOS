@@ -20,9 +20,6 @@ plugins {
 }
 
 val androidNameSpace = "com.basic.common.distribution"
-val kspAndroidMainGeneratedSources = layout.buildDirectory.dir(
-    "generated/ksp/android/androidMain/kotlin"
-)
 kotlin {
     androidLibrary {
         namespace = androidNameSpace
@@ -37,25 +34,47 @@ kotlin {
         }
     }
 
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    )
+
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     sourceSets {
-        androidMain.dependencies {
-            compileOnly(
-                fileTree(
-                    mapOf(
-                        "dir" to "libs/android",
-                        "include" to listOf("**/*.jar", "**/*.aar")
+        commonMain {
+            dependencies {
+                implementation(libs.compose.multiplatform.components)
+                implementation(libs.koin.core)
+                implementation(libs.koin.annotations)
+                implementation(libs.koin.compose)
+                api(projects.core.common)
+            }
+        }
+
+        androidMain {
+            dependencies {
+                compileOnly(
+                    fileTree(
+                        mapOf(
+                            "dir" to "libs/android",
+                            "include" to listOf("**/*.jar", "**/*.aar")
+                        )
                     )
                 )
-            )
-            api(projects.core.common)
-            implementation(libs.compose.multiplatform.components)
-            implementation(libs.koin.core)
-            implementation(libs.koin.annotations)
-            implementation(libs.koin.compose)
-            implementation(libs.koin.android)
+                api(projects.core.common)
+                implementation(libs.compose.multiplatform.components)
+                implementation(libs.koin.core)
+                implementation(libs.koin.annotations)
+                implementation(libs.koin.compose)
+                implementation(libs.koin.android)
+            }
         }
-        getByName("androidMain").generatedKotlin.srcDir(kspAndroidMainGeneratedSources)
+
+        iosMain {
+            dependencies {
+                api(projects.core.common)
+            }
+        }
     }
 }
 

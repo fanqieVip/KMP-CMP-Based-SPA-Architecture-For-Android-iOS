@@ -1,7 +1,6 @@
 import com.frame.basic.buildsrc.ProjectBuildConfig
 import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -9,6 +8,7 @@ plugins {
     alias(libs.plugins.androidLint)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.composeHotReload)
     alias(libs.plugins.ksp)
     alias(libs.plugins.serialization)
     alias(libs.plugins.ktorfit)
@@ -20,14 +20,12 @@ plugins {
 }
 
 val androidNameSpace = "com.basic.main.distribution"
-val kspAndroidMainGeneratedSources = layout.buildDirectory.dir(
-    "generated/ksp/android/androidMain/kotlin"
-)
+
 kotlin {
     androidLibrary {
         namespace = androidNameSpace
-        minSdk = ProjectBuildConfig.Build.Android.minSdkVersion
         compileSdk = ProjectBuildConfig.Build.Android.compileSdkVersion
+        minSdk = ProjectBuildConfig.Build.Android.minSdkVersion
         androidResources.enable = true
         withJava()
         withSourcesJar(true)
@@ -37,25 +35,42 @@ kotlin {
         }
     }
 
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    )
+
     sourceSets {
-        androidMain.dependencies {
-            compileOnly(
-                fileTree(
-                    mapOf(
-                        "dir" to "libs/android",
-                        "include" to listOf("**/*.jar", "**/*.aar")
+        commonMain {
+            dependencies {
+                implementation(libs.compose.multiplatform.components)
+                implementation(libs.koin.core)
+                implementation(libs.koin.annotations)
+                implementation(libs.koin.compose)
+                api(projects.project.main)
+            }
+        }
+
+        androidMain {
+            dependencies {
+                compileOnly(
+                    fileTree(
+                        mapOf(
+                            "dir" to "libs/android",
+                            "include" to listOf("**/*.jar", "**/*.aar")
+                        )
                     )
                 )
-            )
-            api(projects.project.main)
-            implementation(libs.compose.multiplatform.components)
-            implementation(libs.koin.core)
-            implementation(libs.koin.annotations)
-            implementation(libs.koin.compose)
-            implementation(libs.koin.android)
+                implementation(libs.koin.android)
+                api(projects.project.main)
+            }
         }
-        getByName("androidMain").generatedKotlin.srcDir(kspAndroidMainGeneratedSources)
+
+        iosMain {
+            dependencies {
+                api(projects.project.main)
+            }
+        }
     }
 }
 
