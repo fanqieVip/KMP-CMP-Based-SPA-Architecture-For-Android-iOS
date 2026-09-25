@@ -3,6 +3,8 @@ package com.basic.base.webview.platform
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.view.View.LAYER_TYPE_HARDWARE
+import android.webkit.WebResourceResponse
+import android.webkit.WebView
 import com.basic.base.local.UIContainer
 import com.basic.base.webview.jsbridge.JsBridgeHelper
 import com.basic.base.webview.jsbridge.recycleAll
@@ -12,9 +14,6 @@ import com.basic.base.webview.state.WebViewLocalResourceFile
 import com.basic.base.webview.state.WebViewState
 import com.hjq.permissions.XXPermissions
 import com.hjq.permissions.permission.PermissionLists
-import com.tencent.smtt.export.external.interfaces.WebResourceResponse
-import com.tencent.smtt.sdk.WebView
-
 actual typealias IWebView = WebView
 
 @SuppressLint("JavascriptInterface")

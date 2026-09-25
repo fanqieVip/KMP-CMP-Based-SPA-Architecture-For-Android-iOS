@@ -212,7 +212,7 @@ internal fun WebViewState.updateCurrentUrlIfPresent(url: String?) {
  * 判断 WKWebView 是否存在用户可感知的有效后退页面。
  *
  * iOS 的 backForwardList 可能保留 about:blank、data、blob 或与当前页完全相同的历史项，
- * 这些条目会让 canGoBack 返回 true，但用户看到的页面已经处于首层。安卓 X5 不会把这类
+ * 这些条目会让 canGoBack 返回 true，但用户看到的页面已经处于首层。安卓原生 WebView 不会把这类
  * 条目暴露成有效后退状态，因此这里在 iOS 平台层做一次语义归一化。
  *
  * @return true 表示存在有效后退页面，false 表示应视为已经退到底。

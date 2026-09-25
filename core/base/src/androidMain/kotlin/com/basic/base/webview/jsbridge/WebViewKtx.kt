@@ -2,21 +2,21 @@ package com.basic.base.webview.jsbridge
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.net.http.SslError
 import android.net.Uri
 import android.os.Message
 import android.view.ViewGroup
+import android.webkit.GeolocationPermissions
+import android.webkit.JsResult
+import android.webkit.SslErrorHandler
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import com.basic.base.utils.logDebug
-import com.tencent.smtt.export.external.interfaces.GeolocationPermissionsCallback
-import com.tencent.smtt.export.external.interfaces.JsResult
-import com.tencent.smtt.export.external.interfaces.SslError
-import com.tencent.smtt.export.external.interfaces.SslErrorHandler
-import com.tencent.smtt.export.external.interfaces.WebResourceError
-import com.tencent.smtt.export.external.interfaces.WebResourceRequest
-import com.tencent.smtt.export.external.interfaces.WebResourceResponse
-import com.tencent.smtt.sdk.ValueCallback
-import com.tencent.smtt.sdk.WebChromeClient
-import com.tencent.smtt.sdk.WebView
-import com.tencent.smtt.sdk.WebViewClient
 import java.net.MalformedURLException
 import java.net.URL
 
@@ -48,7 +48,7 @@ fun WebView.register(
     onHistoryChanged: ((canGoBack: Boolean, canGoForward: Boolean, url: String?) -> Unit)? = null,
     onInterceptRequest: ((request: WebResourceRequest?, webResourceResponse: WebResourceResponse?) -> WebResourceResponse?)? = null,
     onOverrideUrlLoading: ((url: String) -> Boolean) = { false },
-    onGeolocationPermissionsShowPrompt: ((origin: String?, callback: GeolocationPermissionsCallback?) -> Unit)? = { origin, callback -> callback?.invoke(origin, true, false) }
+    onGeolocationPermissionsShowPrompt: ((origin: String?, callback: GeolocationPermissions.Callback?) -> Unit)? = { origin, callback -> callback?.invoke(origin, true, false) }
 ) {
     var isRedirect = true
     var isLoading = false
@@ -99,7 +99,7 @@ fun WebView.register(
 
         override fun onGeolocationPermissionsShowPrompt(
             origin: String?,
-            callback: GeolocationPermissionsCallback?
+            callback: GeolocationPermissions.Callback?
         ) {
             if (onGeolocationPermissionsShowPrompt == null) {
                 super.onGeolocationPermissionsShowPrompt(origin, callback)

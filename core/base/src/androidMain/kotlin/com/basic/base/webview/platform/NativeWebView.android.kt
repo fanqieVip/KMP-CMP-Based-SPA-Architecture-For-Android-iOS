@@ -8,7 +8,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.basic.base.local.LocalUIContainer
 import com.basic.base.ui.NativeDensityProvider
 import com.basic.base.webview.state.WebViewState
-import com.basic.base.webview.utils.WebX5Utils
 
 
 @SuppressLint("JavascriptInterface")
@@ -29,5 +28,5 @@ actual fun NativeWebView(
 }
 
 actual fun preloadWebkit(domain: String?) {
-    WebX5Utils.initX5(domain)
+    // 系统 WebView 无需预初始化；保留此 expect/actual API 以兼容调用方。
 }
