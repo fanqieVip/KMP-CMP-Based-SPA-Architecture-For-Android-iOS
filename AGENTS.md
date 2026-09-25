@@ -24,6 +24,7 @@
 | **SDK 集成流** | [SDK集成工作流规范.md](./skills/workflows/SDK集成工作流规范.md) | 侵入分析报告、场景映射矩阵、双端协议审计 |
 | **Lib 模版生成** | [Lib模版生成指南.md](./skills/workflows/Lib模版生成指南.md) | 三方 SDK 适配模块一键自动化生成模板 |
 | **Project 模版生成** | [Project模版生成指南.md](./skills/workflows/Project模版生成指南.md) | 业务 Project 模块一键自动化生成模板 |
+| **Google Play 模块剪裁** | [GooglePlay模块剪裁生成指南.md](./skills/workflows/GooglePlay模块剪裁生成指南.md) | China / Play 渠道实现拆分、空协议骨架、Flavor 依赖与包体裁剪验收 |
 | **IDE 环境同步** | [IDE环境同步指南.md](./skills/workflows/IDE环境同步指南.md) | AS 外部工具与 Xcode Scheme 物理对齐 |
 | **启屏页生成** | [启屏页生成指南.md](./skills/workflows/启屏页生成指南.md) | 三端视觉对齐、极简原生打底方案 |
 | **Skill 升级/维护** | [AI-Skill自动升级指南.md](./skills/workflows/AI-Skill自动升级指南.md) | **语义间隙感知**、补丁归档与合并机制 |

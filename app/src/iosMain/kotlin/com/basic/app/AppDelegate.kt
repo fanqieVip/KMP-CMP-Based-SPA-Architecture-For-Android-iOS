@@ -2,13 +2,14 @@ package com.basic.app
 
 import com.basic.base.ApplicationProxyManager
 import com.basic.common.di.commonIosModule
+import com.basic.main.di.mainIosModule
 import com.basic.base.di.service.IosNSUserActivity
 import com.basic.base.di.service.IosUIOpenURLContext
 import platform.UIKit.UIViewController
 
 object AppDelegate {
     fun onAppCreate() {
-        initKoin(commonIosModule)
+        initKoin(commonIosModule, mainIosModule)
         ApplicationProxyManager.onCreate(isMainProcess = true)
     }
 

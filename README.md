@@ -40,6 +40,8 @@
 ├── core
 │   ├── base         # 架构内核：Screen、生命周期、SPI、路由、弹窗、WebView、下载、平台能力
 │   └── common       # 公共业务层：基础 UI、网络配置、Repository、通用服务
+│   ├── common-china # China Android 专属实现与依赖；由 china flavor 选择
+│   └── common-play  # Google Play Android 专属实现与依赖；由 play flavor 选择
 ├── project
 │   └── main         # 示例业务模块：页面、菜单、路由实现、业务服务实现
 ├── libs             # 三方 SDK 模块预留目录，新增 SDK 收敛到 libs/<name>
@@ -53,6 +55,8 @@
 include("app")
 include("core:base")
 include("core:common")
+include("core:common-china")
+include("core:common-play")
 include("project:main")
 ```
 
@@ -62,10 +66,10 @@ include("project:main")
 core/base
    ↑
 core/common
-   ↑
-project/main
-   ↑
-app
+   ↑                 ↑
+project/main   common-china / common-play
+   ↑                 ↑（App flavor 二选一）
+   └─────── app ─────┘
    ↑
 iosApp
 ```
@@ -74,6 +78,7 @@ iosApp
 
 - `core/base` 是架构内核，不依赖业务。
 - `core/common` 只沉淀可复用公共能力和业务契约。
+- `<目标模块>-china` 与 `<目标模块>-play` 是目标模块的同级兄弟，只承载 Android 发行渠道差异；App 通过 flavor 选择其一，公共模块不能反向依赖它们。
 - `project/main` 实现具体业务页面、路由与服务。
 - `app` 只做应用组合和入口初始化。
 - `iosApp` 只做 SwiftUI 宿主、Scene 回调转发和调试入口。
@@ -306,6 +311,12 @@ project/<name>/
 
 详细流程见 [skills/workflows/Lib模版生成指南.md](./skills/workflows/Lib模版生成指南.md) 和 [skills/workflows/SDK集成工作流规范.md](./skills/workflows/SDK集成工作流规范.md)。
 
+## 新增 Google Play 渠道剪裁模块
+
+当某项能力在 China 与 Google Play 的依赖或实现不同，可拆分为渠道专属模块，在构建期只引入当前发行渠道所需的实现与依赖。
+
+具体生成规则见 [Google Play 模块剪裁生成指南](./skills/workflows/GooglePlay模块剪裁生成指南.md)。
+
 ## 阅读路线
 
 想快速读懂这套架构，可以按这些文件往下看：
@@ -338,6 +349,7 @@ project/<name>/
 - [架构 API 文档](./skills/knowledge/架构api文档.md)
 - [APK 安全防护知识库](./skills/knowledge/apk安全防护.md)
 - [PPI 适配指南](./skills/knowledge/ppi适配指南.md)
+- [Google Play 模块剪裁生成指南](./skills/workflows/GooglePlay模块剪裁生成指南.md)
 - [AI Agent 总入口](./AGENTS.md)
 - [UI 开发工作流](./skills/workflows/UI开发工作流规范.md)
 - [SDK 集成工作流](./skills/workflows/SDK集成工作流规范.md)

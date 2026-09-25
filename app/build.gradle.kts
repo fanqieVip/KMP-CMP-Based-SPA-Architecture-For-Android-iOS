@@ -195,6 +195,8 @@ dependencies {
     debugImplementation(libs.compose.multiplatform.ui.tooling )
     add("chinaImplementation", projects.core.commonChina)
     add("playImplementation", projects.core.commonPlay)
+    add("chinaImplementation", projects.project.mainChina)
+    add("playImplementation", projects.project.mainPlay)
 }
 compose.resources {
     publicResClass = true

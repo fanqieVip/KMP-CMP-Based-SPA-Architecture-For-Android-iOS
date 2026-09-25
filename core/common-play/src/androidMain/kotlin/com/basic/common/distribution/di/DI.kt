@@ -11,6 +11,6 @@ import com.basic.common.distribution.PlayCommonDistributionProvider
 import org.koin.dsl.module
 
 /** Google Play 公共能力模块的 Koin 注册定义。 */
-val distributionModule = module {
+val commonDistributionModule = module {
     registerSPI<CommonDistributionProvider> { PlayCommonDistributionProvider() }
 }
