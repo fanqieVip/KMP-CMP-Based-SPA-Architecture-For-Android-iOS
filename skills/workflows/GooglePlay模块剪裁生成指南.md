@@ -176,6 +176,7 @@ include("<moduleGradlePath>-play")
 import com.frame.basic.buildsrc.ProjectBuildConfig
 import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -194,6 +195,9 @@ plugins {
 }
 
 val androidNameSpace = "<parentNamespace>.distribution"
+val kspAndroidMainGeneratedSources = layout.buildDirectory.dir(
+    "generated/ksp/android/androidMain/kotlin"
+)
 
 kotlin {
     androidLibrary {
@@ -209,6 +213,7 @@ kotlin {
         }
     }
 
+@OptIn(ExperimentalKotlinGradlePluginApi::class)
 sourceSets {
     androidMain.dependencies {
         compileOnly(
@@ -226,6 +231,8 @@ sourceSets {
         implementation(libs.koin.compose)
         implementation(libs.koin.android)
     }
+
+    getByName("androidMain").generatedKotlin.srcDir(kspAndroidMainGeneratedSources)
 }
 }
 
@@ -246,6 +253,8 @@ buildkonfig {
 China-only Maven/AAR/Manifest/ProGuard 内容只进入 `-china`；Play-only Maven/AAR/Manifest/ProGuard 内容只进入 `-play`。公共模块、App 的非 flavor 依赖和另一渠道模块都不得带入这些内容。
 
 上述是新渠道模块的固定编译与发布基线。具体能力额外需要的 Maven/AAR、权限、Manifest、ProGuard 或业务依赖，再分别添加到对应渠道模块；不得用删减这组基线的方式处理渠道差异。
+
+使用 Ktorfit 或其他 KSP 生成代码时，必须保留 `generatedKotlin.srcDir(kspAndroidMainGeneratedSources)`。它会把 Android KSP 输出登记为 IDE 的生成源码根目录，确保生成的 API 工厂可解析、可跳转，而不仅是在 Gradle 编译时可见。
 
 ### 5.3 App flavor 与选择依赖
 

@@ -19,7 +19,9 @@ plugins {
 }
 
 val androidNameSpace = "com.basic.common.distribution"
-
+val kspAndroidMainGeneratedSources = layout.buildDirectory.dir(
+    "generated/ksp/android/androidMain/kotlin"
+)
 kotlin {
     androidLibrary {
         namespace = androidNameSpace
@@ -51,6 +53,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.android)
         }
+        getByName("androidMain").generatedKotlin.srcDir(kspAndroidMainGeneratedSources)
     }
 }
 

@@ -19,6 +19,9 @@ plugins {
 }
 
 val androidNameSpace = "com.basic.common.distribution"
+val kspAndroidMainGeneratedSources = layout.buildDirectory.dir(
+    "generated/ksp/android/androidMain/kotlin"
+)
 
 kotlin {
     androidLibrary {
@@ -58,6 +61,7 @@ kotlin {
             runtimeOnly("com.huawei.hms:ads-identifier:3.4.62.300")
             runtimeOnly("com.hihonor.mcs:ads-identifier:1.0.3.300")
         }
+        getByName("androidMain").generatedKotlin.srcDir(kspAndroidMainGeneratedSources)
     }
 }
 
