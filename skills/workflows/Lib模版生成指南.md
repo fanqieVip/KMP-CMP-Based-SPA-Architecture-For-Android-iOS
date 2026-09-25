@@ -69,6 +69,7 @@ import com.frame.basic.ktx.localFrameworkPodCompilerOpts
 import com.frame.basic.ktx.localFrameworkPodDefFile
 import com.frame.basic.ktx.localFrameworkPodLinkerOpts
 import com.frame.basic.ktx.registerIosLocalFrameworkPod
+import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
 
 plugins {
@@ -80,9 +81,13 @@ plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.ksp)
     alias(libs.plugins.serialization)
+    alias(libs.plugins.buildkonfig)
     alias(libs.plugins.koinCompiler)
     alias(libs.plugins.kotlinCocoapods)
     id("com.basic.ios")
+    id("com.basic.router")
+    id("com.basic.lint")
+    id("com.basic.protect-src")
 }
 val androidNameSpace = "com.basic.<suffix>"
 
@@ -171,6 +176,11 @@ compose.resources {
     generateResClass = auto
     nameOfResClass = androidNameSpace.toResourceClassName()
     packageOfResClass = androidNameSpace
+}
+buildkonfig {
+    packageName = "buildkonfig"
+    exposeObjectWithName = androidNameSpace.toBuildConfigClassName()
+    defaultConfigs {}
 }
 ```
 

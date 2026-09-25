@@ -117,8 +117,10 @@ plugins {
     alias(libs.plugins.ktorfit)
     alias(libs.plugins.buildkonfig)
     alias(libs.plugins.koinCompiler)
+    id("com.basic.ios")
     id("com.basic.router")
     id("com.basic.lint")
+    id("com.basic.protect-src")
 }
 val androidNameSpace = "com.basic.<suffix>"
 kotlin {

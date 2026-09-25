@@ -26,8 +26,8 @@ val androidNameSpace = "com.basic.common"
 kotlin {
     androidLibrary {
         namespace = androidNameSpace
-        compileSdk = ProjectBuildConfig.Build.Android.compileSdkVersion
         minSdk = ProjectBuildConfig.Build.Android.minSdkVersion
+        compileSdk = ProjectBuildConfig.Build.Android.compileSdkVersion
         androidResources.enable = true
         withJava()
         withSourcesJar(true)
@@ -47,9 +47,9 @@ kotlin {
             dependencies {
                 implementation(libs.compose.multiplatform.components)
                 if (project.isReleaseEnv()) {
-                    implementation(libs.ktor.monitor.no.op)
+                    api(libs.ktor.monitor.no.op)
                 } else {
-                    implementation(libs.ktor.monitor)
+                    api(libs.ktor.monitor)
                 }
                 implementation(libs.koin.core)
                 implementation(libs.koin.annotations)

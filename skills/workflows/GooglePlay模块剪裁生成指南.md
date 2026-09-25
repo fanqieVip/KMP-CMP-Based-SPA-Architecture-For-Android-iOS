@@ -64,7 +64,9 @@ app: chinaImplementation / playImplementation
     ├── AndroidManifest.xml
     └── kotlin/<distributionPackagePath>/
         ├── China<CapabilityPascal>DistributionProvider.kt
-        └── di/DI.kt
+        └── di/
+            ├── DI.kt
+            └── impl/ApplicationServiceImpl.kt
 
 <modulePath>-play/
 ├── .gitignore
@@ -75,7 +77,9 @@ app: chinaImplementation / playImplementation
     ├── AndroidManifest.xml
     └── kotlin/<distributionPackagePath>/
         ├── Play<CapabilityPascal>DistributionProvider.kt
-        └── di/DI.kt
+        └── di/
+            ├── DI.kt
+            └── impl/ApplicationServiceImpl.kt
 ```
 
 `.gitignore` 固定为：
@@ -113,26 +117,47 @@ class Play<CapabilityPascal>DistributionProvider : <CapabilityPascal>Distributio
 
 所有新 Kotlin 文件必须遵循项目通用代码规范，包含文件头、KDoc 和真实作者/时间；不能直接复制示例中的占位元数据。
 
-### 4.3 DI 模板
+### 4.3 应用生命周期服务与 DI 模板
 
-China 和 Play 的 `DI.kt` 使用相同 package、相同变量名，仅绑定各自实现：
+每个 China / Play 模块都必须提供一个同包名的空 `ApplicationServiceImpl`，作为该模块接入应用生命周期的标准入口。两个实现可拥有相同的全限定名，因为 App 每次只会选择一个渠道模块；未有真实需求时，不能在生命周期方法中加入任何业务、SDK 初始化或权限行为。
+
+```kotlin
+package <distributionNamespace>.di.impl
+
+import com.basic.base.di.service.ApplicationService
+
+class ApplicationServiceImpl : ApplicationService {
+    override fun onCreate(isMainProcess: Boolean) = Unit
+
+    override fun onBackground() = Unit
+
+    override fun onForeground() = Unit
+}
+```
+
+若渠道能力需要处理 Activity Intent 或 iOS Scene 回调，只能在用户明确要求后覆盖 `ApplicationService` 的对应方法；Android 渠道模块不应替 iOS 添加实现。
+
+China 和 Play 的 `DI.kt` 使用相同 package、相同变量名；除绑定各自 Provider 外，必须注册模块自身的 `ApplicationServiceImpl`：
 
 ```kotlin
 package <distributionNamespace>.di
 
+import com.basic.base.di.service.ApplicationService
 import com.basic.base.spi.registerSPI
 import <parentNamespace>.<CapabilityPascal>DistributionProvider
 import <distributionNamespace>.China<CapabilityPascal>DistributionProvider
+import <distributionNamespace>.di.impl.ApplicationServiceImpl
 import org.koin.dsl.module
 
 val <capabilityCamel>DistributionModule = module {
+    registerSPI<ApplicationService> { ApplicationServiceImpl() }
     registerSPI<<CapabilityPascal>DistributionProvider> {
         China<CapabilityPascal>DistributionProvider()
     }
 }
 ```
 
-Play 版本只将实现类替换为 `Play<CapabilityPascal>DistributionProvider`。iOS 的 `<capabilityCamel>IosModule` 在公共模块的 `iosMain` 注册 `Ios<CapabilityPascal>DistributionProvider`。
+Play 版本只将 Provider 实现替换为 `Play<CapabilityPascal>DistributionProvider`，其 `ApplicationServiceImpl` 路径和注册写法保持相同。iOS 的 `<capabilityCamel>IosModule` 在公共模块的 `iosMain` 注册 `Ios<CapabilityPascal>DistributionProvider`；只有 iOS 也存在对应生命周期行为时，才在公共模块的 iOS 实现中注册 iOS 生命周期服务。
 
 ## 5. Gradle 与 App 接入模板
 
@@ -145,9 +170,45 @@ include("<moduleGradlePath>-play")
 
 ### 5.2 渠道模块基础依赖
 
-两个渠道模块都使用 Android-only KMP 配置，并仅依赖公共父模块与 Koin Android：
+两个渠道模块都使用完整的 Android-only KMP 库基线。以下配置是创建渠道模块时的必备项：Android 资源、Java API、源码 Jar、消费者混淆规则、Compose 资源公开 `R` 类，以及 Compose / KSP / 序列化 / Ktorfit / 源码保护插件必须在 China 与 Play 模块保持对称。
 
 ```kotlin
+import com.frame.basic.buildsrc.ProjectBuildConfig
+import com.frame.basic.ktx.toBuildConfigClassName
+import com.frame.basic.ktx.toResourceClassName
+
+plugins {
+    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.androidKotlinMultiplatformLibrary)
+    alias(libs.plugins.androidLint)
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.serialization)
+    alias(libs.plugins.ktorfit)
+    alias(libs.plugins.buildkonfig)
+    alias(libs.plugins.koinCompiler)
+    id("com.basic.router")
+    id("com.basic.lint")
+    id("com.basic.protect-src")
+}
+
+val androidNameSpace = "<parentNamespace>.distribution"
+
+kotlin {
+    androidLibrary {
+        namespace = androidNameSpace
+        minSdk = ProjectBuildConfig.Build.Android.minSdkVersion
+        compileSdk = ProjectBuildConfig.Build.Android.compileSdkVersion
+        androidResources.enable = true
+        withJava()
+        withSourcesJar(true)
+        optimization {
+            consumerKeepRules.publish = true
+            consumerKeepRules.files.add(project.file("proguard-rules.pro"))
+        }
+    }
+
 sourceSets {
     androidMain.dependencies {
         compileOnly(
@@ -159,12 +220,32 @@ sourceSets {
             )
         )
         api(projects.<moduleAccessor>)
+        implementation(libs.compose.multiplatform.components)
+        implementation(libs.koin.core)
+        implementation(libs.koin.annotations)
+        implementation(libs.koin.compose)
         implementation(libs.koin.android)
     }
+}
+}
+
+compose.resources {
+    publicResClass = true
+    generateResClass = auto
+    nameOfResClass = androidNameSpace.toResourceClassName()
+    packageOfResClass = androidNameSpace
+}
+
+buildkonfig {
+    packageName = "buildkonfig"
+    exposeObjectWithName = androidNameSpace.toBuildConfigClassName()
+    defaultConfigs {}
 }
 ```
 
 China-only Maven/AAR/Manifest/ProGuard 内容只进入 `-china`；Play-only Maven/AAR/Manifest/ProGuard 内容只进入 `-play`。公共模块、App 的非 flavor 依赖和另一渠道模块都不得带入这些内容。
+
+上述是新渠道模块的固定编译与发布基线。具体能力额外需要的 Maven/AAR、权限、Manifest、ProGuard 或业务依赖，再分别添加到对应渠道模块；不得用删减这组基线的方式处理渠道差异。
 
 ### 5.3 App flavor 与选择依赖
 
