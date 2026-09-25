@@ -95,13 +95,6 @@ kotlin {
             api(libs.xxPermission)
             api(libs.coil.ktor.android)
             api(libs.android.immersionbar)
-            val oaidLib = libs.github.cnOaid.get().let { "${it.group}:${it.name}:${it.version}" }
-            implementation(oaidLib) {
-                exclude(group = "com.huawei.hms", module = "ads-identifier")
-                exclude(group = "com.hihonor.mcs", module = "ads-identifier")
-            }
-            runtimeOnly("com.huawei.hms:ads-identifier:3.4.62.300")
-            runtimeOnly("com.hihonor.mcs:ads-identifier:1.0.3.300")
         }
         commonMain.dependencies {
             api(libs.kotlin.stdlib)

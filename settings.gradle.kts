@@ -98,4 +98,6 @@ plugins {
 include("app")
 include("core:base")
 include("core:common")
+include("core:common-china")
+include("core:common-play")
 include("project:main")

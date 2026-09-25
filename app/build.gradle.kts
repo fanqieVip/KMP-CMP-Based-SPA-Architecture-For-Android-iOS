@@ -193,6 +193,8 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.multiplatform.ui.tooling )
+    add("chinaImplementation", projects.core.commonChina)
+    add("playImplementation", projects.core.commonPlay)
 }
 compose.resources {
     publicResClass = true

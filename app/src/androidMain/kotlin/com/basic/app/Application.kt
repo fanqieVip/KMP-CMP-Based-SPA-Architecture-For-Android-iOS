@@ -8,6 +8,7 @@ import androidx.multidex.MultiDexApplication
 import com.basic.base.ApplicationProxyManager
 import com.basic.base.utils.ActivityLifecycleCallbacksImpl
 import com.basic.base.utils.ProcessUtils
+import com.basic.common.distribution.di.distributionModule
 import com.blankj.utilcode.util.Utils
 
 /**
@@ -20,7 +21,7 @@ class Application  : MultiDexApplication(), LifecycleObserver {
     override fun onCreate() {
         super.onCreate()
         Utils.init(this)
-        initKoin()
+        initKoin(distributionModule)
         registerAppLifecycle()
         registerActivityLifecycle()
     }
