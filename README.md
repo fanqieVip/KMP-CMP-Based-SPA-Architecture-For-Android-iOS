@@ -180,7 +180,8 @@ iosApp/Configuration/iosConfig.xcconfig
 项目内置 Android APK 安全防护链路，覆盖编译期、发布期和运行期：
 
 - `com.basic.protect-src`：保护密钥、请求头 key、JSBridge 名称、Hook/Frida/Patch 特征等敏感字符串，避免直接以明文进入 Android 产物。
-- `app/tasks/publish_online/mainVmp`：对生产 APK 执行 VMP 加固，并在加固后写入 APK 完整性签名。
+- `app/tasks/publish_online_china/protectChinaApk`：对 China Release APK 执行 VMP 加固、写入 APK 完整性签名，并完成对齐和签名。
+- `app/tasks/publish_online_play/protectPlayAab`：对 Google Play Release AAB 执行独立的 VMP 加固流程；AAB 不使用 APK 的完整性 asset、zipalign 或 apksigner 步骤。
 - `VmpConfig.kt`：集中维护 VMP 加密范围、VMP so 名和初始化类名，安全核心类必须纳入加固范围。
 - `EnvCheckerUtils.kt`：运行期环境校验核心类，负责证书、包体完整性、Hook、Frida、插件化和改包风险检测，必须被 VMP 保护。
 - 反无障碍自动点击 / 反积分墙作弊：生产环境隐藏无障碍节点树，并基于 Android 8.0+ 标准 `dispatchGesture` 的虚拟设备及固定触摸特征拦截自动点击，正常手指操作不受无障碍服务开启状态影响。

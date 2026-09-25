@@ -21,7 +21,7 @@ plugins {
     id("com.waynell.tinypng")
     id("com.basic.ios")
 }
-//apply(from = "../batchTask.gradle")
+apply(from = "../batchTask.gradle")
 val androidNameSpace = "com.basic.app"
 
 //ios模块中可以$(fieldName)这样进行引用, 如：$(APPLICATION_ID)
@@ -110,6 +110,15 @@ android {
             put("APP_NAME", ProjectBuildConfig.Build.appName)
             put("DEEP_LINK_SCHEME", ProjectBuildConfig.Deeplink.scheme)
             put("DEEP_LINK_HOST", ProjectBuildConfig.Deeplink.host)
+        }
+    }
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("china") {
+            dimension = "distribution"
+        }
+        create("play") {
+            dimension = "distribution"
         }
     }
     packaging {

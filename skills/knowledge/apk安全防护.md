@@ -7,8 +7,8 @@
 | 层级 | 能力 | 入口 | 主要作用 |
 | --- | --- | --- | --- |
 | 编译期字符串保护 | `com.basic.protect-src` + `ProtectSrc(...)` | 各模块 `build.gradle.kts`、业务源码 | 防止密钥、请求头 key、JSBridge 名称、Hook 特征等敏感字符串以明文进入 Android 产物 |
-| 发布期 VMP 加固 | `mainVmp` | Android Studio Gradle 面板 `app/tasks/publish_online/mainVmp`、`batchTask.gradle` | 将指定范围 dex 方法转为 VMP so，提高静态反编译和动态 Patch 成本 |
-| APK 完整性签名 | `mainVmp` 写入加密 asset | `batchTask.gradle` + `EnvCheckerUtils.kt` | 对 Manifest、resources、dex、so 等关键条目生成清单，运行期重建并比对 |
+| 发布期 VMP 加固 | `protectChinaApk` / `protectPlayAab` | Android Studio Gradle 面板 `app/tasks/publish_online_china/protectChinaApk`、`app/tasks/publish_online_play/protectPlayAab`、`batchTask.gradle` | 分别加固 China APK 与 Google Play AAB，将指定范围 dex 方法转为 VMP so，提高静态反编译和动态 Patch 成本 |
+| APK 完整性签名 | `protectChinaApk` 写入加密 asset | `batchTask.gradle` + `EnvCheckerUtils.kt` | 仅 China APK 对 Manifest、resources、dex、so 等关键条目生成清单，运行期重建并比对 |
 | 运行期环境校验 | `EnvCheckerUtils.checkEnv()` | `core/base/src/androidMain/.../EnvCheckerUtils.kt` | 检测破签、改包、插件化、Hook、Frida、完整性篡改等风险 |
 | 自动点击与积分墙防作弊 | 无障碍树隐藏、手势服务拦截、触摸特征检测 | `ProjectBuildConfig.kt`、`core/base` | 提高 Android 无障碍自动点击器的操作成本 |
 
@@ -58,13 +58,14 @@ val headerKey = ProtectSrc("X-Sign")!!
 
 ### 3.1 发布入口
 
-生产发布使用 `app/tasks/publish_online/mainVmp` 执行 VMP 加固。该任务位于 `batchTask.gradle`，核心流程是：
+生产发布按发行目标使用两个独立任务，二者均位于 `batchTask.gradle`：
 
-1. 准备 VMP 工具目录、SDK/NDK/CMake/JDK 环境。
-2. 从 `VmpConfig.kt` 写出 VMP 运行参数和 `rules.txt`。
-3. 对渠道 APK 执行 VMP 加固，生成 `*_vmp.apk`。
-4. 向 VMP 后的 APK 写入加密完整性签名 asset。
-5. 对齐并执行 V2 签名。
+| 发行目标 | Gradle 任务 | 处理范围 | 后处理 |
+| --- | --- | --- | --- |
+| China | `app/tasks/publish_online_china/protectChinaApk` | China Release APK | 写入 APK 完整性签名 asset、zipalign、V2 签名 |
+| Google Play | `app/tasks/publish_online_play/protectPlayAab` | Play Release AAB | 仅执行 AAB 可用的 VMP 流程；不写入 APK 完整性 asset，也不执行 zipalign 或 apksigner |
+
+两个任务都会准备 VMP 工具目录、SDK/NDK/CMake/JDK 环境，并从 `VmpConfig.kt` 写出 VMP 运行参数和 `rules.txt`。不要将 APK 专用的完整性写入或签名步骤复制到 AAB 流程；Google Play 最终 APK 由 Play 根据 AAB 生成和签名。
 
 ### 3.2 配置入口
 
@@ -97,7 +98,7 @@ buildSrc/src/main/kotlin/com/frame/basic/buildsrc/VmpConfig.kt
 
 ### 4.1 生成侧
 
-`mainVmp` 在 VMP 输出后调用完整性签名写入逻辑。生成侧会扫描 APK 中的关键条目，按固定顺序生成明文清单，再加密写入 asset。
+`protectChinaApk` 在 VMP 输出后调用完整性签名写入逻辑。生成侧会扫描 China APK 中的关键条目，按固定顺序生成明文清单，再加密写入 asset。`protectPlayAab` 不执行该步骤，因为 AAB 不是最终安装 APK，且 Google Play 会在分发时重新生成并签名 APK。
 
 纳入清单的条目包括：
 
@@ -144,7 +145,7 @@ buildSrc/src/main/kotlin/com/frame/basic/buildsrc/VmpConfig.kt
 | 插件化/Patch 环境检测 | 检测 LSPatch、NPatch、LSPosed、DexClassLoader、异常 sourceDir 等 |
 | 系统服务代理检测 | 检测 ActivityManager、PackageManager 是否被代理 |
 | Hook 堆栈检测 | 通过异常堆栈识别 LSPosed、Xposed、SandHook 等特征 |
-| APK 完整性签名校验 | 解密并比对 `mainVmp` 写入的完整性清单 |
+| APK 完整性签名校验 | 解密并比对 `protectChinaApk` 写入的完整性清单；Play AAB 流程不生成该 APK asset |
 
 `checkEnv()` 当前由 Android 侧公共应用入口在后台协程中调用。它带有 30 秒间隔缓存：校验通过会短期复用结果，校验失败会进入风险处理逻辑。
 
@@ -195,13 +196,14 @@ buildSrc/src/main/kotlin/com/frame/basic/buildsrc/VmpConfig.kt
 | 编译期约束 | 不存在 `ProtectSrc(value)`、拼接表达式或 `BuildConfig` 动态输入 |
 | VMP 规则 | `VmpConfig.protectRules` 覆盖 `EnvCheckerUtils` 和高价值安全逻辑 |
 | R8 配套 | `app/proguard-rules.pro` 与 VMP 规则对齐，关键类未被优化到规则失效 |
-| 完整性签名 | VMP 后 APK 中存在完整性签名 asset，且运行期能解密并重建清单 |
+| China 完整性签名 | `protectChinaApk` 后的 APK 中存在完整性签名 asset，且运行期能解密并重建清单 |
 | 生成/运行一致性 | 完整性签名密钥、IV、固定头、asset 名、清单格式两侧一致 |
 | 证书校验 | 构建期注入的 APK 签名校验值来自当前发布证书 |
 | 运行期调用 | `checkEnv()` 在 Android 启动链路中执行，且敏感业务可按需增加二次触发 |
 | 自动点击配置 | `disableAccessibilityService` 已按产品策略配置，且仅在开关开启与生产环境同时满足时生效 |
 | 自动点击覆盖 | `BaseActivity`、`NativeActivity`、`AndroidNativeDialog` 以及新增独立 Window 均已核对 |
-| 产物验证 | Release/VMP APK 反编译后，被保护字符串不再以明文出现，VMP so 与完整性校验均存在 |
+| China 产物验证 | China Release/VMP APK 反编译后，被保护字符串不再以明文出现，VMP so 与完整性校验均存在 |
+| Play 产物验证 | Play Release/VMP AAB 的 VMP 输出符合工具要求；不以 APK 完整性 asset、zipalign 或 apksigner 作为验收项 |
 
 建议验证命令按任务风险选择：
 
@@ -217,6 +219,7 @@ VMP 与完整性签名必须以实际 release/VMP 产物为准，普通 debug �
 ## 8. 常见风险
 
 - 只使用 `ProtectSrc`，但未执行 VMP：字符串更难被直接搜索，但核心校验逻辑仍可能被静态分析和 Patch。
+- 将 China APK 的完整性 asset、zipalign 或 apksigner 步骤用于 Play AAB：AAB 不是最终安装 APK，相关处理会失效或破坏交付流程。
 - 只执行 VMP，未保护特征字符串：攻击者仍可通过明文特征快速定位安全逻辑。
 - 修改 `batchTask.gradle` 的完整性参数但忘记同步 `EnvCheckerUtils.kt`：运行期会误判或校验失效。
 - 删除或放松 `EnvCheckerUtils` 的 VMP 规则：运行期校验逻辑更容易被定位和篡改。

@@ -19,15 +19,18 @@ def runCommand(Closure configureClosure) {
 /**
  * 发布测试包task分组名称
  */
-def submitTestGroupName = "submit_test"
+def submitTestChinaGroupName = "submit_test_china"
+def submitTestPlayGroupName = "submit_test_play"
 /**
  * 发布测试包task分组名称
  */
-def submitDevGroupName = "submit_dev"
+def submitDevChinaGroupName = "submit_dev_china"
+def submitDevPlayGroupName = "submit_dev_play"
 /**
  * 发布生产包包task分组名称
  */
-def publishOnlineGroupName = "publish_online"
+def publishChinaGroupName = "publish_online_china"
+def publishPlayGroupName = "publish_online_play"
 /**
  * 本地提交文件服务器task分组名称
  */
@@ -47,35 +50,48 @@ def allApkFolder = file("${testApkRootFolder.absolutePath}/apk/").absolutePath
 def projectFolder = file("${allApkFolder}/${ProjectBuildConfig.Build.appName}/").absolutePath
 
 /**
- * 测试包apk目录
+ * 国内渠道产物根目录
  */
-def testApkFolder = file("${projectFolder}/test").absolutePath
+def chinaArtifactFolder = file("${projectFolder}/china").absolutePath
 /**
- * 开发包apk目录
+ * Google Play 产物根目录
  */
-def devApkFolder = file("${projectFolder}/dev").absolutePath
+def playArtifactFolder = file("${projectFolder}/play").absolutePath
+/** 国内测试包目录 */
+def chinaTestApkFolder = file("${chinaArtifactFolder}/test").absolutePath
+/** 国内开发包目录 */
+def chinaDevApkFolder = file("${chinaArtifactFolder}/dev").absolutePath
+/** Play 测试包目录 */
+def playTestApkFolder = file("${playArtifactFolder}/test").absolutePath
+/** Play 开发包目录 */
+def playDevApkFolder = file("${playArtifactFolder}/dev").absolutePath
 /**
  * 测试包更新说明文件
  */
 def testApkVersionDesc = file("${testApkRootFolder.absolutePath}/version_desc")
 /**
- * 生产渠道包目录
+ * 国内生产渠道包目录
  */
-def channelApkFolder = file("${projectFolder}/channel/v${ProjectBuildConfig.Build.versionName}")
+def chinaReleaseFolder = file("${chinaArtifactFolder}/channel/v${ProjectBuildConfig.Build.versionName}")
 /**
- * 渠道配置文本
+ * Play 生产归档目录
  */
-def channelsFile = file("${projectFolder}/channel/channel.txt")
+def playReleaseFolder = file("${playArtifactFolder}/release/v${ProjectBuildConfig.Build.versionName}")
+/** 国内 Walle 渠道配置文本 */
+def chinaChannelsFile = file("${chinaArtifactFolder}/channel/channel.txt")
 /**
  * FTP服务器工具名
  */
 def niniserveFileName = "miniserve_0.29.0.exe"
 
-// 默认打包release_apk文件夹路径
-def mainAppPath = "${projectDir.absolutePath}/build/outputs/apk/release/"
+// China 主包 release APK 文件夹路径
+def chinaReleaseSourceFolder = file("${projectDir.absolutePath}/build/outputs/apk/china/release/")
 
-// 默认打包release_apk_mapping文件
-def mainMapping = file("${projectDir.absolutePath}/build/outputs/mapping/release/mapping.txt")
+// China 主包 release mapping 文件
+def chinaReleaseMapping = file("${projectDir.absolutePath}/build/outputs/mapping/chinaRelease/mapping.txt")
+// Play AAB 和 mapping 的 Gradle 输出路径
+def playReleaseSourceFolder = file("${projectDir.absolutePath}/build/outputs/bundle/playRelease/")
+def playReleaseMapping = file("${projectDir.absolutePath}/build/outputs/mapping/playRelease/mapping.txt")
 
 //tools目录
 def toolsFolder = file("${rootProject.getProjectDir().absolutePath}/tools/")
@@ -88,12 +104,12 @@ ext.apkIntegrityPassword = "city-vmp-integrity-key-2026"
 ext.apkIntegrityIv = "c1tyCheckIv2026!"
 
 /**主包*/
-task assembleMain(dependsOn: 'assembleRelease') {
-    group = publishOnlineGroupName
+task makeChinaRelease(dependsOn: 'assembleChinaRelease') {
+    group = publishChinaGroupName
     description = "打主包"
     doLast {
         File apkFile = null
-        File apkFolder = file(mainAppPath)
+        File apkFolder = chinaReleaseSourceFolder
         // 获取该文件夹下的所有文件
         File[] apkFiles = apkFolder.listFiles()
         int i = 0
@@ -114,7 +130,7 @@ task assembleMain(dependsOn: 'assembleRelease') {
         }
 
         println("apk location $apkFile.absolutePath")
-        def deskApkFileFolder = file("${channelApkFolder.absolutePath}/")
+        def deskApkFileFolder = chinaReleaseFolder
         if (!deskApkFileFolder.exists() || deskApkFileFolder.isFile()) {
             deskApkFileFolder.mkdirs()
         }
@@ -138,18 +154,18 @@ task assembleMain(dependsOn: 'assembleRelease') {
         }
         //复制mapping.txt
         project.copy {
-            from mainMapping
+            from chinaReleaseMapping
             into deskApkFileFolder
         }
     }
 }
 /**将主包生成渠道包*/
-task assembleMainChannels() {
-    group = publishOnlineGroupName
+task makeChinaChannels() {
+    group = publishChinaGroupName
     description = "将主包生成渠道包"
     doLast {
         File apkFile = null
-        File apkFolder = file("${channelApkFolder.absolutePath}/")
+        File apkFolder = chinaReleaseFolder
         File[] apkFiles = apkFolder.listFiles()
         for (File file : apkFiles) {
             if (file.isFile() && file.getName().endsWith(".apk")) {
@@ -157,7 +173,7 @@ task assembleMainChannels() {
                 apkFile = file
             }
         }
-        def deskApkFileFolder = file("${channelApkFolder.absolutePath}/market/")
+        def deskApkFileFolder = file("${chinaReleaseFolder.absolutePath}/market/")
         if (!deskApkFileFolder.exists() || deskApkFileFolder.isFile()) {
             deskApkFileFolder.mkdirs()
         }
@@ -166,16 +182,58 @@ task assembleMainChannels() {
                 apk.delete()
             }
         }
-        createChannelsFile(channelsFile)
+        createChannelsFile(chinaChannelsFile)
         runCommand {
             executable = 'java'
             args = ['-jar', "${rootProject.getProjectDir()}/tools/walle-cli-all.jar",
                     'batch', '-f',
-                    "${channelsFile.absolutePath}",
+                    "${chinaChannelsFile.absolutePath}",
                     apkFile.absolutePath,
                     "${deskApkFileFolder.absolutePath}"
             ]
         }
+    }
+}
+
+/**
+ * 从指定构建输出目录取得唯一的目标文件。
+ * @param sourceFolder Gradle 构建产物目录
+ * @param extension 目标文件扩展名
+ * @return 唯一匹配的构建产物
+ */
+def findSingleBuildArtifact(File sourceFolder, String extension) {
+    File[] artifacts = (sourceFolder.listFiles() ?: [] as File[])
+            .findAll { it.isFile() && it.name.endsWith(extension) } as File[]
+    if (artifacts == null || artifacts.length == 0) {
+        throw new FileNotFoundException("Can't find ${extension} artifact in ${sourceFolder.absolutePath}")
+    }
+    if (artifacts.length > 1) {
+        throw new GradleException("Expected one ${extension} artifact in ${sourceFolder.absolutePath}, found ${artifacts.length}")
+    }
+    return artifacts[0]
+}
+
+/** Google Play 主包：归档 AAB 和对应 mapping，不生成 Walle 渠道包。 */
+task makePlayRelease(dependsOn: 'bundlePlayRelease') {
+    group = publishPlayGroupName
+    description = "打 Google Play AAB 并归档"
+    doLast {
+        File aabFile = findSingleBuildArtifact(playReleaseSourceFolder, ".aab")
+        if (!playReleaseMapping.exists()) {
+            throw new FileNotFoundException("Can't find mapping: ${playReleaseMapping.absolutePath}")
+        }
+        if (!playReleaseFolder.exists() && !playReleaseFolder.mkdirs()) {
+            throw new IOException("Can't create release folder: ${playReleaseFolder.absolutePath}")
+        }
+        playReleaseFolder.listFiles()?.findAll { it.isFile() && (it.name.endsWith(".aab") || it.name == "mapping.txt") }?.each {
+            it.delete()
+        }
+        project.copy {
+            from aabFile
+            from playReleaseMapping
+            into playReleaseFolder
+        }
+        println("Google Play release archived: ${playReleaseFolder.absolutePath}")
     }
 }
 
@@ -259,21 +317,38 @@ def parseLocalProperties() {
     throw new FileNotFoundException('local.properties is not exists and cannot reinforce')
 }
 /**上传所有channel文件*/
-task publishOss() {
-    group = publishOnlineGroupName
+task publishChinaOss() {
+    group = publishChinaGroupName
     description = "上传channel_v${ProjectBuildConfig.Build.versionName}文件"
     doLast {
-        File apkFolder = file("${channelApkFolder.absolutePath}/")
+        File apkFolder = chinaReleaseFolder
         OssHelper.uploadDir(apkFolder)
     }
 }
 /**上传所有channel文件并且钉钉通知*/
-task publishOssDing() {
-    group = publishOnlineGroupName
+task publishChinaOssDing() {
+    group = publishChinaGroupName
     description = "上传channel_v${ProjectBuildConfig.Build.versionName}文件并且钉钉通知"
     doLast {
-        File apkFolder = file("${channelApkFolder.absolutePath}/")
+        File apkFolder = chinaReleaseFolder
         def result = OssHelper.uploadDir(apkFolder)
+        DingHelper.dingOnlineApk(result)
+    }
+}
+/** 上传 Google Play 归档文件。 */
+task publishPlayOss() {
+    group = publishPlayGroupName
+    description = "上传 Google Play release_v${ProjectBuildConfig.Build.versionName} 文件"
+    doLast {
+        OssHelper.uploadDir(playReleaseFolder)
+    }
+}
+/** 上传 Google Play 归档文件并发送钉钉通知。 */
+task publishPlayOssDing() {
+    group = publishPlayGroupName
+    description = "上传 Google Play release_v${ProjectBuildConfig.Build.versionName} 文件并发送钉钉通知"
+    doLast {
+        def result = OssHelper.uploadDir(playReleaseFolder)
         DingHelper.dingOnlineApk(result)
     }
 }
@@ -495,88 +570,153 @@ def killProcessByName(String processName) {
 /**
  * 打Debug测试包并推送局域网url到钉钉
  */
-task submitTestDebug(dependsOn: 'assembleDebug') {
-    group = submitTestGroupName
+task submitTestChinaDebug(dependsOn: 'assembleChinaDebug') {
+    group = submitTestChinaGroupName
     description = "打Debug测试包并推送局域网url到钉钉"
     doLast {
-        copyTestApkDing("debug", testApkFolder, testApkVersionDesc, false)
+        copyTestApkDing("china", "debug", chinaTestApkFolder, testApkVersionDesc, false)
     }
 }
 /**
  * 打Alpha测试包并推送局域网url到钉钉
  */
-task submitTestAlpha(dependsOn: 'assembleAlpha') {
-    group = submitTestGroupName
+task submitTestChinaAlpha(dependsOn: 'assembleChinaAlpha') {
+    group = submitTestChinaGroupName
     description = "打Alpha测试包并推送局域网url到钉钉"
     doLast {
-        copyTestApkDing("alpha", testApkFolder, testApkVersionDesc, false)
+        copyTestApkDing("china", "alpha", chinaTestApkFolder, testApkVersionDesc, false)
     }
 }
 /**
  * 打Beta测试包并推送局域网url到钉钉
  */
-task submitTestBeta(dependsOn: 'assembleBeta') {
-    group = submitTestGroupName
+task submitTestChinaBeta(dependsOn: 'assembleChinaBeta') {
+    group = submitTestChinaGroupName
     description = "打Beta测试包并推送局域网url到钉钉"
     doLast {
-        copyTestApkDing("beta", testApkFolder, testApkVersionDesc, false)
+        copyTestApkDing("china", "beta", chinaTestApkFolder, testApkVersionDesc, false)
     }
 }
 /**
  * 打Release测试包并推送局域网url到钉钉
  */
-task submitTestRelease(dependsOn: 'assembleRelease') {
-    group = submitTestGroupName
+task submitTestChinaRelease(dependsOn: 'assembleChinaRelease') {
+    group = submitTestChinaGroupName
     description = "打Release测试包并推送局域网url到钉钉"
     doLast {
-        copyTestApkDing("release", testApkFolder, testApkVersionDesc, false)
+        copyTestApkDing("china", "release", chinaTestApkFolder, testApkVersionDesc, false)
     }
 }
-task submitDevDebug(dependsOn: 'assembleDebug') {
-    group = submitDevGroupName
+task submitDevChinaDebug(dependsOn: 'assembleChinaDebug') {
+    group = submitDevChinaGroupName
     description = "打Debug开发包并推送局域网url到钉钉"
     doLast {
-        copyTestApkDing("debug", devApkFolder, testApkVersionDesc, true)
+        copyTestApkDing("china", "debug", chinaDevApkFolder, testApkVersionDesc, true)
     }
 }
 /**
  * 打Alpha测试包并推送局域网url到钉钉
  */
-task submitDevAlpha(dependsOn: 'assembleAlpha') {
-    group = submitDevGroupName
+task submitDevChinaAlpha(dependsOn: 'assembleChinaAlpha') {
+    group = submitDevChinaGroupName
     description = "打Alpha开发包并推送局域网url到钉钉"
     doLast {
-        copyTestApkDing("alpha", devApkFolder, testApkVersionDesc, true)
+        copyTestApkDing("china", "alpha", chinaDevApkFolder, testApkVersionDesc, true)
     }
 }
 /**
  * 打Beta测试包并推送局域网url到钉钉
  */
-task submitDevBeta(dependsOn: 'assembleBeta') {
-    group = submitDevGroupName
+task submitDevChinaBeta(dependsOn: 'assembleChinaBeta') {
+    group = submitDevChinaGroupName
     description = "打Beta开发包并推送局域网url到钉钉"
     doLast {
-        copyTestApkDing("beta", devApkFolder, testApkVersionDesc, true)
+        copyTestApkDing("china", "beta", chinaDevApkFolder, testApkVersionDesc, true)
     }
 }
 /**
  * 打Release测试包并推送局域网url到钉钉
  */
-task submitDevRelease(dependsOn: 'assembleRelease') {
-    group = submitDevGroupName
+task submitDevChinaRelease(dependsOn: 'assembleChinaRelease') {
+    group = submitDevChinaGroupName
     description = "打Release开发包并推送局域网url到钉钉"
     doLast {
-        copyTestApkDing("release", devApkFolder, testApkVersionDesc, true)
+        copyTestApkDing("china", "release", chinaDevApkFolder, testApkVersionDesc, true)
+    }
+}
+/** 打 Play Debug 测试包并推送局域网 URL。 */
+task submitTestPlayDebug(dependsOn: 'assemblePlayDebug') {
+    group = submitTestPlayGroupName
+    description = "打 Play Debug 测试包并推送局域网 URL"
+    doLast {
+        copyTestApkDing("play", "debug", playTestApkFolder, testApkVersionDesc, false)
+    }
+}
+/** 打 Play Alpha 测试包并推送局域网 URL。 */
+task submitTestPlayAlpha(dependsOn: 'assemblePlayAlpha') {
+    group = submitTestPlayGroupName
+    description = "打 Play Alpha 测试包并推送局域网 URL"
+    doLast {
+        copyTestApkDing("play", "alpha", playTestApkFolder, testApkVersionDesc, false)
+    }
+}
+/** 打 Play Beta 测试包并推送局域网 URL。 */
+task submitTestPlayBeta(dependsOn: 'assemblePlayBeta') {
+    group = submitTestPlayGroupName
+    description = "打 Play Beta 测试包并推送局域网 URL"
+    doLast {
+        copyTestApkDing("play", "beta", playTestApkFolder, testApkVersionDesc, false)
+    }
+}
+/** 打 Play Release 测试包并推送局域网 URL。 */
+task submitTestPlayRelease(dependsOn: 'assemblePlayRelease') {
+    group = submitTestPlayGroupName
+    description = "打 Play Release 测试包并推送局域网 URL"
+    doLast {
+        copyTestApkDing("play", "release", playTestApkFolder, testApkVersionDesc, false)
+    }
+}
+/** 打 Play Debug 开发包并推送局域网 URL。 */
+task submitDevPlayDebug(dependsOn: 'assemblePlayDebug') {
+    group = submitDevPlayGroupName
+    description = "打 Play Debug 开发包并推送局域网 URL"
+    doLast {
+        copyTestApkDing("play", "debug", playDevApkFolder, testApkVersionDesc, true)
+    }
+}
+/** 打 Play Alpha 开发包并推送局域网 URL。 */
+task submitDevPlayAlpha(dependsOn: 'assemblePlayAlpha') {
+    group = submitDevPlayGroupName
+    description = "打 Play Alpha 开发包并推送局域网 URL"
+    doLast {
+        copyTestApkDing("play", "alpha", playDevApkFolder, testApkVersionDesc, true)
+    }
+}
+/** 打 Play Beta 开发包并推送局域网 URL。 */
+task submitDevPlayBeta(dependsOn: 'assemblePlayBeta') {
+    group = submitDevPlayGroupName
+    description = "打 Play Beta 开发包并推送局域网 URL"
+    doLast {
+        copyTestApkDing("play", "beta", playDevApkFolder, testApkVersionDesc, true)
+    }
+}
+/** 打 Play Release 开发包并推送局域网 URL。 */
+task submitDevPlayRelease(dependsOn: 'assemblePlayRelease') {
+    group = submitDevPlayGroupName
+    description = "打 Play Release 开发包并推送局域网 URL"
+    doLast {
+        copyTestApkDing("play", "release", playDevApkFolder, testApkVersionDesc, true)
     }
 }
 /**
  * 拷贝测试apk并发布到钉钉
+ * @param distribution 发行目标
  * @param environment
  * @return
  */
-def copyTestApkDing(String environment, String testApkFolder, File testApkVersionDesc, boolean isDev) {
+def copyTestApkDing(String distribution, String environment, String testApkFolder, File testApkVersionDesc, boolean isDev) {
     File apkFile = null
-    File apkFolder = file("${projectDir.absolutePath}/build/outputs/apk/${environment}/")
+    File apkFolder = file("${projectDir.absolutePath}/build/outputs/apk/${distribution}/${environment}/")
     // 获取该文件夹下的所有文件
     File[] apkFiles = apkFolder.listFiles()
     int i = 0
@@ -613,7 +753,7 @@ def copyTestApkDing(String environment, String testApkFolder, File testApkVersio
         from apkFile
         into deskApkFileFolder
     }
-    def testApkAddress = "${getTestApkServerAddress()}/${ProjectBuildConfig.Build.appName}/${if (isDev) { "dev" } else { "test" }}"
+    def testApkAddress = "${getTestApkServerAddress()}/${ProjectBuildConfig.Build.appName}/${distribution}/${if (isDev) { "dev" } else { "test" }}"
     def apkUrl = "${testApkAddress}/${environment}/${apkFile.name}"
     createDefaultVersionDesc(testApkVersionDesc)
     DingHelper.dingInnerApk(deskApk, apkUrl, testApkAddress, environment, testApkVersionDesc, isDev)
@@ -772,8 +912,8 @@ def writeApkIntegritySignature(File apkFile) {
     println("apk integrity signature written: " + apkIntegrityAssetEntryName + (skipped ? " (replaced)" : ""))
 }
 /**将主包中的dex转成so*/
-task mainVmp() {
-    group = publishOnlineGroupName
+task protectChinaApk() {
+    group = publishChinaGroupName
     description = "将主包中的dex转成so"
     doLast {
         /******************** vmp加密 *********************/
@@ -824,7 +964,7 @@ task mainVmp() {
         vmpRulesWriter.close()
         //获取要进行vmp加密的apk
         File apkFile = null
-        File apkFolder = file("${channelApkFolder.absolutePath}/")
+        File apkFolder = chinaReleaseFolder
         File[] apkFiles = apkFolder.listFiles()
         for (File file : apkFiles) {
             if (file.isFile() && file.getName().endsWith(".apk")) {
@@ -833,7 +973,7 @@ task mainVmp() {
             }
         }
         //获取mapping
-        def mappingFile = file("${channelApkFolder.absolutePath}/mapping.txt")
+        def mappingFile = file("${chinaReleaseFolder.absolutePath}/mapping.txt")
         //vmp编译结果目录
         def vmpBuildDir = file("${apkFile.parentFile.absolutePath}/build/")
         if (vmpBuildDir.exists() && vmpBuildDir.isDirectory()) {
@@ -859,7 +999,81 @@ task mainVmp() {
         vmpFolder.deleteDir()
 
         /******************** 对齐及签名 *********************/
-        signApkV2(zipAlignApk(file("${channelApkFolder.absolutePath}/").listFiles().find {it.isFile() && it.getName().endsWith(".apk")}))
+        signApkV2(zipAlignApk(chinaReleaseFolder.listFiles().find {it.isFile() && it.getName().endsWith(".apk")}))
+    }
+}
+
+/**
+ * 临时从 APK 加固流程迁移的 Play AAB 加固入口。
+ *
+ * AAB 不可使用 APK 的 zipalign、apksigner 与完整性 asset 写入步骤；后续适配 VMP 的
+ * AAB 能力时，仅替换此任务内部实现，不影响 China APK 流程。
+ */
+task protectPlayAab() {
+    group = publishPlayGroupName
+    description = "临时复制的 Google Play AAB 加固流程（无效方法，未来支持）"
+    doLast {
+        def vmpFolder = file("${testApkRootFolder.absolutePath}/vmp/play/")
+        if (vmpFolder.exists() && vmpFolder.isDirectory()) {
+            vmpFolder.deleteDir()
+        }
+        vmpFolder.mkdirs()
+        def sdkDirectory = file("${parseLocalProperties()}")
+        def ndkDirectory = file("${parseLocalProperties()}/ndk/${ProjectBuildConfig.Build.Android.ndkVersion}")
+        def cmakeDirectory = file("${parseLocalProperties()}/cmake/").listFiles().find { it.isDirectory() }
+        def javaExePath = new File(System.getProperty("java.home"), "bin" + File.separator + "java.exe")
+        def sourceVmpJar = file("${toolsFolder.absolutePath}/${vmpJarName}")
+        project.copy {
+            from sourceVmpJar
+            into vmpFolder
+        }
+        def exeVmpJar = file("${vmpFolder.absolutePath}/${vmpJarName}")
+        def vmpBat = file("${vmpFolder.absolutePath}/run_vm_protect.bat")
+        vmpBat.createNewFile()
+        def vmpBatWriter = new BufferedWriter(new FileWriter(vmpBat, Charset.forName("utf-8")))
+        vmpBatWriter.writeLine("@echo off")
+        vmpBatWriter.writeLine("set ANDROID_SDK_HOME=${sdkDirectory.absolutePath}")
+        vmpBatWriter.writeLine("set ANDROID_NDK_HOME=${ndkDirectory.absolutePath}")
+        vmpBatWriter.writeLine("set CMAKE_PATH=${cmakeDirectory.absolutePath}${File.separator}")
+        vmpBatWriter.writeLine("set NMMP_NAME=${VmpConfig.nmmpName}")
+        vmpBatWriter.writeLine("set NMMVM_NAME=${VmpConfig.nmmvmName}")
+        vmpBatWriter.writeLine("set CLASS_NAME=${VmpConfig.className}")
+        vmpBatWriter.writeLine("set USE_LEGACY_PACKAGING=${ProjectBuildConfig.Build.Android.useJniLegacyPackaging}")
+        vmpBatWriter.writeLine("\"${javaExePath.absolutePath}\" -jar \"${exeVmpJar.absolutePath}\" %*")
+        vmpBatWriter.flush()
+        vmpBatWriter.close()
+        def vmpRules = file("${vmpFolder.absolutePath}/rules.txt")
+        def vmpRulesWriter = new BufferedWriter(new FileWriter(vmpRules, Charset.forName("utf-8")))
+        VmpConfig.protectRules.forEach {
+            vmpRulesWriter.writeLine(it)
+        }
+        vmpRulesWriter.flush()
+        vmpRulesWriter.close()
+        File aabFile = findSingleBuildArtifact(playReleaseFolder, ".aab")
+        def mappingFile = file("${playReleaseFolder.absolutePath}/mapping.txt")
+        if (!mappingFile.exists()) {
+            throw new FileNotFoundException("Can't find mapping: ${mappingFile.absolutePath}")
+        }
+        def vmpBuildDir = file("${aabFile.parentFile.absolutePath}/build/")
+        if (vmpBuildDir.exists() && vmpBuildDir.isDirectory()) {
+            vmpBuildDir.deleteDir()
+        }
+        runCommand {
+            commandLine "cmd", "/c", "${vmpBat.absolutePath} aab ${aabFile.absolutePath} ${vmpRules.absolutePath} ${mappingFile.absolutePath}"
+        }
+        def vmpBuildFile = vmpBuildDir.listFiles().find { it.name.endsWith("-protect.aab") }
+        if (vmpBuildFile == null) {
+            throw new FileNotFoundException("VMP did not produce a protected AAB in ${vmpBuildDir.absolutePath}")
+        }
+        def vmpResultFile = file("${vmpBuildDir.absolutePath}/${vmpBuildFile.name.substring(0, vmpBuildFile.name.lastIndexOf("-protect.aab"))}_vmp.aab")
+        vmpBuildFile.renameTo(vmpResultFile)
+        project.copy {
+            from vmpResultFile
+            into playReleaseFolder
+        }
+        aabFile.delete()
+        vmpBuildDir.deleteDir()
+        vmpFolder.deleteDir()
     }
 }
 /**

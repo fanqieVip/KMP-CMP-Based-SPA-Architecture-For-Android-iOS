@@ -20,7 +20,7 @@ class TinyPngTask extends DefaultTask {
 
     TinyPngTask() {
         description = '压缩所有图片资源（已自动忽略.9图且不会重复压缩）'
-        group = 'publish_online'
+        group = 'tools'
         outputs.upToDateWhen { false }
     }
 

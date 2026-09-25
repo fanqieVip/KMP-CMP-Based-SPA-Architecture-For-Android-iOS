@@ -8,6 +8,7 @@ import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
 import com.frame.basic.utils.ApkSha1Utils
 import com.frame.basic.utils.getBuildEnvName
+import com.frame.basic.utils.isPlayDimension
 import com.frame.basic.utils.isReleaseEnv
 
 plugins {
@@ -180,6 +181,7 @@ buildkonfig {
         buildConfigField(FieldSpec.Type.STRING, "VERSION_NAME", ProjectBuildConfig.Build.versionName)
         buildConfigField(FieldSpec.Type.STRING, "DEFAULT_CHANNEL", ChannelConfig.default_channel)
         buildConfigField(FieldSpec.Type.STRING, "VERSION_TYPE", project.getBuildEnvName())
+        buildConfigField(FieldSpec.Type.BOOLEAN, "IS_PLAY", "${project.isPlayDimension()}")
         buildConfigField(
             FieldSpec.Type.BOOLEAN,
             "DISABLE_ACCESSIBILITY_SERVICE",
