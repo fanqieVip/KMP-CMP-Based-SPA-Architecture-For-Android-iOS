@@ -1,6 +1,7 @@
 import com.frame.basic.buildsrc.ProjectBuildConfig
 import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -36,6 +37,7 @@ kotlin {
         }
     }
 
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     sourceSets {
         androidMain.dependencies {
             compileOnly(

@@ -1,23 +1,18 @@
 /**
  * @Description: Google Play 发行渠道的公共基础能力实现，当前提供 Android ID。
  * @Author:         fanjun
- * @CreateDate:     2026/09/25 16:06
+ * @CreateDate:     2026/09/25 23:06
  */
-package com.basic.common.distribution
+package com.basic.common.distribution.di.impl
 
 import android.provider.Settings
 import com.basic.base.utils.defaultMmkv
-import com.basic.common.CommonDistributionProvider
-import com.basic.common.DeviceId
+import com.basic.common.beans.DeviceId
+import com.basic.common.di.service.CommonDistributionService
 import com.blankj.utilcode.util.Utils
 
-/**
- * Google Play 发行渠道的公共基础能力实现。
- *
- * 当前仅使用应用范围的 Android ID，不引入 Advertising ID。未来如确有 Google 服务需求，
- * 应在本模块内替换实现，并同步评估 Data safety 与隐私政策。
- */
-class PlayCommonDistributionProvider : CommonDistributionProvider {
+/** Google Play 发行渠道的公共基础能力实现。 */
+class PlayCommonDistributionServiceImpl : CommonDistributionService {
     /** 当前进程的设备标识缓存。 */
     private var deviceId: DeviceId? = null
 

@@ -3,20 +3,22 @@
 /**
  * @Description: 实现 iOS 的 IDFA、IDFV 与 Keychain 设备标识获取。
  * @Author:         fanjun
- * @CreateDate:     2026/09/25 16:06
+ * @CreateDate:     2026/09/25 23:06
  */
-package com.basic.common
+package com.basic.common.di.impl
 
 import cocoapods.XYUUID.XYUUID
 import com.basic.base.ktx.resumeIfActive
 import com.basic.base.utils.defaultMmkv
+import com.basic.common.beans.DeviceId
+import com.basic.common.di.service.CommonDistributionService
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.AppTrackingTransparency.ATTrackingManager
 import platform.AppTrackingTransparency.ATTrackingManagerAuthorizationStatusAuthorized
 
 /** iOS 发行渠道公共能力实现，保留 IDFA、IDFV 与 Keychain 的既有获取策略。 */
-class IosCommonDistributionProvider : CommonDistributionProvider {
+class IosCommonDistributionServiceImpl : CommonDistributionService {
     /** 当前进程的设备标识缓存。 */
     private var deviceId: DeviceId? = null
 

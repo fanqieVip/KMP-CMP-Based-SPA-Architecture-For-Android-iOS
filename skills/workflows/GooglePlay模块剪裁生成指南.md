@@ -43,14 +43,15 @@ app: chinaImplementation / playImplementation
 | Play 模块目录 / Gradle path | `<modulePath>-play` / `:<moduleGradlePath>-play` |
 | Android namespace | `<parentNamespace>.distribution` |
 | Kotlin 实现包 / 物理目录 | `<distributionNamespace>` / `src/androidMain/kotlin/<distributionPackagePath>/` |
-| 公共协议 | `<CapabilityPascal>DistributionProvider` |
-| China 实现 | `China<CapabilityPascal>DistributionProvider` |
-| Play 实现 | `Play<CapabilityPascal>DistributionProvider` |
-| iOS 实现（需要时） | `Ios<CapabilityPascal>DistributionProvider` |
+| 公共 Service 包 / 物理目录 | `<parentNamespace>.di.service` / `<modulePath>/src/commonMain/kotlin/<parentNamespacePath>/di/service/` |
+| 公共协议 | `<CapabilityPascal>DistributionService`（位于 `di/service`） |
+| China 实现 | `China<CapabilityPascal>DistributionServiceImpl` |
+| Play 实现 | `Play<CapabilityPascal>DistributionServiceImpl` |
+| iOS 实现（需要时） | `Ios<CapabilityPascal>DistributionServiceImpl` |
 | Android DI 变量 | `<capabilityCamel>DistributionModule` |
 | iOS DI 变量 | `<capabilityCamel>IosModule` |
 
-例如，目标模块 namespace 为 `com.basic.demo` 时，两个渠道模块的 namespace 均为 `com.basic.demo.distribution`，实现源码必须位于 `src/androidMain/kotlin/com/basic/demo/distribution/`。目标模块为 `core/common` 时，两个同级模块就是 `core/common-china` 与 `core/common-play`，命名分别为：`CommonDistributionProvider`、`ChinaCommonDistributionProvider`、`PlayCommonDistributionProvider`、`IosCommonDistributionProvider`、`distributionModule`、`commonIosModule`。
+例如，目标模块 namespace 为 `com.basic.demo` 时，公共 Service 接口位于 `src/commonMain/kotlin/com/basic/demo/di/service/`，两个渠道模块的 namespace 均为 `com.basic.demo.distribution`，Service 实现源码必须位于 `src/androidMain/kotlin/com/basic/demo/distribution/di/impl/`。目标模块为 `core/common` 时，两个同级模块就是 `core/common-china` 与 `core/common-play`，命名分别为：`CommonDistributionService`、`ChinaCommonDistributionServiceImpl`、`PlayCommonDistributionServiceImpl`、`IosCommonDistributionServiceImpl`、`distributionModule`、`commonIosModule`。
 
 每个新增渠道模块必须一次性创建以下完整骨架，不能遗漏空目录和发布配置：
 
@@ -63,10 +64,11 @@ app: chinaImplementation / playImplementation
 └── src/androidMain/
     ├── AndroidManifest.xml
     └── kotlin/<distributionPackagePath>/
-        ├── China<CapabilityPascal>DistributionProvider.kt
         └── di/
             ├── DI.kt
-            └── impl/ApplicationServiceImpl.kt
+            └── impl/
+                ├── ApplicationServiceImpl.kt
+                └── China<CapabilityPascal>DistributionServiceImpl.kt
 
 <modulePath>-play/
 ├── .gitignore
@@ -76,10 +78,11 @@ app: chinaImplementation / playImplementation
 └── src/androidMain/
     ├── AndroidManifest.xml
     └── kotlin/<distributionPackagePath>/
-        ├── Play<CapabilityPascal>DistributionProvider.kt
         └── di/
             ├── DI.kt
-            └── impl/ApplicationServiceImpl.kt
+            └── impl/
+                ├── ApplicationServiceImpl.kt
+                └── Play<CapabilityPascal>DistributionServiceImpl.kt
 ```
 
 `.gitignore` 固定为：
@@ -91,16 +94,18 @@ app: chinaImplementation / playImplementation
 
 `proguard-rules.pro` 默认只保留说明注释；未有真实 SDK 规则时不得编造 keep 规则。`AndroidManifest.xml` 默认只保留基础 `manifest` 节点。`libs/android/.gitkeep` 用于让空目录可被 Git 保留；本地 AAR/JAR 到位后放在该目录，并由 Gradle 的 `compileOnly(fileTree(...))` 接入。
 
-Kotlin 的 `package` 与物理文件夹必须逐段一致。例如 `<distributionNamespace>` 为 `com.basic.demo.distribution` 时，Provider 的 package 是 `com.basic.demo.distribution`，DI 的 package 是 `com.basic.demo.distribution.di`，两者分别放在 `src/androidMain/kotlin/com/basic/demo/distribution/` 与其 `di/` 子目录；不得仍使用 `com.basic.<capability>` 之类的固定路径。
+Kotlin 的 `package` 与物理文件夹必须逐段一致。例如父模块 namespace 为 `com.basic.demo` 时，公共 Service 接口的 package 是 `com.basic.demo.di.service`，位于 `src/commonMain/kotlin/com/basic/demo/di/service/`；渠道 Service 实现的 package 是 `com.basic.demo.distribution.di.impl`，DI 的 package 是 `com.basic.demo.distribution.di`，分别位于渠道模块的 `src/androidMain/kotlin/com/basic/demo/distribution/di/impl/` 与其 `di/` 子目录；不得仍使用 `com.basic.<capability>` 之类的固定路径。
 
 ## 4. 协议、实现与 DI 模板
 
 ### 4.1 公共协议：默认为空
 
-在 `<modulePath>/src/commonMain` 定义协议。新建时接口没有成员；只有用户明确要求某项渠道差异能力时，才把那项能力加到协议中。
+在 `<modulePath>/src/commonMain/kotlin/<parentNamespacePath>/di/service/` 定义协议，package 为 `<parentNamespace>.di.service`。新建时接口没有成员；只有用户明确要求某项渠道差异能力时，才把那项能力加到协议中。
 
 ```kotlin
-interface <CapabilityPascal>DistributionProvider
+package <parentNamespace>.di.service
+
+interface <CapabilityPascal>DistributionService
 ```
 
 不得把 DeviceId、OAID、Android ID、广告 ID、权限、SDK 初始化或业务方法作为模板默认内容。若后续新增方法，必须同步补齐 China、Play 和 iOS（如适用）实现，并重新做隐私与包体依赖审计。
@@ -108,12 +113,12 @@ interface <CapabilityPascal>DistributionProvider
 ### 4.2 空实现：默认不引入任何专属依赖
 
 ```kotlin
-class China<CapabilityPascal>DistributionProvider : <CapabilityPascal>DistributionProvider
+class China<CapabilityPascal>DistributionServiceImpl : <CapabilityPascal>DistributionService
 
-class Play<CapabilityPascal>DistributionProvider : <CapabilityPascal>DistributionProvider
+class Play<CapabilityPascal>DistributionServiceImpl : <CapabilityPascal>DistributionService
 ```
 
-若公共模块支持 iOS，同样提供空的 `Ios<CapabilityPascal>DistributionProvider`，并注册到 iOS Koin 模块。iOS 不依赖 China / Play Android 子模块。
+上述 Service 实现均放在 `<distributionNamespace>.di.impl` 包；若公共模块支持 iOS，同样提供空的 `Ios<CapabilityPascal>DistributionServiceImpl`，并注册到 iOS Koin 模块。iOS 不依赖 China / Play Android 子模块。
 
 所有新 Kotlin 文件必须遵循项目通用代码规范，包含文件头、KDoc 和真实作者/时间；不能直接复制示例中的占位元数据。
 
@@ -137,27 +142,27 @@ class ApplicationServiceImpl : ApplicationService {
 
 若渠道能力需要处理 Activity Intent 或 iOS Scene 回调，只能在用户明确要求后覆盖 `ApplicationService` 的对应方法；Android 渠道模块不应替 iOS 添加实现。
 
-China 和 Play 的 `DI.kt` 使用相同 package、相同变量名；除绑定各自 Provider 外，必须注册模块自身的 `ApplicationServiceImpl`：
+China 和 Play 的 `DI.kt` 使用相同 package、相同变量名；除绑定各自 Distribution Service 外，必须注册模块自身的 `ApplicationServiceImpl`：
 
 ```kotlin
 package <distributionNamespace>.di
 
 import com.basic.base.di.service.ApplicationService
 import com.basic.base.spi.registerSPI
-import <parentNamespace>.<CapabilityPascal>DistributionProvider
-import <distributionNamespace>.China<CapabilityPascal>DistributionProvider
+import <parentNamespace>.di.service.<CapabilityPascal>DistributionService
+import <distributionNamespace>.di.impl.China<CapabilityPascal>DistributionServiceImpl
 import <distributionNamespace>.di.impl.ApplicationServiceImpl
 import org.koin.dsl.module
 
 val <capabilityCamel>DistributionModule = module {
     registerSPI<ApplicationService> { ApplicationServiceImpl() }
-    registerSPI<<CapabilityPascal>DistributionProvider> {
-        China<CapabilityPascal>DistributionProvider()
+    registerSPI<<CapabilityPascal>DistributionService> {
+        China<CapabilityPascal>DistributionServiceImpl()
     }
 }
 ```
 
-Play 版本只将 Provider 实现替换为 `Play<CapabilityPascal>DistributionProvider`，其 `ApplicationServiceImpl` 路径和注册写法保持相同。iOS 的 `<capabilityCamel>IosModule` 在公共模块的 `iosMain` 注册 `Ios<CapabilityPascal>DistributionProvider`；只有 iOS 也存在对应生命周期行为时，才在公共模块的 iOS 实现中注册 iOS 生命周期服务。
+Play 版本只将 Service 实现替换为 `Play<CapabilityPascal>DistributionServiceImpl`，其 `ApplicationServiceImpl` 路径和注册写法保持相同。iOS 的 `<capabilityCamel>IosModule` 在公共模块的 `iosMain` 注册 `Ios<CapabilityPascal>DistributionServiceImpl`；只有 iOS 也存在对应生命周期行为时，才在公共模块的 iOS 实现中注册 iOS 生命周期服务。
 
 ## 5. Gradle 与 App 接入模板
 

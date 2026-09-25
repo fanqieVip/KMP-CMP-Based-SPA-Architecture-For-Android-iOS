@@ -6,11 +6,11 @@
 package com.basic.common.di
 
 import com.basic.base.spi.registerSPI
-import com.basic.common.CommonDistributionProvider
-import com.basic.common.IosCommonDistributionProvider
+import com.basic.common.di.impl.IosCommonDistributionServiceImpl
+import com.basic.common.di.service.CommonDistributionService
 import org.koin.dsl.module
 
 /** iOS 发行渠道公共能力的 Koin 模块。 */
 val commonIosModule = module {
-    registerSPI<CommonDistributionProvider> { IosCommonDistributionProvider() }
+    registerSPI<CommonDistributionService> { IosCommonDistributionServiceImpl() }
 }

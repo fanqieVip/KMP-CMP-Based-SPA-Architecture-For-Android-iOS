@@ -1,22 +1,22 @@
 /**
  * @Description: China 发行渠道的公共基础能力实现，当前提供 OAID 与 Android ID。
  * @Author:         fanjun
- * @CreateDate:     2026/09/25 16:06
+ * @CreateDate:     2026/09/25 23:06
  */
-package com.basic.common.distribution
+package com.basic.common.distribution.di.impl
 
 import android.provider.Settings
 import com.basic.base.ktx.resumeIfActive
 import com.basic.base.utils.defaultMmkv
-import com.basic.common.CommonDistributionProvider
-import com.basic.common.DeviceId
+import com.basic.common.beans.DeviceId
+import com.basic.common.di.service.CommonDistributionService
 import com.blankj.utilcode.util.Utils
 import com.github.gzuliyujiang.oaid.DeviceID
 import com.github.gzuliyujiang.oaid.IGetter
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 /** China 发行渠道的公共基础能力实现。 */
-class ChinaCommonDistributionProvider : CommonDistributionProvider {
+class ChinaCommonDistributionServiceImpl : CommonDistributionService {
     /** 当前进程的设备标识缓存。 */
     private var deviceId: DeviceId? = null
 
