@@ -1,6 +1,7 @@
 import com.frame.basic.buildsrc.ProjectBuildConfig
 import com.frame.basic.ktx.toBuildConfigClassName
 import com.frame.basic.ktx.toResourceClassName
+import com.frame.basic.utils.isReleaseEnv
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
@@ -48,6 +49,11 @@ kotlin {
                 implementation(libs.koin.annotations)
                 implementation(libs.koin.compose)
                 api(projects.core.common)
+                if (project.isReleaseEnv()) {
+                    api(libs.ktor.monitor.no.op)
+                } else {
+                    api(libs.ktor.monitor)
+                }
             }
         }
 

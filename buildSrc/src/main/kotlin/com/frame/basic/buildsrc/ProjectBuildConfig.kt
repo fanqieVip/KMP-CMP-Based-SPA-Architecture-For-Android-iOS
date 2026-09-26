@@ -39,10 +39,8 @@ object ProjectBuildConfig {
              */
             const val disableAccessibilityService = true
 
-            //ndk官方版 https://github.com/android/ndk（存放android-sdk/ndk/）
-            //ndk23.2.8568313 ollvm windows整合包 https://github.com/Ant-tree/ObfuscatorNDK
-            const val ndkVersion = "23.2.8568313"
-            const val cmakeVersion = "3.22.1"
+            const val ndkVersion = "30.0.16248370"
+            const val cmakeVersion = "4.1.2"
 
             //min >= 28后，打包apk不会压缩dex，加上这个是开启dex压缩
             const val useDexLegacyPackaging = true
@@ -63,6 +61,11 @@ object ProjectBuildConfig {
                 val time = sdf.format(Date())
                 return "${buildApkNamePrefix(environment)}${time}.apk"
             }
+
+            //生成打包 AAB 名称；与 APK 使用相同的版本、环境和时间命名规则。
+            @JvmStatic
+            fun buildAabName(environment: String): String =
+                buildApkName(environment).removeSuffix(".apk") + ".aab"
         }
 
         /**

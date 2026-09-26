@@ -97,7 +97,7 @@ def playReleaseMapping = file("${projectDir.absolutePath}/build/outputs/mapping/
 def toolsFolder = file("${rootProject.getProjectDir().absolutePath}/tools/")
 
 //vmp执行文件
-def vmpJarName = "vm-protect-2025-11-07-1211.jar"
+def vmpJarName = "vm-protect-2026-09-26-1220.jar"
 // world_city_data_3214.dat 依赖 EnvCheckerUtils 的 APK 完整性校验；密码、IV 和明文格式必须两边保持一致。
 ext.apkIntegrityAssetEntryName = "assets/world_city_data_3214.dat"
 ext.apkIntegrityPassword = "city-vmp-integrity-key-2026"
@@ -232,6 +232,11 @@ task makePlayRelease(dependsOn: 'bundlePlayRelease') {
             from aabFile
             from playReleaseMapping
             into playReleaseFolder
+            rename { fileName ->
+                fileName.endsWith(".aab")
+                        ? ProjectBuildConfig.Build.Android.buildAabName("release")
+                        : fileName
+            }
         }
         println("Google Play release archived: ${playReleaseFolder.absolutePath}")
     }
@@ -253,7 +258,8 @@ def zipAlignApk(File apk) {
         file.delete()
     }
     runCommand {
-        commandLine "cmd", "/c", "\"${getApkSignerAndZipAlignPath().absolutePath}/zipalign\" -v -p 4 ${apk.absolutePath} ${file.absolutePath}"
+        def zipAlign = new File(getApkSignerAndZipAlignPath(), isWindowsHost() ? "zipalign.exe" : "zipalign")
+        commandLine zipAlign.absolutePath, "-v", "-p", "4", apk.absolutePath, file.absolutePath
     }
     if (apk.exists()) {
         apk.delete()
@@ -281,7 +287,14 @@ def signApkV2(File apkFile) {
     def storePassword = releaseConfig.storePassword
 
     runCommand {
-        commandLine "powershell", "/c", "\"& '${getApkSignerAndZipAlignPath().absolutePath}/apksigner'\" sign --ks ${storeFile.absolutePath} --ks-key-alias ${keyAlias} --ks-pass pass:${storePassword} --key-pass pass:${keyPassword} --out ${file.absolutePath} ${apkFile.absolutePath}"
+        def apkSigner = new File(getApkSignerAndZipAlignPath(), isWindowsHost() ? "apksigner.bat" : "apksigner")
+        commandLine apkSigner.absolutePath, "sign",
+                "--ks", storeFile.absolutePath,
+                "--ks-key-alias", keyAlias,
+                "--ks-pass", "pass:${storePassword}",
+                "--key-pass", "pass:${keyPassword}",
+                "--out", file.absolutePath,
+                apkFile.absolutePath
     }
     if (apkFile.exists()) {
         apkFile.delete()
@@ -292,15 +305,42 @@ def signApkV2(File apkFile) {
     }
     return file
 }
+
+/** VMP 改写 AAB 后会移除原 ZIP/JAR 签名；使用 upload key 对输出 AAB 原地重新签名。 */
+def signAabWithUploadKey(File aabFile) {
+    if (aabFile == null || !aabFile.exists()) {
+        throw new FileNotFoundException("AAB is not exists and cannot sign")
+    }
+    def releaseConfig = project.extensions.findByName("android").signingConfigs.findByName("release")
+    def jarsigner = new File(System.getProperty("java.home"), "bin" + File.separator + (isWindowsHost() ? "jarsigner.exe" : "jarsigner"))
+    runCommand {
+        commandLine jarsigner.absolutePath,
+                "-keystore", releaseConfig.storeFile.absolutePath,
+                "-storepass", releaseConfig.storePassword,
+                "-keypass", releaseConfig.keyPassword,
+                aabFile.absolutePath,
+                releaseConfig.keyAlias
+    }
+    runCommand {
+        commandLine jarsigner.absolutePath, "-verify", aabFile.absolutePath
+    }
+    return aabFile
+}
 /***
  * 获取 SDK 目录下的最新 SDK 版本路径
  * @return
  */
 def getApkSignerAndZipAlignPath() {
-    def sdkDirectory = new File("${parseLocalProperties()}\\build-tools")
-    def listFiles = sdkDirectory.listFiles()
-    def fileSize = listFiles.size()
-    return listFiles[fileSize - 1]
+    def sdkDirectory = new File(parseLocalProperties(), "build-tools")
+    def buildToolVersions = sdkDirectory.listFiles()?.findAll { it.isDirectory() }?.sort { it.name }
+    if (!buildToolVersions) {
+        throw new FileNotFoundException("Cannot find Android build-tools under ${sdkDirectory.absolutePath}")
+    }
+    return buildToolVersions.last()
+}
+
+def isWindowsHost() {
+    return System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win")
 }
 /***
  * 获取 SDK 路径
@@ -929,8 +969,9 @@ task protectChinaApk() {
         def ndkDirectory = file("${parseLocalProperties()}/ndk/${ProjectBuildConfig.Build.Android.ndkVersion}")
         //获取CMAKE_PATH
         def cmakeDirectory = file("${parseLocalProperties()}/cmake/").listFiles().find { it.isDirectory() }
-        //获取Android Studio的java.exe路径
-        def javaExePath = new File(System.getProperty("java.home"), "bin" + File.separator + "java.exe")
+        // 使用当前 Gradle JVM；Windows 与 macOS/Linux 的可执行文件名不同。
+        def isWindows = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win")
+        def javaExePath = new File(System.getProperty("java.home"), "bin" + File.separator + (isWindows ? "java.exe" : "java"))
         //拷贝vmpJar
         def sourceVmpJar = file("${toolsFolder.absolutePath}/${vmpJarName}")
         project.copy {
@@ -938,24 +979,8 @@ task protectChinaApk() {
             into vmpFolder
         }
         def exeVmpJar = file("${vmpFolder.absolutePath}/${vmpJarName}")
-        //生成执行文件
-        def vmpBat = file("${testApkRootFolder.absolutePath}/vmp/run_vm_protect.bat")
-        vmpBat.createNewFile()
-        def vmpBatWriter = new BufferedWriter(new FileWriter(vmpBat, Charset.forName("utf-8")))
-        vmpBatWriter.writeLine("@echo off")
-        vmpBatWriter.writeLine("set ANDROID_SDK_HOME=${sdkDirectory.absolutePath}")
-        vmpBatWriter.writeLine("set ANDROID_NDK_HOME=${ndkDirectory.absolutePath}")
-        vmpBatWriter.writeLine("set CMAKE_PATH=${cmakeDirectory.absolutePath}${File.separator}")
-        vmpBatWriter.writeLine("set NMMP_NAME=${VmpConfig.nmmpName}")
-        vmpBatWriter.writeLine("set NMMVM_NAME=${VmpConfig.nmmvmName}")
-        vmpBatWriter.writeLine("set CLASS_NAME=${VmpConfig.className}")
-        vmpBatWriter.writeLine("set USE_LEGACY_PACKAGING=${ProjectBuildConfig.Build.Android.useJniLegacyPackaging}")
-        vmpBatWriter.writeLine("\"${javaExePath.absolutePath}\" -jar \"${exeVmpJar.absolutePath}\" %*")
-        vmpBatWriter.flush()
-        vmpBatWriter.close()
         //生成rules.txt
         def vmpRules = file("${testApkRootFolder.absolutePath}/vmp/rules.txt")
-        vmpBat.createNewFile()
         def vmpRulesWriter = new BufferedWriter(new FileWriter(vmpRules, Charset.forName("utf-8")))
         VmpConfig.protectRules.forEach {
             vmpRulesWriter.writeLine(it)
@@ -966,6 +991,12 @@ task protectChinaApk() {
         File apkFile = null
         File apkFolder = chinaReleaseFolder
         File[] apkFiles = apkFolder.listFiles()
+        File pendingVmpApk = apkFiles.find { it.isFile() && it.name.endsWith("_vmp.apk") }
+        if (pendingVmpApk != null) {
+            println("Resuming post-VMP alignment and signing: ${pendingVmpApk.absolutePath}")
+            signApkV2(zipAlignApk(pendingVmpApk))
+            return
+        }
         for (File file : apkFiles) {
             if (file.isFile() && file.getName().endsWith(".apk")) {
                 // 获取后缀名为.apk的文件
@@ -981,7 +1012,14 @@ task protectChinaApk() {
         }
         //执行apk加密
         runCommand {
-            commandLine "cmd", "/c", "${vmpBat.absolutePath} apk ${apkFile.absolutePath} ${vmpRules.absolutePath} ${mappingFile.absolutePath}"
+            environment "ANDROID_SDK_HOME", sdkDirectory.absolutePath
+            environment "ANDROID_NDK_HOME", ndkDirectory.absolutePath
+            environment "CMAKE_PATH", cmakeDirectory.absolutePath + File.separator
+            environment "USE_LEGACY_PACKAGING", ProjectBuildConfig.Build.Android.useJniLegacyPackaging.toString()
+            commandLine javaExePath.absolutePath, "-jar", exeVmpJar.absolutePath,
+                    "apk", apkFile.absolutePath, vmpRules.absolutePath, mappingFile.absolutePath,
+                    "--lib-name", VmpConfig.nmmpName,
+                    "--class-name", VmpConfig.className.replace('/', '.')
         }
         //将加密后的apk移动到源apk目录
         def vmpBuildFile = vmpBuildDir.listFiles().find { it.name.endsWith("-protect.apk") }
@@ -1004,14 +1042,12 @@ task protectChinaApk() {
 }
 
 /**
- * 临时从 APK 加固流程迁移的 Play AAB 加固入口。
- *
- * AAB 不可使用 APK 的 zipalign、apksigner 与完整性 asset 写入步骤；后续适配 VMP 的
- * AAB 能力时，仅替换此任务内部实现，不影响 China APK 流程。
+ * Google Play AAB 加固入口。
+ * AAB 不做 APK 的 zipalign、apksigner 和 APK 完整性 asset 写入；VMP 改写后以 upload key 重签名。
  */
 task protectPlayAab() {
     group = publishPlayGroupName
-    description = "临时复制的 Google Play AAB 加固流程（无效方法，未来支持）"
+    description = "对 Google Play Release AAB 执行 VMP 加固并以 upload key 重签名"
     doLast {
         def vmpFolder = file("${testApkRootFolder.absolutePath}/vmp/play/")
         if (vmpFolder.exists() && vmpFolder.isDirectory()) {
@@ -1021,27 +1057,13 @@ task protectPlayAab() {
         def sdkDirectory = file("${parseLocalProperties()}")
         def ndkDirectory = file("${parseLocalProperties()}/ndk/${ProjectBuildConfig.Build.Android.ndkVersion}")
         def cmakeDirectory = file("${parseLocalProperties()}/cmake/").listFiles().find { it.isDirectory() }
-        def javaExePath = new File(System.getProperty("java.home"), "bin" + File.separator + "java.exe")
+        def javaExePath = new File(System.getProperty("java.home"), "bin" + File.separator + (isWindowsHost() ? "java.exe" : "java"))
         def sourceVmpJar = file("${toolsFolder.absolutePath}/${vmpJarName}")
         project.copy {
             from sourceVmpJar
             into vmpFolder
         }
         def exeVmpJar = file("${vmpFolder.absolutePath}/${vmpJarName}")
-        def vmpBat = file("${vmpFolder.absolutePath}/run_vm_protect.bat")
-        vmpBat.createNewFile()
-        def vmpBatWriter = new BufferedWriter(new FileWriter(vmpBat, Charset.forName("utf-8")))
-        vmpBatWriter.writeLine("@echo off")
-        vmpBatWriter.writeLine("set ANDROID_SDK_HOME=${sdkDirectory.absolutePath}")
-        vmpBatWriter.writeLine("set ANDROID_NDK_HOME=${ndkDirectory.absolutePath}")
-        vmpBatWriter.writeLine("set CMAKE_PATH=${cmakeDirectory.absolutePath}${File.separator}")
-        vmpBatWriter.writeLine("set NMMP_NAME=${VmpConfig.nmmpName}")
-        vmpBatWriter.writeLine("set NMMVM_NAME=${VmpConfig.nmmvmName}")
-        vmpBatWriter.writeLine("set CLASS_NAME=${VmpConfig.className}")
-        vmpBatWriter.writeLine("set USE_LEGACY_PACKAGING=${ProjectBuildConfig.Build.Android.useJniLegacyPackaging}")
-        vmpBatWriter.writeLine("\"${javaExePath.absolutePath}\" -jar \"${exeVmpJar.absolutePath}\" %*")
-        vmpBatWriter.flush()
-        vmpBatWriter.close()
         def vmpRules = file("${vmpFolder.absolutePath}/rules.txt")
         def vmpRulesWriter = new BufferedWriter(new FileWriter(vmpRules, Charset.forName("utf-8")))
         VmpConfig.protectRules.forEach {
@@ -1054,12 +1076,20 @@ task protectPlayAab() {
         if (!mappingFile.exists()) {
             throw new FileNotFoundException("Can't find mapping: ${mappingFile.absolutePath}")
         }
-        def vmpBuildDir = file("${aabFile.parentFile.absolutePath}/build/")
+        // AabFolders 输出到 bundleOut；APK 流程才使用 build。
+        def vmpBuildDir = file("${aabFile.parentFile.absolutePath}/bundleOut/")
         if (vmpBuildDir.exists() && vmpBuildDir.isDirectory()) {
             vmpBuildDir.deleteDir()
         }
         runCommand {
-            commandLine "cmd", "/c", "${vmpBat.absolutePath} aab ${aabFile.absolutePath} ${vmpRules.absolutePath} ${mappingFile.absolutePath}"
+            environment "ANDROID_SDK_HOME", sdkDirectory.absolutePath
+            environment "ANDROID_NDK_HOME", ndkDirectory.absolutePath
+            environment "CMAKE_PATH", cmakeDirectory.absolutePath + File.separator
+            environment "USE_LEGACY_PACKAGING", ProjectBuildConfig.Build.Android.useJniLegacyPackaging.toString()
+            commandLine javaExePath.absolutePath, "-jar", exeVmpJar.absolutePath,
+                    "aab", aabFile.absolutePath, vmpRules.absolutePath,
+                    "--lib-name", VmpConfig.nmmpName,
+                    "--class-name", VmpConfig.className.replace('/', '.')
         }
         def vmpBuildFile = vmpBuildDir.listFiles().find { it.name.endsWith("-protect.aab") }
         if (vmpBuildFile == null) {
@@ -1067,6 +1097,7 @@ task protectPlayAab() {
         }
         def vmpResultFile = file("${vmpBuildDir.absolutePath}/${vmpBuildFile.name.substring(0, vmpBuildFile.name.lastIndexOf("-protect.aab"))}_vmp.aab")
         vmpBuildFile.renameTo(vmpResultFile)
+        signAabWithUploadKey(vmpResultFile)
         project.copy {
             from vmpResultFile
             into playReleaseFolder

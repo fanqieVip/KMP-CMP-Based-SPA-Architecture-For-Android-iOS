@@ -279,30 +279,21 @@ private fun hasApkIntegritySignatureAsset(context: android.content.Context): Boo
 
 /**
  * 判断当前 APK 是否带有 VmpConfig 配置的 VMP so。
+ * 当前 VMP 将 VM 静态合并到核心库，因此每个 ABI 只需要主库。
  * 非生产环境 BuildKonfig 注入空字符串，此时返回 false，表示普通开发包不启用该校验。
  */
 private fun hasVmpProtectedSo(apkPath: String): Boolean {
     val nmmpName = BuildConfig_com_basic_base.VMP_NMMP_NAME
-    val nmmvmName = BuildConfig_com_basic_base.VMP_NMMVM_NAME
-    if (nmmpName.isEmpty() || nmmvmName.isEmpty()) {
+    if (nmmpName.isEmpty()) {
         return false
     }
     val nmmpSoName = "/lib${nmmpName}.so"
-    val nmmvmSoName = "/lib${nmmvmName}.so"
     return runCatching {
         ZipFile(apkPath).use { zipFile ->
             val entries = zipFile.entries()
-            var hasNmmp = false
-            var hasNmmvm = false
             while (entries.hasMoreElements()) {
                 val name = entries.nextElement().name
                 if (name.startsWith("lib/") && name.endsWith(nmmpSoName)) {
-                    hasNmmp = true
-                }
-                if (name.startsWith("lib/") && name.endsWith(nmmvmSoName)) {
-                    hasNmmvm = true
-                }
-                if (hasNmmp && hasNmmvm) {
                     return@use true
                 }
             }
@@ -316,6 +307,8 @@ private fun hasVmpProtectedSo(apkPath: String): Boolean {
  * 未发现 integrity asset 时，只有在 APK 同时带有 VMP so 特征才判失败，防止删除 asset 绕过加固包校验。
  */
 private fun verifyApkIntegritySignatureOrThrow(context: android.content.Context) {
+    // AAB 会由 Google Play 拆分和重新签名，China APK 专用的条目清单不适用于 Play。
+    if (BuildConfig_com_basic_base.IS_PLAY) return
     val sourceDir = context.applicationInfo.sourceDir ?: throw RuntimeException("unknow error")
     if (!hasApkIntegritySignatureAsset(context)) {
         if (hasVmpProtectedSo(sourceDir)) {
@@ -348,6 +341,8 @@ private fun verifyApkIntegritySignatureOrThrow(context: android.content.Context)
  * 校验证书签名是否仍为当前发布签名。
  */
 private fun verifyApkCertificateOrThrow(context: android.content.Context) {
+    // Play 分发 APK 的签名证书由 Google Play App Signing 管理，暂不在客户端固定校验。
+    if (BuildConfig_com_basic_base.IS_PLAY) return
     val sha1 = (run {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             runCatching {
