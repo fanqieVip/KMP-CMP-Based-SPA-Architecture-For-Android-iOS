@@ -185,6 +185,5 @@ buildkonfig {
         buildConfigField(FieldSpec.Type.STRING, "APK_VERIFY_CODE", ApkSha1Utils.getSha1("${rootDir.absolutePath}/buildSrc/${SignConfig.storeFile}", SignConfig.keyAlias, SignConfig.storePassword))
         // 仅生产环境注入 VMP so 名称；非生产环境为空，EnvCheckerUtils 会跳过 VMP 专属完整性校验。
         buildConfigField(FieldSpec.Type.STRING, "VMP_NMMP_NAME", if (project.isReleaseEnv()) VmpConfig.nmmpName else "")
-        buildConfigField(FieldSpec.Type.STRING, "VMP_NMMVM_NAME", if (project.isReleaseEnv()) VmpConfig.nmmvmName else "")
     }
 }

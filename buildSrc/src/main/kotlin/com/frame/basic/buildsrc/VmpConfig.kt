@@ -25,7 +25,6 @@ object VmpConfig {
      * }
      * //比如'class * extends A' 只会匹配B而不会再匹配C
      *
-     * 注意：需要与app/proguard-rules.pro配套使用，避免出现r8优化后加密失效的问题
      */
     @JvmStatic
     val protectRules = listOf<String>(
@@ -40,12 +39,6 @@ object VmpConfig {
      * 尽量使用扰乱视听的名字
      */
     const val nmmpName = "jiaguCore"
-
-    /**
-     * 虚拟机库名称
-     * 尽量使用扰乱视听的名字
-     */
-    const val nmmvmName = "jiaguPro"
 
     /**
      * 初始化类

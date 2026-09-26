@@ -97,7 +97,7 @@ def playReleaseMapping = file("${projectDir.absolutePath}/build/outputs/mapping/
 def toolsFolder = file("${rootProject.getProjectDir().absolutePath}/tools/")
 
 //vmp执行文件
-def vmpJarName = "vm-protect-2026-09-26-1220.jar"
+def vmpJarName = "vm-protect-2026-09-26-1650.jar"
 // world_city_data_3214.dat 依赖 EnvCheckerUtils 的 APK 完整性校验；密码、IV 和明文格式必须两边保持一致。
 ext.apkIntegrityAssetEntryName = "assets/world_city_data_3214.dat"
 ext.apkIntegrityPassword = "city-vmp-integrity-key-2026"
@@ -998,10 +998,14 @@ task protectChinaApk() {
             return
         }
         for (File file : apkFiles) {
-            if (file.isFile() && file.getName().endsWith(".apk")) {
+            if (file.isFile() && file.getName().endsWith(".apk") &&
+                    !file.getName().contains("_vmp")) {
                 // 获取后缀名为.apk的文件
                 apkFile = file
             }
+        }
+        if (apkFile == null) {
+            throw new GradleException("No unprotected APK found in ${apkFolder.absolutePath}. Run makeChinaRelease first; *_vmp*.apk cannot be protected twice.")
         }
         //获取mapping
         def mappingFile = file("${chinaReleaseFolder.absolutePath}/mapping.txt")
