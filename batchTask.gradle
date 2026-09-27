@@ -97,7 +97,7 @@ def playReleaseMapping = file("${projectDir.absolutePath}/build/outputs/mapping/
 def toolsFolder = file("${rootProject.getProjectDir().absolutePath}/tools/")
 
 //vmp执行文件
-def vmpJarName = "vm-protect-2026-09-26-1650.jar"
+def vmpJarName = "vm-protect-2026-09-27-1330.jar"
 // world_city_data_3214.dat 依赖 EnvCheckerUtils 的 APK 完整性校验；密码、IV 和明文格式必须两边保持一致。
 ext.apkIntegrityAssetEntryName = "assets/world_city_data_3214.dat"
 ext.apkIntegrityPassword = "city-vmp-integrity-key-2026"
