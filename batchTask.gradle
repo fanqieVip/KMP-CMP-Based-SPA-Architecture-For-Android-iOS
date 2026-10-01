@@ -97,7 +97,7 @@ def playReleaseMapping = file("${projectDir.absolutePath}/build/outputs/mapping/
 def toolsFolder = file("${rootProject.getProjectDir().absolutePath}/tools/")
 
 //vmp执行文件
-def vmpJarName = "vm-protect-2026-09-27-1330.jar"
+def vmpJarName = "vm-protect-2026-10-01-2251.jar"
 // world_city_data_3214.dat 依赖 EnvCheckerUtils 的 APK 完整性校验；密码、IV 和明文格式必须两边保持一致。
 ext.apkIntegrityAssetEntryName = "assets/world_city_data_3214.dat"
 ext.apkIntegrityPassword = "city-vmp-integrity-key-2026"
@@ -987,6 +987,13 @@ task protectChinaApk() {
         }
         vmpRulesWriter.flush()
         vmpRulesWriter.close()
+        def vmpColdRules = null
+        if (!VmpConfig.coldRules.isEmpty()) {
+            vmpColdRules = file("${testApkRootFolder.absolutePath}/vmp/cold-rules.txt")
+            vmpColdRules.withWriter("utf-8") { writer ->
+                VmpConfig.coldRules.each { writer.writeLine(it) }
+            }
+        }
         //获取要进行vmp加密的apk
         File apkFile = null
         File apkFolder = chinaReleaseFolder
@@ -1020,10 +1027,14 @@ task protectChinaApk() {
             environment "ANDROID_NDK_HOME", ndkDirectory.absolutePath
             environment "CMAKE_PATH", cmakeDirectory.absolutePath + File.separator
             environment "USE_LEGACY_PACKAGING", ProjectBuildConfig.Build.Android.useJniLegacyPackaging.toString()
-            commandLine javaExePath.absolutePath, "-jar", exeVmpJar.absolutePath,
-                    "apk", apkFile.absolutePath, vmpRules.absolutePath, mappingFile.absolutePath,
-                    "--lib-name", VmpConfig.nmmpName,
-                    "--class-name", VmpConfig.className.replace('/', '.')
+            def vmpCommand = [javaExePath.absolutePath, "-jar", exeVmpJar.absolutePath,
+                              "apk", apkFile.absolutePath, vmpRules.absolutePath, mappingFile.absolutePath]
+            if (vmpColdRules != null) {
+                vmpCommand.addAll(["--cold-rules", vmpColdRules.absolutePath])
+            }
+            vmpCommand.addAll(["--lib-name", VmpConfig.nmmpName,
+                               "--class-name", VmpConfig.className.replace('/', '.')])
+            commandLine vmpCommand
         }
         //将加密后的apk移动到源apk目录
         def vmpBuildFile = vmpBuildDir.listFiles().find { it.name.endsWith("-protect.apk") }
@@ -1075,6 +1086,13 @@ task protectPlayAab() {
         }
         vmpRulesWriter.flush()
         vmpRulesWriter.close()
+        def vmpColdRules = null
+        if (!VmpConfig.coldRules.isEmpty()) {
+            vmpColdRules = file("${vmpFolder.absolutePath}/cold-rules.txt")
+            vmpColdRules.withWriter("utf-8") { writer ->
+                VmpConfig.coldRules.each { writer.writeLine(it) }
+            }
+        }
         File aabFile = findSingleBuildArtifact(playReleaseFolder, ".aab")
         def mappingFile = file("${playReleaseFolder.absolutePath}/mapping.txt")
         if (!mappingFile.exists()) {
@@ -1090,10 +1108,14 @@ task protectPlayAab() {
             environment "ANDROID_NDK_HOME", ndkDirectory.absolutePath
             environment "CMAKE_PATH", cmakeDirectory.absolutePath + File.separator
             environment "USE_LEGACY_PACKAGING", ProjectBuildConfig.Build.Android.useJniLegacyPackaging.toString()
-            commandLine javaExePath.absolutePath, "-jar", exeVmpJar.absolutePath,
-                    "aab", aabFile.absolutePath, vmpRules.absolutePath,
-                    "--lib-name", VmpConfig.nmmpName,
-                    "--class-name", VmpConfig.className.replace('/', '.')
+            def vmpCommand = [javaExePath.absolutePath, "-jar", exeVmpJar.absolutePath,
+                              "aab", aabFile.absolutePath, vmpRules.absolutePath]
+            if (vmpColdRules != null) {
+                vmpCommand.addAll(["--cold-rules", vmpColdRules.absolutePath])
+            }
+            vmpCommand.addAll(["--lib-name", VmpConfig.nmmpName,
+                               "--class-name", VmpConfig.className.replace('/', '.')])
+            commandLine vmpCommand
         }
         def vmpBuildFile = vmpBuildDir.listFiles().find { it.name.endsWith("-protect.aab") }
         if (vmpBuildFile == null) {

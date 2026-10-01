@@ -33,6 +33,20 @@ object VmpConfig {
         "class com.basic.common.* { *; }"
     )
 
+    /**
+     * VMP 冷路径规则（可选）。规则命中的方法会在 so 中以密文保存，调用时解到临时
+     * native 缓冲区，并在返回前覆写清零；未命中的 protectRules 方法仍使用标准 VMP。
+     *
+     * API 用法：每一项与 [protectRules] 语法相同，且必须同时被 protectRules 命中。
+     * - 指定类的全部可转换方法："class com.example.SecurityManager { *; }"
+     * - 指定单个方法："class com.example.SecurityManager { verifyLicense; }"
+     * - 使用通配符："class com.example.SecurityManager { verify*; }"
+     *
+     * 留空即可关闭冷路径保护。请仅选择低频且敏感的方法，因为冷路径会有额外执行开销。
+     */
+    @JvmStatic
+    val coldRules = emptyList<String>()
+
 
     /**
      * 核心库名称
